@@ -1,0 +1,130 @@
+#![allow(non_snake_case)]
+#![windows_subsystem = "windows"]
+
+use mkey::platform::{alloc_console, attach_parent_console, ensure_single_instance};
+use mkey::{EngineAction, VietnameseEngine};
+use std::io::{self, BufRead};
+
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    let is_cli = args.iter().any(|a| a == "--cli");
+    let is_autostart = args.iter().any(|a| a == "--autostart" || a == "--silent");
+
+    // Single-instance guard: prevent multiple running instances of MKey
+    if !ensure_single_instance(is_cli) {
+        return;
+    }
+
+    // Attach to existing parent console if launched from terminal (cmd/PowerShell)
+    attach_parent_console();
+
+    // Load configuration & macros unified from ~/.config/mkey/config.ini
+    let (mut config, macros) = mkey::load_config_and_macros();
+
+    // Command-line flag overrides
+    if args.iter().any(|a| a == "--no-debug") {
+        config.debug = false;
+    }
+    if args.iter().any(|a| a == "--debug") {
+        config.debug = true;
+    }
+    if args.iter().any(|a| a == "--quick-start") {
+        config.quick_start_consonant = true;
+    }
+    if args.iter().any(|a| a == "--quick-end") {
+        config.quick_end_consonant = true;
+    }
+    if args.iter().any(|a| a == "--auto-caps") {
+        config.auto_uppercase_first_char = true;
+    }
+
+    let is_debug = config.debug;
+    let mut engine = VietnameseEngine::new(config);
+    engine.macro_table = macros;
+
+    if is_cli {
+        alloc_console();
+        run_cli(engine);
+    } else {
+        #[cfg(target_os = "windows")]
+        {
+            println!("========================================================");
+            println!("         MKey Vietnamese Engine - Windows Hook          ");
+            println!("========================================================");
+            let log_path = engine.config().debug_file_path.as_deref().unwrap_or("Không lưu");
+            println!("* Debug Keylogger: {}", if is_debug { "BẬT (Ghi vết chi tiết từng phím & state)" } else { "TẮT" });
+            println!("* File lưu nhật ký: {}", if is_debug { log_path } else { "TẮT" });
+            println!("* Gõ tắt (Macro): {}", if engine.config().use_macro { "BẬT" } else { "TẮT (Mặc định tắt)" });
+            println!("* Số lượng từ gõ tắt: {}", engine.macro_table.len());
+            println!("* Tự động viết hoa đầu câu: {}", if engine.config().auto_uppercase_first_char { "BẬT" } else { "TẮT" });
+            println!("* Phụ âm nhanh đầu từ (f->ph, j->gi, w->qu): {}", if engine.config().quick_start_consonant { "BẬT" } else { "TẮT" });
+            println!("* Phụ âm nhanh cuối từ (g->ng, h->nh, k->ch): {}", if engine.config().quick_end_consonant { "BẬT" } else { "TẮT" });
+            println!("* Phím tắt chuyển chế độ Việt [V] / Anh [E]: [{}]", if engine.config().switch_with_ctrl_shift { "Ctrl + Shift" } else { "Alt + Z" });
+            println!("* Phím tắt ngoặc: [ -> ư, ] -> ơ");
+            println!("* Cấu hình lưu tại: {}", mkey::get_config_path().display());
+            println!("--------------------------------------------------------");
+
+            if is_debug {
+                if let Some(ref path) = engine.config().debug_file_path {
+                    use std::io::Write;
+                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+                        let _ = writeln!(f, "\n========================================================");
+                        let _ = writeln!(f, "MKey Session Started: {}", mkey::engine::current_timestamp_str());
+                        let _ = writeln!(f, "Method: {:?} | Macro: {}", engine.config().method, engine.config().use_macro);
+                        let _ = writeln!(f, "========================================================");
+                    }
+                }
+            }
+
+            mkey::platform::win32::run_hook_loop(engine, is_autostart);
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            run_cli(engine);
+        }
+    }
+}
+
+fn run_cli(mut engine: VietnameseEngine) {
+    println!("========================================================");
+    println!("          MKey Vietnamese Engine - CLI Demo             ");
+    println!("========================================================");
+    println!("Gõ các phím tiếng Việt (Telex) để kiểm tra hoạt động:");
+    println!("Ví dụ: 'tooi gox tieengs vieetj' -> 'tôi gõ tiếng việt'");
+    println!("(Nhập 'exit' hoặc 'quit' để thoát)");
+    println!("--------------------------------------------------------");
+
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => break,
+        };
+
+        if line == "exit" || line == "quit" {
+            break;
+        }
+
+        let mut output = String::new();
+        engine.reset();
+
+        for ch in line.chars() {
+            let is_upper = ch.is_uppercase();
+            match engine.on_key(ch, is_upper, false) {
+                EngineAction::Passthrough => {
+                    output.push(ch);
+                }
+                EngineAction::Replace { backspaces, output: new_text } => {
+                    for _ in 0..backspaces {
+                        output.pop();
+                    }
+                    output.push_str(&new_text);
+                }
+                EngineAction::Consume => {}
+            }
+        }
+
+        println!("Kết quả: {}", output);
+    }
+}

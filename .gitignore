@@ -1,0 +1,11 @@
+# Rust build artifacts
+/target
+
+# Logs
+*.log
+mkey_debug.log
+
+# OS temporary files
+.DS_Store
+Thumbs.db
+desktop.ini

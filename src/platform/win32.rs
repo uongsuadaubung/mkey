@@ -26,6 +26,7 @@ pub const WM_SYSKEYDOWN: usize = 0x0104;
 pub const WM_SYSKEYUP: usize = 0x0105;
 
 pub const INPUT_KEYBOARD: u32 = 1;
+pub const KEYEVENTF_EXTENDEDKEY: u32 = 0x0001;
 pub const KEYEVENTF_KEYUP: u32 = 0x0002;
 pub const KEYEVENTF_UNICODE: u32 = 0x0004;
 
@@ -195,70 +196,97 @@ pub static ENGINE_INSTANCE: Mutex<Option<VietnameseEngine>> = Mutex::new(None);
 static HOOK_HANDLE: Mutex<isize> = Mutex::new(0);
 static MOUSE_HOOK_HANDLE: Mutex<isize> = Mutex::new(0);
 
-/// Sends backspaces and replacement string in a SINGLE atomic SendInput batch
+
+#[inline]
+fn push_backspace(inputs: &mut Vec<INPUT>) {
+    inputs.push(INPUT {
+        r#type: INPUT_KEYBOARD,
+        u: INPUT_UNION {
+            ki: KEYBDINPUT {
+                w_vk: VK_BACK,
+                w_scan: 0x0E,
+                dw_flags: 0,
+                time: 0,
+                dw_extra_info: MAGIC_EXTRA_INFO,
+            },
+        },
+    });
+    inputs.push(INPUT {
+        r#type: INPUT_KEYBOARD,
+        u: INPUT_UNION {
+            ki: KEYBDINPUT {
+                w_vk: VK_BACK,
+                w_scan: 0x0E,
+                dw_flags: KEYEVENTF_KEYUP,
+                time: 0,
+                dw_extra_info: MAGIC_EXTRA_INFO,
+            },
+        },
+    });
+}
+
+#[inline]
+fn push_unicode_char(inputs: &mut Vec<INPUT>, code_unit: u16) {
+    inputs.push(INPUT {
+        r#type: INPUT_KEYBOARD,
+        u: INPUT_UNION {
+            ki: KEYBDINPUT {
+                w_vk: 0,
+                w_scan: code_unit,
+                dw_flags: KEYEVENTF_UNICODE,
+                time: 0,
+                dw_extra_info: MAGIC_EXTRA_INFO,
+            },
+        },
+    });
+    inputs.push(INPUT {
+        r#type: INPUT_KEYBOARD,
+        u: INPUT_UNION {
+            ki: KEYBDINPUT {
+                w_vk: 0,
+                w_scan: code_unit,
+                dw_flags: KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
+                time: 0,
+                dw_extra_info: MAGIC_EXTRA_INFO,
+            },
+        },
+    });
+}
+
+/// Sends backspaces and replacement string in a SINGLE atomic SendInput batch.
+/// Neutralizes autocomplete/prediction selections in browser address bars (Firefox, Chrome, Edge)
+/// and Excel by sending a Narrow No-Break Space (U+202F) that collapses the suggestion before backspacing.
 pub fn send_replace(backspaces: usize, text: &str) {
     let utf16: Vec<u16> = text.encode_utf16().collect();
-    let total_inputs = backspaces * 2 + utf16.len() * 2;
-    if total_inputs == 0 {
+    if backspaces == 0 && utf16.is_empty() {
         return;
     }
 
-    let mut inputs = Vec::with_capacity(total_inputs);
+    let mut inputs = Vec::with_capacity(2 + (backspaces + 1) * 2 + utf16.len() * 2);
 
-    // 1. Send all backspaces
-    for _ in 0..backspaces {
-        inputs.push(INPUT {
-            r#type: INPUT_KEYBOARD,
-            u: INPUT_UNION {
-                ki: KEYBDINPUT {
-                    w_vk: VK_BACK,
-                    w_scan: 0x0E,
-                    dw_flags: 0,
-                    time: 0,
-                    dw_extra_info: MAGIC_EXTRA_INFO,
-                },
-            },
-        });
-        inputs.push(INPUT {
-            r#type: INPUT_KEYBOARD,
-            u: INPUT_UNION {
-                ki: KEYBDINPUT {
-                    w_vk: VK_BACK,
-                    w_scan: 0x0E,
-                    dw_flags: KEYEVENTF_KEYUP,
-                    time: 0,
-                    dw_extra_info: MAGIC_EXTRA_INFO,
-                },
-            },
-        });
+    if backspaces > 0 && !utf16.is_empty() {
+        // Universal Autocomplete Fix (Firefox, Chrome, Edge, Brave, Excel):
+        // 1. Send Unicode U+202F (Narrow No-Break Space).
+        //    This immediately neutralizes/replaces any active autocomplete selection
+        //    (e.g. "go[ogle.com/]") without moving caret or changing focus.
+        push_unicode_char(&mut inputs, 0x202F);
+
+        // 2. Send backspaces + 1:
+        //    - The 1st backspace deletes the U+202F character.
+        //    - The remaining `backspaces` delete the target characters to be replaced.
+        for _ in 0..=backspaces {
+            push_backspace(&mut inputs);
+        }
+    } else {
+        // Pure backspaces (no text to replace)
+        for _ in 0..backspaces {
+            push_backspace(&mut inputs);
+        }
     }
 
-    // 2. Send replacement unicode characters in the SAME batch
+    // 3. Send replacement unicode characters in the SAME atomic batch
     for &code_unit in &utf16 {
-        inputs.push(INPUT {
-            r#type: INPUT_KEYBOARD,
-            u: INPUT_UNION {
-                ki: KEYBDINPUT {
-                    w_vk: 0,
-                    w_scan: code_unit,
-                    dw_flags: KEYEVENTF_UNICODE,
-                    time: 0,
-                    dw_extra_info: MAGIC_EXTRA_INFO,
-                },
-            },
-        });
-        inputs.push(INPUT {
-            r#type: INPUT_KEYBOARD,
-            u: INPUT_UNION {
-                ki: KEYBDINPUT {
-                    w_vk: 0,
-                    w_scan: code_unit,
-                    dw_flags: KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
-                    time: 0,
-                    dw_extra_info: MAGIC_EXTRA_INFO,
-                },
-            },
-        });
+        push_unicode_char(&mut inputs, code_unit);
     }
 
     unsafe {

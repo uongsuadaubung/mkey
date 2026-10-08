@@ -105,15 +105,44 @@ impl TypingBuffer {
             self.clear();
         }
 
+        let prev_rendered = self.state.render();
         self.raw_keys.push(key);
 
         let current_state = std::mem::take(&mut self.state);
         let (next_state, action) = current_state.feed_key(key, self.emitted_len, config);
         self.state = next_state;
 
+        // Common Prefix Optimization:
+        // If the unchanged prefix of the word (e.g. onset 'g' in "go" -> "gõ") remains identical,
+        // do not backspace and re-emit it. Only backspace the changed suffix ("o") and emit ("õ").
+        // This eliminates duplicate characters ("ggõ") on browser address bars (Firefox, Chrome).
+        let action = match action {
+            EngineAction::Replace { backspaces, output } => {
+                let prev_chars: Vec<char> = prev_rendered.chars().collect();
+                let new_chars: Vec<char> = output.chars().collect();
+
+                let mut common = 0;
+                while common < prev_chars.len() && common < new_chars.len() && prev_chars[common] == new_chars[common] {
+                    common += 1;
+                }
+
+                if common > 0 {
+                    let opt_backspaces = prev_chars.len() - common;
+                    let opt_output: String = new_chars[common..].iter().collect();
+                    EngineAction::Replace {
+                        backspaces: opt_backspaces,
+                        output: opt_output,
+                    }
+                } else {
+                    EngineAction::Replace { backspaces, output }
+                }
+            }
+            other => other,
+        };
+
         match &action {
-            EngineAction::Replace { output, .. } => {
-                self.emitted_len = output.encode_utf16().count();
+            EngineAction::Replace { .. } => {
+                self.emitted_len = self.state.render().encode_utf16().count();
             }
             EngineAction::Passthrough => {
                 self.emitted_len += key.ch.len_utf16();

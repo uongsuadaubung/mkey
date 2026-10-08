@@ -4,8 +4,7 @@ pub mod spelling;
 pub mod state;
 pub mod syllable;
 
-pub use charset::{decompose_vowel, is_d_stroke, BaseVowel, Diacritic, Tone};
-pub use modifier::{match_modifier_key, KeyEffect};
-pub use syllable::{Syllable, VowelLetter};
+pub use charset::{BaseVowel, Diacritic, Tone, decompose_vowel, is_d_stroke};
+pub use modifier::{KeyEffect, match_modifier_key};
 pub use state::SyllableState;
-
+pub use syllable::{Syllable, VowelLetter};

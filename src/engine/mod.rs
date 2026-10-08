@@ -5,13 +5,13 @@ pub mod config_store;
 pub mod history;
 pub mod macro_table;
 
+use crate::vietnamese::spelling::is_valid_vietnamese_syllable;
 use action::EngineAction;
 use buffer::{RawKey, TypingBuffer};
 pub use config::EngineConfig;
 use history::WordHistory;
 use macro_table::MacroTable;
-use crate::vietnamese::spelling::is_valid_vietnamese_syllable;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{Sender, channel};
 
 /// Non-blocking asynchronous log worker that writes debug logs to disk on a dedicated thread,
 /// preventing any I/O disk stalls on the Windows low-level hook thread.
@@ -144,7 +144,10 @@ impl VietnameseEngine {
     pub fn reset(&mut self) {
         if self.config.debug && !self.buffer.is_empty() {
             let prev_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
-            self.log_debug(format!("[DBG][RESET] Session reset. Word in buffer was: {:?}", prev_word));
+            self.log_debug(format!(
+                "[DBG][RESET] Session reset. Word in buffer was: {:?}",
+                prev_word
+            ));
         }
         self.buffer.clear();
         self.history.clear();
@@ -236,10 +239,7 @@ impl VietnameseEngine {
                     self.history.clear();
                 }
 
-                return EngineAction::Replace {
-                    backspaces,
-                    output,
-                };
+                return EngineAction::Replace { backspaces, output };
             }
         }
 
@@ -251,7 +251,7 @@ impl VietnameseEngine {
             let is_invalid = if rendered != raw_word {
                 match self.buffer.state.to_syllable() {
                     Some(syllable) => !is_valid_vietnamese_syllable(&syllable),
-                    None => rendered.chars().any(|c| !c.is_ascii()),
+                    None => !rendered.is_ascii(),
                 }
             } else {
                 false
@@ -268,17 +268,15 @@ impl VietnameseEngine {
                 ));
 
                 if ch == ' ' {
-                    self.history.commit_word(self.buffer.raw_keys.clone(), raw_word, true);
+                    self.history
+                        .commit_word(self.buffer.raw_keys.clone(), raw_word, true);
                     self.history.add_space();
                 } else {
                     self.history.clear();
                 }
                 self.buffer.clear();
 
-                return EngineAction::Replace {
-                    backspaces,
-                    output,
-                };
+                return EngineAction::Replace { backspaces, output };
             }
         }
 
@@ -321,18 +319,17 @@ impl VietnameseEngine {
 
         if self.buffer.is_empty() {
             let mut restored_word = None;
-            if self.config.remember_history_across_space {
-                if let Some(restored) = self.history.pop_backspace() {
-                    if let Some((raw_keys, is_raw_restored)) = restored {
-                        restored_word = Some(raw_keys.iter().map(|k| k.ch).collect::<String>());
-                        if is_raw_restored {
-                            self.buffer.restore_as_passthrough(raw_keys);
-                        } else {
-                            // Replay previous word into buffer
-                            for k in raw_keys {
-                                self.buffer.feed_key(k, &self.config);
-                            }
-                        }
+            if self.config.remember_history_across_space
+                && let Some(restored) = self.history.pop_backspace()
+                && let Some((raw_keys, is_raw_restored)) = restored
+            {
+                restored_word = Some(raw_keys.iter().map(|k| k.ch).collect::<String>());
+                if is_raw_restored {
+                    self.buffer.restore_as_passthrough(raw_keys);
+                } else {
+                    // Replay previous word into buffer
+                    for k in raw_keys {
+                        self.buffer.feed_key(k, &self.config);
                     }
                 }
             }
@@ -401,7 +398,7 @@ pub fn current_timestamp_str() -> String {
     #[cfg(target_os = "windows")]
     {
         #[repr(C)]
-        #[allow(non_snake_case)]
+        #[allow(non_snake_case, non_camel_case_types, clippy::upper_case_acronyms)]
         struct SYSTEMTIME {
             wYear: u16,
             wMonth: u16,
@@ -437,4 +434,3 @@ pub fn current_timestamp_str() -> String {
         format!("{}.{:03}", now.as_secs(), now.subsec_millis())
     }
 }
-

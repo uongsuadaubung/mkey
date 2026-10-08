@@ -1,14 +1,19 @@
 use mkey::{
-    get_config_path, parse_config_and_macros,
-    EngineConfig, InputMethod, MacroTable,
+    EngineConfig, InputMethod, MacroTable, UiTheme, get_config_path, parse_config_and_macros,
 };
 
 #[test]
 fn test_default_config_has_macro_disabled() {
     let config = EngineConfig::default();
     assert!(!config.use_macro, "use_macro must be false by default");
-    assert!(config.switch_with_ctrl_shift, "switch_with_ctrl_shift should default to true");
-    assert!(!config.autostart, "autostart should default to false");
+    assert!(
+        config.switch_with_ctrl_shift,
+        "switch_with_ctrl_shift should default to true"
+    );
+    assert!(
+        config.show_dialog_on_startup,
+        "show_dialog_on_startup should default to true"
+    );
 }
 
 #[test]
@@ -33,8 +38,9 @@ quick_end_consonant = true
 remember_history = true
 
 [system]
-autostart = true
+show_dialog_on_startup = false
 debug = true
+theme = dark
 
 [macro]
 ko = không
@@ -55,8 +61,9 @@ vn = Việt Nam
     assert!(config.quick_start_consonant);
     assert!(config.quick_end_consonant);
     assert!(config.remember_history_across_space);
-    assert!(config.autostart);
+    assert!(!config.show_dialog_on_startup);
     assert!(config.debug);
+    assert_eq!(config.theme, UiTheme::Dark);
 
     assert_eq!(macros.lookup("ko"), Some("không".to_string()));
     assert_eq!(macros.lookup("dc"), Some("được".to_string()));
@@ -66,11 +73,14 @@ vn = Việt Nam
 
 #[test]
 fn test_config_store_roundtrip() {
-    let mut config = EngineConfig::default();
-    config.method = InputMethod::SimpleTelex1;
-    config.use_macro = false;
-    config.quick_start_consonant = true;
-    config.autostart = false;
+    let config = EngineConfig {
+        method: InputMethod::SimpleTelex1,
+        use_macro: false,
+        quick_start_consonant: true,
+        show_dialog_on_startup: false,
+        theme: UiTheme::Dark,
+        ..Default::default()
+    };
 
     let mut macros = MacroTable::new();
     macros.insert("test", "thử nghiệm");
@@ -83,12 +93,20 @@ fn test_config_store_roundtrip() {
     assert_eq!(loaded_config.method, InputMethod::SimpleTelex1);
     assert!(!loaded_config.use_macro);
     assert!(loaded_config.quick_start_consonant);
+    assert!(!loaded_config.show_dialog_on_startup);
+    assert_eq!(loaded_config.theme, UiTheme::Dark);
     assert_eq!(loaded_macros.lookup("test"), Some("thử nghiệm".to_string()));
-    assert_eq!(loaded_macros.lookup("rust"), Some("ngôn ngữ Rust".to_string()));
+    assert_eq!(
+        loaded_macros.lookup("rust"),
+        Some("ngôn ngữ Rust".to_string())
+    );
 
     // Verify config path helper is valid
     let path = get_config_path();
-    assert!(path.to_string_lossy().contains(".config"), "Config path should be in .config");
+    assert!(
+        path.to_string_lossy().contains(".config"),
+        "Config path should be in .config"
+    );
 }
 
 #[test]
@@ -97,12 +115,24 @@ fn test_windows_autostart_registry_toggle() {
     {
         use mkey::platform::{is_windows_autostart_enabled, set_windows_autostart};
 
+        // Lưu lại trạng thái ban đầu của máy người dùng để không làm mất cài đặt khi chạy test
+        let initial_state = is_windows_autostart_enabled();
+
         // 1. Enable autostart
         set_windows_autostart(true);
-        assert!(is_windows_autostart_enabled(), "Registry must reflect autostart enabled");
+        assert!(
+            is_windows_autostart_enabled(),
+            "Registry must reflect autostart enabled"
+        );
 
         // 2. Disable autostart
         set_windows_autostart(false);
-        assert!(!is_windows_autostart_enabled(), "Registry must reflect autostart disabled");
+        assert!(
+            !is_windows_autostart_enabled(),
+            "Registry must reflect autostart disabled"
+        );
+
+        // 3. Khôi phục lại trạng thái ban đầu của người dùng
+        set_windows_autostart(initial_state);
     }
 }

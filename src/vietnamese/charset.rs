@@ -32,17 +32,27 @@ pub enum BaseVowel {
     Y,
 }
 
-impl BaseVowel {
-    pub fn from_char(c: char) -> Option<Self> {
+impl TryFrom<char> for BaseVowel {
+    type Error = ();
+
+    #[inline]
+    fn try_from(c: char) -> Result<Self, Self::Error> {
         match c.to_ascii_lowercase() {
-            'a' => Some(Self::A),
-            'e' => Some(Self::E),
-            'i' => Some(Self::I),
-            'o' => Some(Self::O),
-            'u' => Some(Self::U),
-            'y' => Some(Self::Y),
-            _ => None,
+            'a' => Ok(Self::A),
+            'e' => Ok(Self::E),
+            'i' => Ok(Self::I),
+            'o' => Ok(Self::O),
+            'u' => Ok(Self::U),
+            'y' => Ok(Self::Y),
+            _ => Err(()),
         }
+    }
+}
+
+impl BaseVowel {
+    #[inline]
+    pub fn from_char(c: char) -> Option<Self> {
+        Self::try_from(c).ok()
     }
 }
 
@@ -263,5 +273,3 @@ pub fn decompose_vowel(c: char) -> Option<(BaseVowel, Diacritic, Tone)> {
 pub fn is_d_stroke(c: char) -> bool {
     matches!(c, 'đ' | 'Đ')
 }
-
-

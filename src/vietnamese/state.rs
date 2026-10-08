@@ -1,17 +1,15 @@
 use super::{
-    charset::{compose_d, compose_vowel, decompose_vowel, is_d_stroke, BaseVowel, Diacritic, Tone},
-    modifier::{match_modifier_key, KeyEffect},
+    VowelLetter,
+    charset::{BaseVowel, Diacritic, Tone, compose_d, compose_vowel, decompose_vowel, is_d_stroke},
+    modifier::{KeyEffect, match_modifier_key},
     spelling::{
-        can_vowels_accept_coda, is_valid_coda_pair, is_valid_coda_start, is_valid_onset_extension,
+        can_vowels_accept_coda, is_stop_coda, is_valid_coda_pair, is_valid_coda_start,
+        is_valid_onset_extension,
     },
     syllable::Syllable,
-    VowelLetter,
 };
-use crate::engine::{
-    action::EngineAction,
-    buffer::RawKey,
-    config::EngineConfig,
-};
+use crate::engine::{action::EngineAction, buffer::RawKey, config::EngineConfig};
+use std::fmt;
 
 /// Onset (Phụ âm đầu)
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -25,26 +23,31 @@ impl OnsetState {
         Self::default()
     }
 
-    pub fn to_string(&self) -> String {
-        let mut s = String::new();
-        for &(c, is_upper) in &self.chars {
-            if c.to_ascii_lowercase() == 'd' {
-                s.push(compose_d(self.is_d_stroke, is_upper));
-            } else if is_upper {
-                s.extend(c.to_uppercase());
-            } else {
-                s.extend(c.to_lowercase());
-            }
-        }
-        s
-    }
-
     pub fn len(&self) -> usize {
         self.chars.len()
     }
 
     pub fn is_empty(&self) -> bool {
         self.chars.is_empty()
+    }
+}
+
+impl fmt::Display for OnsetState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for &(c, is_upper) in &self.chars {
+            if c.eq_ignore_ascii_case(&'d') {
+                write!(f, "{}", compose_d(self.is_d_stroke, is_upper))?;
+            } else if is_upper {
+                for u in c.to_uppercase() {
+                    write!(f, "{u}")?;
+                }
+            } else {
+                for l in c.to_lowercase() {
+                    write!(f, "{l}")?;
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -68,8 +71,10 @@ impl NucleusState {
             let v1 = &self.vowels[1];
 
             // If ươ (both have horn) -> tone on ơ (index 1)
-            if v0.base == BaseVowel::U && v0.diacritic == Diacritic::Horn
-                && v1.base == BaseVowel::O && v1.diacritic == Diacritic::Horn
+            if v0.base == BaseVowel::U
+                && v0.diacritic == Diacritic::Horn
+                && v1.base == BaseVowel::O
+                && v1.diacritic == Diacritic::Horn
             {
                 return 1;
             }
@@ -109,39 +114,19 @@ impl NucleusState {
         0
     }
 
-    pub fn to_string(&self) -> String {
-        let mut s = String::new();
-        if let Some(ref onset) = self.onset {
-            s.push_str(&onset.to_string());
-        }
-
-        let tone_pos = self.find_tone_position();
-        for (i, v) in self.vowels.iter().enumerate() {
-            let tone_for_vowel = if i == tone_pos { self.tone } else { Tone::None };
-            s.push(compose_vowel(v.base, v.diacritic, tone_for_vowel, v.is_upper));
-        }
-
-        s
-    }
-
     /// Converts this Nucleus into a standard Syllable for validation/inspection
     pub fn to_syllable(&self) -> Syllable {
-        Syllable {
-            onset: self.onset.as_ref().map(|o| o.chars.clone()).unwrap_or_default(),
-            d_stroke: self.onset.as_ref().map(|o| o.is_d_stroke).unwrap_or(false),
-            vowels: self.vowels.clone(),
-            tone: self.tone,
-            coda: Vec::new(),
-        }
+        self.into()
     }
 
     /// Free mark 'd' stroke toggle: toggles onset 'd' <-> 'đ'
     pub fn toggle_d_stroke(&mut self) -> bool {
-        if let Some(ref mut onset) = self.onset {
-            if !onset.chars.is_empty() && onset.chars[0].0.to_ascii_lowercase() == 'd' {
-                onset.is_d_stroke = !onset.is_d_stroke;
-                return true;
-            }
+        if let Some(ref mut onset) = self.onset
+            && !onset.chars.is_empty()
+            && onset.chars[0].0.eq_ignore_ascii_case(&'d')
+        {
+            onset.is_d_stroke = !onset.is_d_stroke;
+            return true;
         }
         false
     }
@@ -213,16 +198,13 @@ impl NucleusState {
                     _ => false,
                 }
             }
-            3 => {
+            3
                 // Triphthong e.g. "uoi" -> "ươi", "uou" -> "ươu"
-                if self.vowels[0].base == BaseVowel::U && self.vowels[1].base == BaseVowel::O {
+                if self.vowels[0].base == BaseVowel::U && self.vowels[1].base == BaseVowel::O => {
                     self.vowels[0].diacritic = Diacritic::Horn;
                     self.vowels[1].diacritic = Diacritic::Horn;
                     true
-                } else {
-                    false
                 }
-            }
             _ => false,
         }
     }
@@ -280,12 +262,14 @@ impl NucleusState {
         match effect {
             KeyEffect::Circumflex(target) => {
                 if let Some(coda_chars) = coda {
-                    let coda_str: String = coda_chars.iter().map(|&(c, _)| c.to_ascii_lowercase()).collect();
                     // In Vietnamese, multi-vowel diphthongs like "ie" -> "iê", "uo" -> "uô" always allow circumflex
                     // even before tone is typed (e.g. "tiep" + 'e' -> "tiêp" + 's' -> "tiếp").
                     // For single vowels with stop codas (c, ch, p, t) and no tone, incoming vowels are English
                     // continuations (e.g. "data", "delete", "compete"), so avoid applying circumflex.
-                    if self.vowels.len() <= 1 && matches!(coda_str.as_str(), "c" | "ch" | "p" | "t") && self.tone == Tone::None {
+                    if self.vowels.len() <= 1
+                        && is_stop_coda(coda_chars)
+                        && self.tone == Tone::None
+                    {
                         return ModifierOutcome::NotApplied;
                     }
                 }
@@ -293,13 +277,18 @@ impl NucleusState {
                 match target {
                     Some(target_base) => {
                         // Double vowel circumflex (Telex: aa -> â, ee -> ê, oo -> ô)
-                        if let Some(pos) = self.vowels.iter().rposition(|v| v.base == target_base && v.diacritic == Diacritic::Circumflex) {
+                        if let Some(pos) = self.vowels.iter().rposition(|v| {
+                            v.base == target_base && v.diacritic == Diacritic::Circumflex
+                        }) {
                             let prev_v = self.vowels.remove(pos);
-                            self.vowels.insert(pos, VowelLetter {
-                                base: target_base,
-                                diacritic: Diacritic::None,
-                                is_upper: prev_v.is_upper,
-                            });
+                            self.vowels.insert(
+                                pos,
+                                VowelLetter {
+                                    base: target_base,
+                                    diacritic: Diacritic::None,
+                                    is_upper: prev_v.is_upper,
+                                },
+                            );
                             ModifierOutcome::Undone(make_raw(self))
                         } else if self.toggle_circumflex(target_base) {
                             ModifierOutcome::Applied
@@ -323,7 +312,7 @@ impl NucleusState {
 
             KeyEffect::DStroke => {
                 if let Some(ref mut onset) = self.onset {
-                    if !onset.chars.is_empty() && onset.chars[0].0.to_ascii_lowercase() == 'd' {
+                    if !onset.chars.is_empty() && onset.chars[0].0.eq_ignore_ascii_case(&'d') {
                         if config.method.is_telex_family() && onset.is_d_stroke {
                             // Telex undo toggle: 3rd 'd' cancels 'đ' into 'dd'
                             onset.is_d_stroke = false;
@@ -370,7 +359,12 @@ impl NucleusState {
             }
 
             KeyEffect::Breve => {
-                if let Some(v) = self.vowels.iter_mut().rev().find(|v| v.base == BaseVowel::A) {
+                if let Some(v) = self
+                    .vowels
+                    .iter_mut()
+                    .rev()
+                    .find(|v| v.base == BaseVowel::A)
+                {
                     v.diacritic = if v.diacritic == Diacritic::Breve {
                         Diacritic::None
                     } else {
@@ -393,14 +387,12 @@ impl NucleusState {
                     }
                 } else {
                     self.tone = tone;
-                    if let Some(coda_chars) = coda {
-                        let coda_str: String = coda_chars.iter().map(|&(c, _)| c.to_ascii_lowercase()).collect();
-                        if matches!(coda_str.as_str(), "c" | "ch" | "p" | "t")
-                            && !matches!(self.tone, Tone::Acute | Tone::DotBelow)
-                        {
-                            self.tone = Tone::None;
-                            return ModifierOutcome::NotApplied;
-                        }
+                    if let Some(coda_chars) = coda
+                        && is_stop_coda(coda_chars)
+                        && !matches!(self.tone, Tone::Acute | Tone::DotBelow)
+                    {
+                        self.tone = Tone::None;
+                        return ModifierOutcome::NotApplied;
                     }
                     ModifierOutcome::Applied
                 }
@@ -418,11 +410,11 @@ impl NucleusState {
                             changed = true;
                         }
                     }
-                    if let Some(ref mut onset) = self.onset {
-                        if onset.is_d_stroke {
-                            onset.is_d_stroke = false;
-                            changed = true;
-                        }
+                    if let Some(ref mut onset) = self.onset
+                        && onset.is_d_stroke
+                    {
+                        onset.is_d_stroke = false;
+                        changed = true;
                     }
                     if changed {
                         ModifierOutcome::Applied
@@ -433,6 +425,41 @@ impl NucleusState {
                     ModifierOutcome::NotApplied
                 }
             }
+        }
+    }
+}
+
+impl fmt::Display for NucleusState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(ref onset) = self.onset {
+            write!(f, "{onset}")?;
+        }
+
+        let tone_pos = self.find_tone_position();
+        for (i, v) in self.vowels.iter().enumerate() {
+            let tone_for_vowel = if i == tone_pos { self.tone } else { Tone::None };
+            write!(
+                f,
+                "{}",
+                compose_vowel(v.base, v.diacritic, tone_for_vowel, v.is_upper)
+            )?;
+        }
+        Ok(())
+    }
+}
+
+impl From<&NucleusState> for Syllable {
+    fn from(nucleus: &NucleusState) -> Self {
+        Syllable {
+            onset: nucleus
+                .onset
+                .as_ref()
+                .map(|o| o.chars.clone())
+                .unwrap_or_default(),
+            d_stroke: nucleus.onset.as_ref().is_some_and(|o| o.is_d_stroke),
+            vowels: nucleus.vowels.clone(),
+            tone: nucleus.tone,
+            coda: Vec::new(),
         }
     }
 }
@@ -452,10 +479,15 @@ pub struct CodaState {
 }
 
 impl CodaState {
-    pub fn to_string(&self) -> String {
-        let mut s = String::new();
+    pub fn to_syllable(&self) -> Syllable {
+        self.into()
+    }
+}
+
+impl fmt::Display for CodaState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(ref onset) = self.nucleus.onset {
-            s.push_str(&onset.to_string());
+            write!(f, "{onset}")?;
         }
 
         // When there is a coda, tone is placed according to coda rules:
@@ -477,34 +509,54 @@ impl CodaState {
             } else {
                 Tone::None
             };
-            s.push(compose_vowel(v.base, v.diacritic, tone_for_vowel, v.is_upper));
+            write!(
+                f,
+                "{}",
+                compose_vowel(v.base, v.diacritic, tone_for_vowel, v.is_upper)
+            )?;
         }
 
         for &(c, is_upper) in &self.coda {
             if is_upper {
-                s.extend(c.to_uppercase());
+                for u in c.to_uppercase() {
+                    write!(f, "{u}")?;
+                }
             } else {
-                s.extend(c.to_lowercase());
+                for l in c.to_lowercase() {
+                    write!(f, "{l}")?;
+                }
             }
         }
 
-        s
+        Ok(())
     }
+}
 
-    pub fn to_syllable(&self) -> Syllable {
+impl From<&CodaState> for Syllable {
+    fn from(coda: &CodaState) -> Self {
         Syllable {
-            onset: self.nucleus.onset.as_ref().map(|o| o.chars.clone()).unwrap_or_default(),
-            d_stroke: self.nucleus.onset.as_ref().map(|o| o.is_d_stroke).unwrap_or(false),
-            vowels: self.nucleus.vowels.clone(),
-            tone: self.nucleus.tone,
-            coda: self.coda.clone(),
+            onset: coda
+                .nucleus
+                .onset
+                .as_ref()
+                .map(|o| o.chars.clone())
+                .unwrap_or_default(),
+            d_stroke: coda
+                .nucleus
+                .onset
+                .as_ref()
+                .is_some_and(|o| o.is_d_stroke),
+            vowels: coda.nucleus.vowels.clone(),
+            tone: coda.nucleus.tone,
+            coda: coda.coda.clone(),
         }
     }
 }
 
 /// State pattern: Representation of Vietnamese Syllable Parser State
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum SyllableState {
+    #[default]
     Empty,
     Onset(OnsetState),
     Nucleus(NucleusState),
@@ -512,32 +564,32 @@ pub enum SyllableState {
     Passthrough(String),
 }
 
-impl Default for SyllableState {
-    fn default() -> Self {
-        SyllableState::Empty
+impl fmt::Display for SyllableState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SyllableState::Empty => Ok(()),
+            SyllableState::Onset(onset) => write!(f, "{onset}"),
+            SyllableState::Nucleus(nucleus) => write!(f, "{nucleus}"),
+            SyllableState::Coda(coda) => write!(f, "{coda}"),
+            SyllableState::Passthrough(raw) => write!(f, "{raw}"),
+        }
     }
 }
 
 impl SyllableState {
     /// Renders current state to a displayed string
     pub fn render(&self) -> String {
-        match self {
-            SyllableState::Empty => String::new(),
-            SyllableState::Onset(onset) => onset.to_string(),
-            SyllableState::Nucleus(nucleus) => nucleus.to_string(),
-            SyllableState::Coda(coda) => coda.to_string(),
-            SyllableState::Passthrough(raw) => raw.clone(),
-        }
+        self.to_string()
     }
 
     /// Returns a compact summary string of the state for debugging
     pub fn summary(&self) -> String {
         match self {
             SyllableState::Empty => "Empty".to_string(),
-            SyllableState::Onset(onset) => format!("Onset(\"{}\")", onset.to_string()),
-            SyllableState::Nucleus(nucleus) => format!("Nucleus(\"{}\")", nucleus.to_string()),
-            SyllableState::Coda(coda) => format!("Coda(\"{}\")", coda.to_string()),
-            SyllableState::Passthrough(raw) => format!("Passthrough(\"{}\")", raw),
+            SyllableState::Onset(onset) => format!("Onset(\"{onset}\")"),
+            SyllableState::Nucleus(nucleus) => format!("Nucleus(\"{nucleus}\")"),
+            SyllableState::Coda(coda) => format!("Coda(\"{coda}\")"),
+            SyllableState::Passthrough(raw) => format!("Passthrough(\"{raw}\")"),
         }
     }
 
@@ -552,8 +604,8 @@ impl SyllableState {
                 tone: Tone::None,
                 coda: Vec::new(),
             }),
-            SyllableState::Nucleus(nucleus) => Some(nucleus.to_syllable()),
-            SyllableState::Coda(coda) => Some(coda.to_syllable()),
+            SyllableState::Nucleus(nucleus) => Some(nucleus.into()),
+            SyllableState::Coda(coda) => Some(coda.into()),
             SyllableState::Passthrough(_) => None,
         }
     }
@@ -612,7 +664,7 @@ impl SyllableState {
                             let c1 = onset.chars[1].0.to_ascii_lowercase();
                             if (c0 == 'g' && c1 == 'i') || (c0 == 'q' && c1 == 'u') {
                                 let glide = onset.chars.pop().unwrap();
-                                let base = if glide.0.to_ascii_lowercase() == 'i' {
+                                let base = if glide.0.eq_ignore_ascii_case(&'i') {
                                     BaseVowel::I
                                 } else {
                                     BaseVowel::U
@@ -632,10 +684,10 @@ impl SyllableState {
                     }
                 } else {
                     // If the popped vowel carried the tone mark, clear tone
-                    if let Some(pos) = tone_pos_before {
-                        if pos >= nucleus.vowels.len() {
-                            nucleus.tone = Tone::None;
-                        }
+                    if let Some(pos) = tone_pos_before
+                        && pos >= nucleus.vowels.len()
+                    {
+                        nucleus.tone = Tone::None;
                     }
                     SyllableState::Nucleus(nucleus)
                 }
@@ -669,7 +721,9 @@ impl SyllableState {
         match self {
             SyllableState::Empty => Self::handle_empty(key, config),
             SyllableState::Onset(onset) => Self::handle_onset(onset, key, current_len, config),
-            SyllableState::Nucleus(nucleus) => Self::handle_nucleus(nucleus, key, current_len, config),
+            SyllableState::Nucleus(nucleus) => {
+                Self::handle_nucleus(nucleus, key, current_len, config)
+            }
             SyllableState::Coda(coda) => Self::handle_coda(coda, key, current_len, config),
             SyllableState::Passthrough(mut raw) => {
                 raw.push(key.ch);
@@ -917,8 +971,10 @@ impl SyllableState {
         }
 
         // 2. D-Stroke in Onset (Telex 'dd' or VNI 'd9' -> 'đ')
-        let has_onset_d = !onset.chars.is_empty() && onset.chars[0].0.to_ascii_lowercase() == 'd';
-        if let Some(KeyEffect::DStroke) = match_modifier_key(config.method, key.ch, |_| false, has_onset_d) {
+        let has_onset_d = !onset.chars.is_empty() && onset.chars[0].0.eq_ignore_ascii_case(&'d');
+        if let Some(KeyEffect::DStroke) =
+            match_modifier_key(config.method, key.ch, |_| false, has_onset_d)
+        {
             if config.method.is_telex_family() && onset.is_d_stroke {
                 // 3rd 'd' cancels 'đ' and restores double 'dd' into Passthrough!
                 let first_d = if onset.chars[0].1 { 'D' } else { 'd' };
@@ -1017,10 +1073,17 @@ impl SyllableState {
     ) -> (Self, EngineAction) {
         let ch_lower = key.ch.to_ascii_lowercase();
         let is_telex = config.method.is_telex_family();
- 
+
         // 1. Bracket W shortcuts: [[ -> [, ]] -> ]
-        if config.bracket_w && config.method.has_bracket_shortcuts() && nucleus.onset.is_none() && nucleus.vowels.len() == 1 {
-            if key.ch == '[' && nucleus.vowels[0].base == BaseVowel::U && nucleus.vowels[0].diacritic == Diacritic::Horn {
+        if config.bracket_w
+            && config.method.has_bracket_shortcuts()
+            && nucleus.onset.is_none()
+            && nucleus.vowels.len() == 1
+        {
+            if key.ch == '['
+                && nucleus.vowels[0].base == BaseVowel::U
+                && nucleus.vowels[0].diacritic == Diacritic::Horn
+            {
                 return (
                     SyllableState::Passthrough("[".to_string()),
                     EngineAction::Replace {
@@ -1029,7 +1092,10 @@ impl SyllableState {
                     },
                 );
             }
-            if key.ch == ']' && nucleus.vowels[0].base == BaseVowel::O && nucleus.vowels[0].diacritic == Diacritic::Horn {
+            if key.ch == ']'
+                && nucleus.vowels[0].base == BaseVowel::O
+                && nucleus.vowels[0].diacritic == Diacritic::Horn
+            {
                 return (
                     SyllableState::Passthrough("]".to_string()),
                     EngineAction::Replace {
@@ -1041,7 +1107,11 @@ impl SyllableState {
         }
 
         // 2. Unified Modifiers (Tone, Circumflex, Horn, Breve, D-stroke, Undo Toggle)
-        let has_onset_d = nucleus.onset.as_ref().map(|o| !o.chars.is_empty() && o.chars[0].0.to_ascii_lowercase() == 'd').unwrap_or(false);
+        let has_onset_d = nucleus
+            .onset
+            .as_ref()
+            .map(|o| !o.chars.is_empty() && o.chars[0].0.eq_ignore_ascii_case(&'d'))
+            .unwrap_or(false);
         if let Some(effect) = match_modifier_key(
             config.method,
             key.ch,
@@ -1079,18 +1149,23 @@ impl SyllableState {
             // or onset is 'q' and single vowel is 'u' (e.g. "qu"),
             // the arrival of another vowel indicates 'i' or 'u' was the consonant glide!
             // Absorb 'i' / 'u' into onset (making onset "gi" or "qu"), leaving vowels fresh for the incoming vowel!
-            if nucleus.vowels.len() == 1 {
-                if let Some(ref mut onset) = nucleus.onset {
-                    if onset.chars.len() == 1 {
-                        let c0 = onset.chars[0].0.to_ascii_lowercase();
-                        if c0 == 'g' && nucleus.vowels[0].base == BaseVowel::I && nucleus.vowels[0].diacritic == Diacritic::None {
-                            onset.chars.push(('i', nucleus.vowels[0].is_upper));
-                            nucleus.vowels.clear();
-                        } else if c0 == 'q' && nucleus.vowels[0].base == BaseVowel::U && nucleus.vowels[0].diacritic == Diacritic::None {
-                            onset.chars.push(('u', nucleus.vowels[0].is_upper));
-                            nucleus.vowels.clear();
-                        }
-                    }
+            if nucleus.vowels.len() == 1
+                && let Some(ref mut onset) = nucleus.onset
+                && onset.chars.len() == 1
+            {
+                let c0 = onset.chars[0].0.to_ascii_lowercase();
+                if c0 == 'g'
+                    && nucleus.vowels[0].base == BaseVowel::I
+                    && nucleus.vowels[0].diacritic == Diacritic::None
+                {
+                    onset.chars.push(('i', nucleus.vowels[0].is_upper));
+                    nucleus.vowels.clear();
+                } else if c0 == 'q'
+                    && nucleus.vowels[0].base == BaseVowel::U
+                    && nucleus.vowels[0].diacritic == Diacritic::None
+                {
+                    onset.chars.push(('u', nucleus.vowels[0].is_upper));
+                    nucleus.vowels.clear();
                 }
             }
 
@@ -1190,14 +1265,22 @@ impl SyllableState {
         config: &EngineConfig,
     ) -> (Self, EngineAction) {
         // 1. Unified Modifiers across Coda (Telex & VNI)
-        let has_onset_d = coda.nucleus.onset.as_ref().map(|o| !o.chars.is_empty() && o.chars[0].0.to_ascii_lowercase() == 'd').unwrap_or(false);
+        let has_onset_d = coda
+            .nucleus
+            .onset
+            .as_ref()
+            .map(|o| !o.chars.is_empty() && o.chars[0].0.eq_ignore_ascii_case(&'d'))
+            .unwrap_or(false);
         if let Some(effect) = match_modifier_key(
             config.method,
             key.ch,
             |b| coda.nucleus.vowels.iter().any(|v| v.base == b),
             has_onset_d,
         ) {
-            match coda.nucleus.apply_modifier(effect, key, Some(&coda.coda), config) {
+            match coda
+                .nucleus
+                .apply_modifier(effect, key, Some(&coda.coda), config)
+            {
                 ModifierOutcome::Applied => {
                     let output = coda.to_string();
                     return (
@@ -1225,9 +1308,18 @@ impl SyllableState {
         // e.g. "lo" + 'g' -> "long", then typing 'g' again -> "log"
         if config.quick_end_consonant {
             let ch_l = key.ch.to_ascii_lowercase();
-            if (ch_l == 'g' && coda.coda.len() == 2 && coda.coda[0].0.to_ascii_lowercase() == 'n' && coda.coda[1].0.to_ascii_lowercase() == 'g')
-                || (ch_l == 'h' && coda.coda.len() == 2 && coda.coda[0].0.to_ascii_lowercase() == 'n' && coda.coda[1].0.to_ascii_lowercase() == 'h')
-                || (ch_l == 'k' && coda.coda.len() == 2 && coda.coda[0].0.to_ascii_lowercase() == 'c' && coda.coda[1].0.to_ascii_lowercase() == 'h')
+            if (ch_l == 'g'
+                && coda.coda.len() == 2
+                && coda.coda[0].0.eq_ignore_ascii_case(&'n')
+                && coda.coda[1].0.eq_ignore_ascii_case(&'g'))
+                || (ch_l == 'h'
+                    && coda.coda.len() == 2
+                    && coda.coda[0].0.eq_ignore_ascii_case(&'n')
+                    && coda.coda[1].0.eq_ignore_ascii_case(&'h'))
+                || (ch_l == 'k'
+                    && coda.coda.len() == 2
+                    && coda.coda[0].0.eq_ignore_ascii_case(&'c')
+                    && coda.coda[1].0.eq_ignore_ascii_case(&'h'))
             {
                 coda.coda = vec![(key.ch, key.is_upper)];
                 let output = coda.to_string();

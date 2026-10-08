@@ -1,9 +1,8 @@
 //! System Tray Handler & Popup Context Menu for MKey
 
-use crate::engine::{config::InputMethod, EngineConfig};
+use crate::engine::{EngineConfig, config::InputMethod};
 use crate::ui::components::{
-    get_small_icon_size, load_icon_from_memory, safe_destroy_icon,
-    PopupMenu, TrayIcon,
+    PopupMenu, TrayIcon, get_small_icon_size, load_icon_from_memory, safe_destroy_icon,
 };
 
 pub const WM_TRAY_MESSAGE: u32 = 0x8001; // WM_USER + 1
@@ -102,7 +101,10 @@ impl TrayHandler {
         // 2. Input Method
         let is_telex = matches!(config.method, InputMethod::Telex);
         let is_vni = matches!(config.method, InputMethod::Vni);
-        let is_simple = matches!(config.method, InputMethod::SimpleTelex1 | InputMethod::SimpleTelex2);
+        let is_simple = matches!(
+            config.method,
+            InputMethod::SimpleTelex1 | InputMethod::SimpleTelex2
+        );
 
         menu.add_checked_item(IDM_TELEX, "Kiểu gõ Telex", is_telex);
         menu.add_checked_item(IDM_VNI, "Kiểu gõ VNI", is_vni);
@@ -125,4 +127,3 @@ impl Drop for TrayHandler {
         safe_destroy_icon(self.hicon_eng);
     }
 }
-

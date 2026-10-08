@@ -195,10 +195,7 @@ fn test_auto_uppercase_first_char() {
         ..Default::default()
     });
 
-    assert_eq!(
-        simulate_typing(&mut engine, "chao. toi "),
-        "chao. Toi "
-    );
+    assert_eq!(simulate_typing(&mut engine, "chao. toi "), "chao. Toi ");
 }
 
 #[test]
@@ -487,7 +484,6 @@ fn test_duoc_typing_variations() {
     assert_eq!(simulate_typing(&mut engine, "giari "), "giải ");
 }
 
-
 #[test]
 fn test_restore_on_wrong_spelling_english_words() {
     let mut engine = VietnameseEngine::new(EngineConfig::default());
@@ -623,7 +619,9 @@ fn test_undo_toggle_backspace_recovery() {
         match engine.on_key(ch, false, false) {
             EngineAction::Passthrough => screen.push(ch),
             EngineAction::Replace { backspaces, output } => {
-                for _ in 0..backspaces { screen.pop(); }
+                for _ in 0..backspaces {
+                    screen.pop();
+                }
                 screen.push_str(&output);
             }
             EngineAction::Consume => {}
@@ -635,7 +633,9 @@ fn test_undo_toggle_backspace_recovery() {
     match engine.on_key('j', false, false) {
         EngineAction::Passthrough => screen.push('j'),
         EngineAction::Replace { backspaces, output } => {
-            for _ in 0..backspaces { screen.pop(); }
+            for _ in 0..backspaces {
+                screen.pop();
+            }
             screen.push_str(&output);
         }
         EngineAction::Consume => {}
@@ -646,7 +646,9 @@ fn test_undo_toggle_backspace_recovery() {
     match engine.on_key('j', false, false) {
         EngineAction::Passthrough => screen.push('j'),
         EngineAction::Replace { backspaces, output } => {
-            for _ in 0..backspaces { screen.pop(); }
+            for _ in 0..backspaces {
+                screen.pop();
+            }
             screen.push_str(&output);
         }
         EngineAction::Consume => {}
@@ -662,7 +664,9 @@ fn test_undo_toggle_backspace_recovery() {
     match engine.on_key('j', false, false) {
         EngineAction::Passthrough => screen.push('j'),
         EngineAction::Replace { backspaces, output } => {
-            for _ in 0..backspaces { screen.pop(); }
+            for _ in 0..backspaces {
+                screen.pop();
+            }
             screen.push_str(&output);
         }
         EngineAction::Consume => {}
@@ -673,7 +677,9 @@ fn test_undo_toggle_backspace_recovery() {
     match engine.on_key('n', false, false) {
         EngineAction::Passthrough => screen.push('n'),
         EngineAction::Replace { backspaces, output } => {
-            for _ in 0..backspaces { screen.pop(); }
+            for _ in 0..backspaces {
+                screen.pop();
+            }
             screen.push_str(&output);
         }
         EngineAction::Consume => {}
@@ -722,8 +728,6 @@ fn test_free_mark_circumflex_across_coda() {
     assert_eq!(simulate_typing(&mut engine, "dduongws "), "đướng ");
 }
 
-
-
 #[test]
 fn test_macro_expansion_rendered_and_raw() {
     let mut engine = VietnameseEngine::new(EngineConfig {
@@ -745,7 +749,10 @@ fn test_toggle_enabled_mode_switch() {
     assert!(engine.config().enabled);
 
     // Ở chế độ Tiếng Việt: gõ "tieengs vieetj " -> "tiếng việt "
-    assert_eq!(simulate_typing(&mut engine, "tieengs vieetj "), "tiếng việt ");
+    assert_eq!(
+        simulate_typing(&mut engine, "tieengs vieetj "),
+        "tiếng việt "
+    );
 
     // Chuyển sang chế độ Tiếng Anh bằng toggle_enabled()
     let enabled = engine.toggle_enabled();
@@ -753,7 +760,10 @@ fn test_toggle_enabled_mode_switch() {
     assert!(!engine.config().enabled);
 
     // Ở chế độ Tiếng Anh: gõ các phím Telex không bị biến âm
-    assert_eq!(simulate_typing(&mut engine, "tieengs vieetj "), "tieengs vieetj ");
+    assert_eq!(
+        simulate_typing(&mut engine, "tieengs vieetj "),
+        "tieengs vieetj "
+    );
     assert_eq!(simulate_typing(&mut engine, "ddas banhs "), "ddas banhs ");
 
     // Chuyển lại sang Tiếng Việt
@@ -762,7 +772,10 @@ fn test_toggle_enabled_mode_switch() {
     assert!(engine.config().enabled);
 
     // Gõ tiếng Việt lại bình thường
-    assert_eq!(simulate_typing(&mut engine, "tieengs vieetj "), "tiếng việt ");
+    assert_eq!(
+        simulate_typing(&mut engine, "tieengs vieetj "),
+        "tiếng việt "
+    );
 }
 
 #[test]
@@ -771,10 +784,7 @@ fn test_gi_and_qu_glide_coda_words() {
 
     // Case cốt lõi của người dùng: "đơn giản"
     // Gõ "dodwn gianr " -> "đơn giản "
-    assert_eq!(
-        simulate_typing(&mut engine, "dodwn gianr "),
-        "đơn giản "
-    );
+    assert_eq!(simulate_typing(&mut engine, "dodwn gianr "), "đơn giản ");
 
     // Các từ ngữ với 'gi' + nguyên âm + phụ âm cuối
     assert_eq!(simulate_typing(&mut engine, "gianr "), "giản ");
@@ -923,22 +933,32 @@ fn test_optimized_png_icon_loading() {
 
     for sz in [16, 20, 24, 32] {
         let h_viet = load_icon_from_memory(VIET_BYTES, sz, sz);
-        assert!(h_viet.is_some() && h_viet.unwrap() != 0, "Failed to load vi.ico at size {}", sz);
+        assert!(
+            h_viet.is_some() && h_viet.unwrap() != 0,
+            "Failed to load vi.ico at size {}",
+            sz
+        );
         safe_destroy_icon(h_viet.unwrap());
 
         let h_eng = load_icon_from_memory(ENG_BYTES, sz, sz);
-        assert!(h_eng.is_some() && h_eng.unwrap() != 0, "Failed to load en.ico at size {}", sz);
+        assert!(
+            h_eng.is_some() && h_eng.unwrap() != 0,
+            "Failed to load en.ico at size {}",
+            sz
+        );
         safe_destroy_icon(h_eng.unwrap());
     }
 
     for sz in [16, 24, 32, 48, 256] {
         let h_app = load_icon_from_memory(APP_BYTES, sz, sz);
-        assert!(h_app.is_some() && h_app.unwrap() != 0, "Failed to load icon.ico at size {}", sz);
+        assert!(
+            h_app.is_some() && h_app.unwrap() != 0,
+            "Failed to load icon.ico at size {}",
+            sz
+        );
         safe_destroy_icon(h_app.unwrap());
     }
 }
-
-
 
 #[test]
 fn test_dynamic_debug_toggle() {
@@ -948,23 +968,26 @@ fn test_dynamic_debug_toggle() {
     });
 
     simulate_typing(&mut engine, "tieengs ");
-    assert!(engine.debug_log.is_empty(), "Logs should be empty when debug is disabled");
+    assert!(
+        engine.debug_log.is_empty(),
+        "Logs should be empty when debug is disabled"
+    );
 
     // Dynamically enable debug
     engine.config_mut().debug = true;
     simulate_typing(&mut engine, "vieetj ");
-    assert!(!engine.debug_log.is_empty(), "Logs should be recorded after dynamically enabling debug");
+    assert!(
+        !engine.debug_log.is_empty(),
+        "Logs should be recorded after dynamically enabling debug"
+    );
 
     // Dynamically disable debug
     let log_count = engine.debug_log.len();
     engine.config_mut().debug = false;
     simulate_typing(&mut engine, "nam ");
-    assert_eq!(engine.debug_log.len(), log_count, "No new logs should be recorded when disabled again");
+    assert_eq!(
+        engine.debug_log.len(),
+        log_count,
+        "No new logs should be recorded when disabled again"
+    );
 }
-
-
-
-
-
-
-

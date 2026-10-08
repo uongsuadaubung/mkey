@@ -37,7 +37,7 @@ fn test_group_1_english_words_preservation() {
     assert_eq!(simulate(&mut engine, "flag "), "flag ");
     assert_eq!(simulate(&mut engine, "dog "), "dog ");
     assert_eq!(simulate(&mut engine, "passs "), "pass "); // Gõ 'passs' (3 phím 's') để ra 'pass'
-    assert_eq!(simulate(&mut engine, "pass "), "pas ");   // Gõ 2 phím 's' hủy sắc trả lại 1 chữ 's' -> 'pas'
+    assert_eq!(simulate(&mut engine, "pass "), "pas "); // Gõ 2 phím 's' hủy sắc trả lại 1 chữ 's' -> 'pas'
 }
 
 #[test]
@@ -62,9 +62,9 @@ fn test_group_2_undo_toggle_and_cancel_key() {
     // 5. Phím 'z' xóa dấu thanh hoặc xóa dấu phụ (móc, mũ, đ-stroke)
     assert_eq!(simulate(&mut engine, "toansz "), "toan ");
     assert_eq!(simulate(&mut engine, "hoafz "), "hoa ");
-    assert_eq!(simulate(&mut engine, "cowz "), "co ");  // Gõ 'cow' ra 'cơ', gõ 'z' xóa móc sừng thành 'co'
-    assert_eq!(simulate(&mut engine, "tooz "), "to ");  // Gõ 'too' ra 'tô', gõ 'z' xóa mũ thành 'to'
-    assert_eq!(simulate(&mut engine, "ddaz "), "da ");  // Gõ 'dda' ra 'đa', gõ 'z' xóa nét đ thành 'da'
+    assert_eq!(simulate(&mut engine, "cowz "), "co "); // Gõ 'cow' ra 'cơ', gõ 'z' xóa móc sừng thành 'co'
+    assert_eq!(simulate(&mut engine, "tooz "), "to "); // Gõ 'too' ra 'tô', gõ 'z' xóa mũ thành 'to'
+    assert_eq!(simulate(&mut engine, "ddaz "), "da "); // Gõ 'dda' ra 'đa', gõ 'z' xóa nét đ thành 'da'
 
     // 6. Gõ lặp phím 'w' khôi phục chữ 'w' (e.g. coww -> cow)
     assert_eq!(simulate(&mut engine, "coww "), "cow ");
@@ -133,7 +133,9 @@ fn test_group_5_backspace_across_space() {
         match engine.on_key(ch, false, false) {
             EngineAction::Passthrough => screen.push(ch),
             EngineAction::Replace { backspaces, output } => {
-                for _ in 0..backspaces { screen.pop(); }
+                for _ in 0..backspaces {
+                    screen.pop();
+                }
                 screen.push_str(&output);
             }
             EngineAction::Consume => {}
@@ -149,7 +151,9 @@ fn test_group_5_backspace_across_space() {
     match engine.on_key('s', false, false) {
         EngineAction::Passthrough => screen.push('s'),
         EngineAction::Replace { backspaces, output } => {
-            for _ in 0..backspaces { screen.pop(); }
+            for _ in 0..backspaces {
+                screen.pop();
+            }
             screen.push_str(&output);
         }
         EngineAction::Consume => {}

@@ -1,7 +1,7 @@
 use super::{
+    VowelLetter,
     charset::{BaseVowel, Diacritic, Tone},
     syllable::Syllable,
-    VowelLetter,
 };
 
 /// Validates whether a sequence of vowels forms a legitimate Vietnamese vowel cluster
@@ -89,14 +89,28 @@ pub fn is_valid_onset(onset: &[(char, bool)], is_d_stroke: bool) -> bool {
         return true;
     }
     if is_d_stroke {
-        return onset.len() == 1 && onset[0].0.to_ascii_lowercase() == 'd';
+        return onset.len() == 1 && onset[0].0.eq_ignore_ascii_case(&'d');
     }
     match onset.len() {
         1 => {
             let c = onset[0].0.to_ascii_lowercase();
             matches!(
                 c,
-                'b' | 'c' | 'd' | 'g' | 'h' | 'k' | 'l' | 'm' | 'n' | 'p' | 'q' | 'r' | 's' | 't' | 'v' | 'x'
+                'b' | 'c'
+                    | 'd'
+                    | 'g'
+                    | 'h'
+                    | 'k'
+                    | 'l'
+                    | 'm'
+                    | 'n'
+                    | 'p'
+                    | 'q'
+                    | 'r'
+                    | 's'
+                    | 't'
+                    | 'v'
+                    | 'x'
             )
         }
         2 => {
@@ -104,9 +118,16 @@ pub fn is_valid_onset(onset: &[(char, bool)], is_d_stroke: bool) -> bool {
             let c1 = onset[1].0.to_ascii_lowercase();
             matches!(
                 (c0, c1),
-                ('c', 'h') | ('g', 'h') | ('g', 'i') | ('k', 'h')
-                | ('n', 'h') | ('n', 'g') | ('p', 'h') | ('q', 'u')
-                | ('t', 'h') | ('t', 'r')
+                ('c', 'h')
+                    | ('g', 'h')
+                    | ('g', 'i')
+                    | ('k', 'h')
+                    | ('n', 'h')
+                    | ('n', 'g')
+                    | ('p', 'h')
+                    | ('q', 'u')
+                    | ('t', 'h')
+                    | ('t', 'r')
             )
         }
         3 => {
@@ -133,7 +154,11 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
     // 2. Validate onset + vowel orthography
     if !syllable.onset.is_empty() && !syllable.d_stroke {
         let first_vowel_base = syllable.vowels[0].base;
-        let onset_str: String = syllable.onset.iter().map(|(c, _)| c.to_ascii_lowercase()).collect();
+        let onset_str: String = syllable
+            .onset
+            .iter()
+            .map(|(c, _)| c.to_ascii_lowercase())
+            .collect();
 
         match onset_str.as_str() {
             "q" => {
@@ -161,13 +186,12 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
                     return false;
                 }
             }
-            "g" => {
+            "g"
                 // 'g' + 'i' is the valid 'gi' glide (gió, giờ, giúp)
                 // but 'g' + 'e' / 'ê' is invalid (must use 'gh')
-                if first_vowel_base == BaseVowel::E {
+                if first_vowel_base == BaseVowel::E => {
                     return false;
                 }
-            }
             _ => {}
         }
     }
@@ -178,9 +202,9 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
     // the 'i' or 'u' acts as the glide consonant extension, and the vowel cluster starts at index 1!
     let last_onset = syllable.onset.last().map(|(c, _)| c.to_ascii_lowercase());
     let vowels_to_check = if syllable.vowels.len() >= 2 {
-        if last_onset == Some('g') && syllable.vowels[0].base == BaseVowel::I {
-            &syllable.vowels[1..]
-        } else if last_onset == Some('q') && syllable.vowels[0].base == BaseVowel::U {
+        if (last_onset == Some('g') && syllable.vowels[0].base == BaseVowel::I)
+            || (last_onset == Some('q') && syllable.vowels[0].base == BaseVowel::U)
+        {
             &syllable.vowels[1..]
         } else {
             &syllable.vowels[..]
@@ -217,8 +241,7 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
 
         // Stop codas (c, ch, p, t) only accept Acute (Sắc) or DotBelow (Nặng).
         // Nasal coda 'nh' accepts all 6 tones.
-        let coda_str: String = syllable.coda.iter().map(|&(c, _)| c.to_ascii_lowercase()).collect();
-        if matches!(coda_str.as_str(), "c" | "ch" | "p" | "t") {
+        if is_stop_coda(&syllable.coda) {
             match syllable.tone {
                 Tone::None | Tone::Acute | Tone::DotBelow => {}
                 Tone::Grave | Tone::HookAbove | Tone::Tilde => return false,
@@ -227,6 +250,18 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
     }
 
     true
+}
+
+/// Returns true if the coda is a stop coda ('c', 'ch', 'p', 't').
+/// Stop codas in Vietnamese phonotactics only accept Acute (Sắc) or DotBelow (Nặng) tones,
+/// and do not accept additional vowels when followed by tone.
+#[inline]
+pub fn is_stop_coda(coda: &[(char, bool)]) -> bool {
+    match coda {
+        [(c, _)] => matches!(c.to_ascii_lowercase(), 'c' | 'p' | 't'),
+        [(c1, _), (c2, _)] => c1.eq_ignore_ascii_case(&'c') && c2.eq_ignore_ascii_case(&'h'),
+        _ => false,
+    }
 }
 
 /// Validates whether an onset consonant sequence can be extended with next_ch.
@@ -240,9 +275,16 @@ pub fn is_valid_onset_extension(current_onset: &[(char, bool)], next_ch: char) -
             let first = current_onset[0].0.to_ascii_lowercase();
             matches!(
                 (first, next_lower),
-                ('c', 'h') | ('g', 'h') | ('g', 'i') | ('k', 'h')
-                | ('n', 'h') | ('n', 'g') | ('p', 'h') | ('q', 'u')
-                | ('t', 'h') | ('t', 'r')
+                ('c', 'h')
+                    | ('g', 'h')
+                    | ('g', 'i')
+                    | ('k', 'h')
+                    | ('n', 'h')
+                    | ('n', 'g')
+                    | ('p', 'h')
+                    | ('q', 'u')
+                    | ('t', 'h')
+                    | ('t', 'r')
             )
         }
         2 => {
@@ -317,14 +359,17 @@ pub fn can_vowels_accept_coda(vowels: &[VowelLetter]) -> bool {
             matches!(
                 (v0, v1, v2),
                 // uyê (uyên, uyết) and intermediate typing base uye (uyene -> uyên, chuyens -> chuyến)
-                ((BaseVowel::U, Diacritic::None), (BaseVowel::Y, Diacritic::None), (BaseVowel::E, Diacritic::Circumflex))
-                | ((BaseVowel::U, Diacritic::None), (BaseVowel::Y, Diacritic::None), (BaseVowel::E, Diacritic::None))
+                (
+                    (BaseVowel::U, Diacritic::None),
+                    (BaseVowel::Y, Diacritic::None),
+                    (BaseVowel::E, Diacritic::Circumflex)
+                ) | (
+                    (BaseVowel::U, Diacritic::None),
+                    (BaseVowel::Y, Diacritic::None),
+                    (BaseVowel::E, Diacritic::None)
+                )
             )
         }
         _ => false,
     }
 }
-
-
-
-

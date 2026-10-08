@@ -45,33 +45,53 @@ const KEY_QUERY_VALUE: u32 = 0x0001;
 #[cfg(target_os = "windows")]
 const REG_SZ: u32 = 1;
 
+#[cfg(target_os = "windows")]
+struct RegKeyGuard(isize);
+
+#[cfg(target_os = "windows")]
+impl Drop for RegKeyGuard {
+    fn drop(&mut self) {
+        if self.0 != 0 {
+            unsafe {
+                RegCloseKey(self.0);
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn to_wide(s: &str) -> Vec<u16> {
+    OsStr::new(s).encode_wide().chain(Some(0)).collect()
+}
+
 /// Queries Windows Registry directly (HKCU\Software\Microsoft\Windows\CurrentVersion\Run)
 /// to determine if MKey is configured to autostart with Windows.
 pub fn is_windows_autostart_enabled() -> bool {
     #[cfg(target_os = "windows")]
     unsafe {
-        let subkey: Vec<u16> = OsStr::new("Software\\Microsoft\\Windows\\CurrentVersion\\Run")
-            .encode_wide()
-            .chain(Some(0))
-            .collect();
-        let val_name: Vec<u16> = OsStr::new("MKey")
-            .encode_wide()
-            .chain(Some(0))
-            .collect();
+        let subkey = to_wide("Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+        let val_name = to_wide("MKey");
 
-        let mut hkey: isize = 0;
-        if RegOpenKeyExW(HKEY_CURRENT_USER, subkey.as_ptr(), 0, KEY_QUERY_VALUE, &mut hkey) == 0 {
+        let mut raw_hkey: isize = 0;
+        if RegOpenKeyExW(
+            HKEY_CURRENT_USER,
+            subkey.as_ptr(),
+            0,
+            KEY_QUERY_VALUE,
+            &mut raw_hkey,
+        ) == 0
+        {
+            let guard = RegKeyGuard(raw_hkey);
             let mut val_type = 0u32;
             let mut len = 0u32;
             let res = RegQueryValueExW(
-                hkey,
+                guard.0,
                 val_name.as_ptr(),
                 std::ptr::null_mut(),
                 &mut val_type,
                 std::ptr::null_mut(),
                 &mut len,
             );
-            RegCloseKey(hkey);
             return res == 0;
         }
     }
@@ -82,24 +102,26 @@ pub fn is_windows_autostart_enabled() -> bool {
 pub fn set_windows_autostart(enable: bool) {
     #[cfg(target_os = "windows")]
     unsafe {
-        let subkey: Vec<u16> = OsStr::new("Software\\Microsoft\\Windows\\CurrentVersion\\Run")
-            .encode_wide()
-            .chain(Some(0))
-            .collect();
-        let val_name: Vec<u16> = OsStr::new("MKey")
-            .encode_wide()
-            .chain(Some(0))
-            .collect();
+        let subkey = to_wide("Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+        let val_name = to_wide("MKey");
 
-        let mut hkey: isize = 0;
-        if RegOpenKeyExW(HKEY_CURRENT_USER, subkey.as_ptr(), 0, KEY_SET_VALUE, &mut hkey) == 0 {
+        let mut raw_hkey: isize = 0;
+        if RegOpenKeyExW(
+            HKEY_CURRENT_USER,
+            subkey.as_ptr(),
+            0,
+            KEY_SET_VALUE,
+            &mut raw_hkey,
+        ) == 0
+        {
+            let guard = RegKeyGuard(raw_hkey);
             if enable {
                 if let Ok(exe_path) = std::env::current_exe() {
                     let path_str = format!("\"{}\" --autostart", exe_path.to_string_lossy());
-                    let wide_path: Vec<u16> = OsStr::new(&path_str).encode_wide().chain(Some(0)).collect();
+                    let wide_path = to_wide(&path_str);
                     let byte_len = (wide_path.len() * 2) as u32;
                     RegSetValueExW(
-                        hkey,
+                        guard.0,
                         val_name.as_ptr(),
                         0,
                         REG_SZ,
@@ -108,10 +130,8 @@ pub fn set_windows_autostart(enable: bool) {
                     );
                 }
             } else {
-                RegDeleteValueW(hkey, val_name.as_ptr());
+                RegDeleteValueW(guard.0, val_name.as_ptr());
             }
-            RegCloseKey(hkey);
         }
     }
 }
-

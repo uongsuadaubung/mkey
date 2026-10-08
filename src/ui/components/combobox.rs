@@ -1,7 +1,6 @@
 //! Native Win32 ComboBox Component
 
-use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
+use super::window::to_wide;
 use std::ptr::null_mut;
 
 #[link(name = "user32")]
@@ -35,10 +34,6 @@ const CB_SETCURSEL: u32 = 0x014E;
 const CB_GETCURSEL: u32 = 0x0147;
 const CB_ERR: isize = -1;
 const WM_SETFONT: u32 = 0x0030;
-
-fn to_wide(s: &str) -> Vec<u16> {
-    OsStr::new(s).encode_wide().chain(Some(0)).collect()
-}
 
 pub struct ComboBox {
     hwnd: isize,

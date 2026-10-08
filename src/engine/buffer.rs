@@ -1,13 +1,30 @@
+use super::{action::EngineAction, config::EngineConfig};
 use crate::vietnamese::state::SyllableState;
-use super::{
-    action::EngineAction,
-    config::EngineConfig,
-};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RawKey {
     pub ch: char,
     pub is_upper: bool,
+}
+
+impl From<char> for RawKey {
+    #[inline]
+    fn from(ch: char) -> Self {
+        Self {
+            ch,
+            is_upper: ch.is_uppercase(),
+        }
+    }
+}
+
+/// Result of evaluating a sequence of raw keys in the typing buffer
+#[derive(Debug, Clone)]
+pub struct EvaluationResult {
+    pub state: SyllableState,
+    pub rendered: String,
+    pub emitted_len: usize,
+    pub effective_raw_keys: Vec<RawKey>,
+    pub last_action: EngineAction,
 }
 
 /// TypingBuffer managing word state with raw_keys as the Single Source of Truth.
@@ -48,12 +65,8 @@ impl TypingBuffer {
         self.raw_keys.is_empty()
     }
 
-    /// Evaluates a sequence of RawKeys deterministically and returns:
-    /// (resulting_state, rendered_string, emitted_length, effective_raw_keys, last_action)
-    pub fn evaluate_keys(
-        keys: &[RawKey],
-        config: &EngineConfig,
-    ) -> (SyllableState, String, usize, Vec<RawKey>, EngineAction) {
+    /// Evaluates a sequence of RawKeys deterministically and returns an `EvaluationResult`.
+    pub fn evaluate_keys(keys: &[RawKey], config: &EngineConfig) -> EvaluationResult {
         let mut state = SyllableState::Empty;
         let mut current_len = 0;
         let mut effective = Vec::with_capacity(keys.len());
@@ -69,13 +82,7 @@ impl TypingBuffer {
                     // If an undo toggle transitioned into Passthrough (e.g. toanss -> toans, chuww -> chuw),
                     // synchronize effective keys to match the explicit cancelled output.
                     if let SyllableState::Passthrough(ref s) = state {
-                        effective = s
-                            .chars()
-                            .map(|c| RawKey {
-                                ch: c,
-                                is_upper: c.is_uppercase(),
-                            })
-                            .collect();
+                        effective = s.chars().map(RawKey::from).collect();
                     }
                 }
                 EngineAction::Passthrough => {
@@ -87,7 +94,13 @@ impl TypingBuffer {
         }
 
         let rendered = state.render();
-        (state, rendered, current_len, effective, last_action)
+        EvaluationResult {
+            state,
+            rendered,
+            emitted_len: current_len,
+            effective_raw_keys: effective,
+            last_action,
+        }
     }
 
     /// Checks whether `key` marks a word boundary (e.g. CamelCase / PascalCase boundary).
@@ -96,7 +109,11 @@ impl TypingBuffer {
             return false;
         }
 
-        key.is_upper && self.raw_keys.iter().any(|k| !k.is_upper && k.ch.is_alphabetic())
+        key.is_upper
+            && self
+                .raw_keys
+                .iter()
+                .any(|k| !k.is_upper && k.ch.is_alphabetic())
     }
 
     /// Feeds a new key into the state machine and returns the resulting EngineAction.
@@ -122,7 +139,10 @@ impl TypingBuffer {
                 let new_chars: Vec<char> = output.chars().collect();
 
                 let mut common = 0;
-                while common < prev_chars.len() && common < new_chars.len() && prev_chars[common] == new_chars[common] {
+                while common < prev_chars.len()
+                    && common < new_chars.len()
+                    && prev_chars[common] == new_chars[common]
+                {
                     common += 1;
                 }
 
@@ -150,17 +170,11 @@ impl TypingBuffer {
             EngineAction::Consume => {}
         }
 
-        if matches!(&action, EngineAction::Replace { .. }) {
-            if let SyllableState::Passthrough(ref s) = self.state {
-                self.raw_keys = s
-                    .chars()
-                    .map(|c| RawKey {
-                        ch: c,
-                        is_upper: c.is_uppercase(),
-                    })
-                    .collect();
-                self.is_passthrough = true;
-            }
+        if matches!(&action, EngineAction::Replace { .. })
+            && let SyllableState::Passthrough(ref s) = self.state
+        {
+            self.raw_keys = s.chars().map(RawKey::from).collect();
+            self.is_passthrough = true;
         }
 
         action
@@ -176,11 +190,10 @@ impl TypingBuffer {
         let target_len = self.emitted_len.saturating_sub(1);
         while self.emitted_len > target_len && !self.raw_keys.is_empty() {
             self.raw_keys.pop();
-            let (new_state, _new_rendered, new_len, effective, _) =
-                Self::evaluate_keys(&self.raw_keys, config);
-            self.raw_keys = effective;
-            self.state = new_state;
-            self.emitted_len = new_len;
+            let eval = Self::evaluate_keys(&self.raw_keys, config);
+            self.raw_keys = eval.effective_raw_keys;
+            self.state = eval.state;
+            self.emitted_len = eval.emitted_len;
             self.is_passthrough = matches!(self.state, SyllableState::Passthrough(_));
         }
 
@@ -191,4 +204,3 @@ impl TypingBuffer {
         true
     }
 }
-

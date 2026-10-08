@@ -6,12 +6,8 @@ pub enum EngineAction {
 
     /// Intercept the keystroke, send `backspaces` count to delete previous chars,
     /// then emit `output` string into the active input field.
-    Replace {
-        backspaces: usize,
-        output: String,
-    },
+    Replace { backspaces: usize, output: String },
 
     /// Consume (drop) the keystroke entirely. Do not let OS process it.
     Consume,
 }
-

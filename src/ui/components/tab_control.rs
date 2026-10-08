@@ -1,10 +1,10 @@
 //! Native Win32 TabControl Component
 
-use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
+use super::window::to_wide;
 use std::ptr::null_mut;
 
 #[repr(C)]
+#[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 struct TCITEMW {
     mask: u32,
     dw_state: u32,
@@ -16,6 +16,7 @@ struct TCITEMW {
 }
 
 #[repr(C)]
+#[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 struct INITCOMMONCONTROLSEX {
     dw_size: u32,
     dw_icc: u32,
@@ -54,10 +55,6 @@ const TCM_GETCURSEL: u32 = TCM_FIRST + 11;
 const TCM_SETCURSEL: u32 = TCM_FIRST + 12;
 const TCIF_TEXT: u32 = 0x0001;
 const WM_SETFONT: u32 = 0x0030;
-
-fn to_wide(s: &str) -> Vec<u16> {
-    OsStr::new(s).encode_wide().chain(Some(0)).collect()
-}
 
 pub struct TabControl {
     hwnd: isize,
@@ -132,17 +129,18 @@ impl TabControl {
             l_param: 0,
         };
         unsafe {
-            SendMessageW(self.hwnd, TCM_INSERTITEMW, index, &mut item as *mut _ as isize);
+            SendMessageW(
+                self.hwnd,
+                TCM_INSERTITEMW,
+                index,
+                &mut item as *mut _ as isize,
+            );
         }
     }
 
     pub fn get_cur_sel(&self) -> usize {
         let sel = unsafe { SendMessageW(self.hwnd, TCM_GETCURSEL, 0, 0) };
-        if sel < 0 {
-            0
-        } else {
-            sel as usize
-        }
+        if sel < 0 { 0 } else { sel as usize }
     }
 
     pub fn set_cur_sel(&self, index: usize) {

@@ -1,7 +1,6 @@
 //! Native Win32 PushButton Component
 
-use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
+use super::window::to_wide;
 use std::ptr::null_mut;
 
 #[link(name = "user32")]
@@ -30,16 +29,13 @@ const WS_TABSTOP: u32 = 0x00010000;
 const BS_PUSHBUTTON: u32 = 0x00000000;
 const WM_SETFONT: u32 = 0x0030;
 
-fn to_wide(s: &str) -> Vec<u16> {
-    OsStr::new(s).encode_wide().chain(Some(0)).collect()
-}
-
 pub struct PushButton {
     hwnd: isize,
     id: u32,
 }
 
 impl PushButton {
+    #[allow(clippy::too_many_arguments)]
     pub fn create(
         parent: isize,
         id: u32,

@@ -48,7 +48,11 @@ impl MacroTable {
 
     /// Get all macro entries sorted by shortcut key
     pub fn get_sorted_entries(&self) -> Vec<(String, String)> {
-        let mut list: Vec<(String, String)> = self.entries.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+        let mut list: Vec<(String, String)> = self
+            .entries
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
         list.sort_by(|a, b| a.0.cmp(&b.0));
         list
     }
@@ -71,7 +75,8 @@ impl MacroTable {
 
     /// Serialize all macros to configuration format
     pub fn save_to_str(&self) -> String {
-        let mut s = String::from("# Bảng gõ tắt MKey\n# Cú pháp: <từ viết tắt>:<cụm từ thay thế>\n");
+        let mut s =
+            String::from("# Bảng gõ tắt MKey\n# Cú pháp: <từ viết tắt>:<cụm từ thay thế>\n");
         for (k, v) in self.get_sorted_entries() {
             s.push_str(&format!("{}:{}\n", k, v));
         }
@@ -114,20 +119,24 @@ pub fn apply_case_style(source: &str, target: &str) -> String {
         return target.to_string();
     }
 
-    let is_all_upper = source.chars().all(|c| !c.is_alphabetic() || c.is_uppercase());
+    let is_all_upper = source
+        .chars()
+        .all(|c| !c.is_alphabetic() || c.is_uppercase());
     if is_all_upper {
         return target.to_uppercase();
     }
 
-    let first_char = source.chars().next().unwrap();
-    if first_char.is_uppercase() {
-        let mut chars = target.chars();
-        let first = chars.next().unwrap();
-        let mut res = first.to_uppercase().to_string();
-        res.push_str(chars.as_str());
+    if let (Some(first_source), Some(first_target)) =
+        (source.chars().next(), target.chars().next())
+        && first_source.is_uppercase()
+    {
+        let mut res = String::with_capacity(target.len());
+        for u in first_target.to_uppercase() {
+            res.push(u);
+        }
+        res.push_str(&target[first_target.len_utf8()..]);
         return res;
     }
 
     target.to_string()
 }
-

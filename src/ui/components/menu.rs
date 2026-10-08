@@ -1,14 +1,18 @@
 //! Native Win32 Popup / Context Menu Component
 
-use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
+use super::window::to_wide;
 use std::ptr::null_mut;
 
 #[link(name = "user32")]
 unsafe extern "system" {
     fn CreatePopupMenu() -> isize;
     fn DestroyMenu(h_menu: isize) -> i32;
-    fn AppendMenuW(h_menu: isize, u_flags: u32, u_id_new_item: usize, lp_new_item: *const u16) -> i32;
+    fn AppendMenuW(
+        h_menu: isize,
+        u_flags: u32,
+        u_id_new_item: usize,
+        lp_new_item: *const u16,
+    ) -> i32;
     fn TrackPopupMenu(
         h_menu: isize,
         u_flags: u32,
@@ -30,10 +34,6 @@ const MF_POPUP: u32 = 0x0010;
 const TPM_RETURNCMD: u32 = 0x0100;
 const TPM_NONOTIFY: u32 = 0x0080;
 const TPM_RIGHTBUTTON: u32 = 0x0002;
-
-fn to_wide(s: &str) -> Vec<u16> {
-    OsStr::new(s).encode_wide().chain(Some(0)).collect()
-}
 
 pub struct PopupMenu {
     h_menu: isize,
@@ -77,7 +77,12 @@ impl PopupMenu {
     pub fn add_submenu(&mut self, text: &str, submenu: PopupMenu) {
         let wide = to_wide(text);
         unsafe {
-            AppendMenuW(self.h_menu, MF_POPUP, submenu.h_menu as usize, wide.as_ptr());
+            AppendMenuW(
+                self.h_menu,
+                MF_POPUP,
+                submenu.h_menu as usize,
+                wide.as_ptr(),
+            );
         }
         // Submenu handle is now owned by parent menu; prevent double-free
         std::mem::forget(submenu);

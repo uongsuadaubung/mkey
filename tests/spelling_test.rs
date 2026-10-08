@@ -1,11 +1,11 @@
 use mkey::vietnamese::{
+    VowelLetter,
     charset::{BaseVowel, Diacritic, Tone},
     spelling::{
         is_valid_coda_pair, is_valid_coda_start, is_valid_onset, is_valid_onset_extension,
         is_valid_vietnamese_syllable,
     },
     syllable::Syllable,
-    VowelLetter,
 };
 
 #[test]
@@ -15,7 +15,10 @@ fn test_onset_extensions() {
     assert!(is_valid_onset_extension(&[('n', false)], 'g'));
     assert!(is_valid_onset_extension(&[('n', false), ('g', false)], 'h'));
     assert!(!is_valid_onset_extension(&[('b', false)], 't'));
-    assert!(!is_valid_onset_extension(&[('t', false), ('r', false)], 'h'));
+    assert!(!is_valid_onset_extension(
+        &[('t', false), ('r', false)],
+        'h'
+    ));
 }
 
 #[test]
@@ -91,7 +94,10 @@ fn test_onset_validity() {
     assert!(is_valid_onset(&[('d', false)], true)); // 'đ'
     assert!(is_valid_onset(&[('b', false)], false));
     assert!(is_valid_onset(&[('t', false), ('r', false)], false));
-    assert!(is_valid_onset(&[('n', false), ('g', false), ('h', false)], false));
+    assert!(is_valid_onset(
+        &[('n', false), ('g', false), ('h', false)],
+        false
+    ));
 
     // Invalid non-native consonants in Vietnamese
     assert!(!is_valid_onset(&[('f', false)], false));
@@ -134,5 +140,3 @@ fn test_invalid_syllables() {
     };
     assert!(!is_valid_vietnamese_syllable(&qa));
 }
-
-

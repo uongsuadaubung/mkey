@@ -1,4 +1,5 @@
-use super::charset::{compose_d, compose_vowel, BaseVowel, Diacritic, Tone};
+use super::charset::{BaseVowel, Diacritic, Tone, compose_d, compose_vowel};
+use std::fmt;
 
 /// Represents a single character in the syllable with its case preserved.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,19 +81,22 @@ impl Syllable {
 
         0
     }
+}
 
-    /// Render the entire syllable to a UTF-8 string with correct accents and cases.
-    pub fn to_string(&self) -> String {
-        let mut s = String::with_capacity(12);
-
+impl fmt::Display for Syllable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // 1. Onset
         for &(c, is_upper) in &self.onset {
-            if c.to_ascii_lowercase() == 'd' {
-                s.push(compose_d(self.d_stroke, is_upper));
+            if c.eq_ignore_ascii_case(&'d') {
+                write!(f, "{}", compose_d(self.d_stroke, is_upper))?;
             } else if is_upper {
-                s.extend(c.to_uppercase());
+                for u in c.to_uppercase() {
+                    write!(f, "{u}")?;
+                }
             } else {
-                s.extend(c.to_lowercase());
+                for l in c.to_lowercase() {
+                    write!(f, "{l}")?;
+                }
             }
         }
 
@@ -100,19 +104,26 @@ impl Syllable {
         let tone_pos = self.find_tone_position();
         for (i, v) in self.vowels.iter().enumerate() {
             let tone_for_vowel = if i == tone_pos { self.tone } else { Tone::None };
-            s.push(compose_vowel(v.base, v.diacritic, tone_for_vowel, v.is_upper));
+            write!(
+                f,
+                "{}",
+                compose_vowel(v.base, v.diacritic, tone_for_vowel, v.is_upper)
+            )?;
         }
 
         // 3. Coda
         for &(c, is_upper) in &self.coda {
             if is_upper {
-                s.extend(c.to_uppercase());
+                for u in c.to_uppercase() {
+                    write!(f, "{u}")?;
+                }
             } else {
-                s.extend(c.to_lowercase());
+                for l in c.to_lowercase() {
+                    write!(f, "{l}")?;
+                }
             }
         }
 
-        s
+        Ok(())
     }
 }
-

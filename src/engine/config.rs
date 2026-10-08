@@ -1,3 +1,6 @@
+use std::fmt;
+use std::str::FromStr;
+
 /// Vietnamese Input Method type
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum InputMethod {
@@ -9,10 +12,23 @@ pub enum InputMethod {
 }
 
 impl InputMethod {
+    /// String representation used for configuration storage
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Telex => "telex",
+            Self::Vni => "vni",
+            Self::SimpleTelex1 => "simple_telex1",
+            Self::SimpleTelex2 => "simple_telex2",
+        }
+    }
+
     /// Whether this input method belongs to the Telex syntax family (using letter keys as accents)
     #[inline]
     pub fn is_telex_family(&self) -> bool {
-        matches!(self, InputMethod::Telex | InputMethod::SimpleTelex1 | InputMethod::SimpleTelex2)
+        matches!(
+            self,
+            InputMethod::Telex | InputMethod::SimpleTelex1 | InputMethod::SimpleTelex2
+        )
     }
 
     /// Whether this input method is VNI (using number keys 1-9 as accents)
@@ -38,10 +54,110 @@ impl InputMethod {
     }
 }
 
+impl fmt::Display for InputMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl FromStr for InputMethod {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let method = match s.trim().to_ascii_lowercase().as_str() {
+            "vni" => Self::Vni,
+            "simple_telex1" | "simpletelex1" | "simpletelex" => Self::SimpleTelex1,
+            "simple_telex2" | "simpletelex2" => Self::SimpleTelex2,
+            _ => Self::Telex,
+        };
+        Ok(method)
+    }
+}
+
+impl From<InputMethod> for usize {
+    fn from(m: InputMethod) -> Self {
+        match m {
+            InputMethod::Telex => 0,
+            InputMethod::Vni => 1,
+            InputMethod::SimpleTelex1 | InputMethod::SimpleTelex2 => 2,
+        }
+    }
+}
+
+impl From<usize> for InputMethod {
+    fn from(idx: usize) -> Self {
+        match idx {
+            1 => Self::Vni,
+            2 => Self::SimpleTelex1,
+            _ => Self::Telex,
+        }
+    }
+}
+
+/// UI Theme mode (Auto, Light, Dark)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum UiTheme {
+    #[default]
+    Auto,
+    Light,
+    Dark,
+}
+
+impl UiTheme {
+    /// String representation used for configuration storage
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::Light => "light",
+            Self::Dark => "dark",
+        }
+    }
+}
+
+impl fmt::Display for UiTheme {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl FromStr for UiTheme {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let theme = match s.trim().to_ascii_lowercase().as_str() {
+            "light" => Self::Light,
+            "dark" => Self::Dark,
+            _ => Self::Auto,
+        };
+        Ok(theme)
+    }
+}
+
+impl From<UiTheme> for usize {
+    fn from(t: UiTheme) -> Self {
+        match t {
+            UiTheme::Auto => 0,
+            UiTheme::Light => 1,
+            UiTheme::Dark => 2,
+        }
+    }
+}
+
+impl From<usize> for UiTheme {
+    fn from(idx: usize) -> Self {
+        match idx {
+            1 => Self::Light,
+            2 => Self::Dark,
+            _ => Self::Auto,
+        }
+    }
+}
+
 /// Configuration options for the Vietnamese engine
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EngineConfig {
     pub method: InputMethod,
+    pub theme: UiTheme,
     /// Bật/tắt chế độ gõ tiếng Việt (true: bật gõ tiếng Việt, false: tiếng Anh)
     pub enabled: bool,
     /// Kiểm tra chính tả tiếng Việt
@@ -64,8 +180,8 @@ pub struct EngineConfig {
     pub remember_history_across_space: bool,
     /// Phím chuyển chế độ (true: Ctrl + Shift, false: Alt + Z)
     pub switch_with_ctrl_shift: bool,
-    /// Tự động khởi động cùng Windows
-    pub autostart: bool,
+    /// Bật hội thoại này khi khởi động cùng Windows
+    pub show_dialog_on_startup: bool,
     /// Bật chế độ debug log (ghi nhận vết từng phím, trạng thái state machine và output để chẩn đoán lỗi)
     pub debug: bool,
     /// Đường dẫn file lưu nhật ký debug log trên ổ đĩa
@@ -76,6 +192,7 @@ impl Default for EngineConfig {
     fn default() -> Self {
         Self {
             method: InputMethod::Telex,
+            theme: UiTheme::Auto,
             enabled: true,
             check_spelling: true,
             restore_on_wrong_spelling: true,
@@ -87,7 +204,7 @@ impl Default for EngineConfig {
             use_macro_in_english_mode: true,
             remember_history_across_space: true,
             switch_with_ctrl_shift: true,
-            autostart: false,
+            show_dialog_on_startup: true,
             debug: false,
             debug_file_path: Some("mkey_debug.log".to_string()),
         }

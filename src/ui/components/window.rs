@@ -3,6 +3,18 @@
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 
+// Explicit type aliases for Win32 opaque handles
+pub type HWND = isize;
+pub type HDC = isize;
+pub type HFONT = isize;
+pub type HBRUSH = isize;
+pub type HICON = isize;
+pub type HCURSOR = isize;
+pub type HMENU = isize;
+pub type HHOOK = isize;
+pub type HINSTANCE = isize;
+pub type HMODULE = isize;
+
 #[repr(C)]
 pub struct WNDCLASSEXW {
     pub cb_size: u32,
@@ -20,12 +32,22 @@ pub struct WNDCLASSEXW {
 }
 
 #[repr(C)]
+#[derive(Default, Copy, Clone)]
 pub struct RECT {
     pub left: i32,
     pub top: i32,
     pub right: i32,
     pub bottom: i32,
 }
+
+#[repr(C)]
+#[derive(Default, Copy, Clone)]
+pub struct POINT {
+    pub x: i32,
+    pub y: i32,
+}
+
+pub const GWLP_WNDPROC: i32 = -4;
 
 #[link(name = "user32")]
 #[link(name = "gdi32")]
@@ -49,6 +71,9 @@ unsafe extern "system" {
     pub fn DestroyWindow(h_wnd: isize) -> i32;
     pub fn ShowWindow(h_wnd: isize, n_cmd_show: i32) -> i32;
     pub fn SetForegroundWindow(h_wnd: isize) -> i32;
+    pub fn GetFocus() -> isize;
+    pub fn LoadCursorW(h_instance: isize, lp_cursor_name: usize) -> isize;
+    pub fn SetCursor(h_cursor: isize) -> isize;
     pub fn GetSystemMetrics(n_index: i32) -> i32;
     pub fn CreateFontW(
         c_height: i32,
@@ -83,6 +108,150 @@ unsafe extern "system" {
     pub fn SendMessageW(h_wnd: isize, msg: u32, w_param: usize, l_param: isize) -> isize;
     pub fn InvalidateRect(h_wnd: isize, lp_rect: *const RECT, b_erase: i32) -> i32;
     pub fn UpdateWindow(h_wnd: isize) -> i32;
+    pub fn SetBkColor(hdc: isize, color: u32) -> u32;
+    pub fn GetWindowRect(h_wnd: isize, lp_rect: *mut RECT) -> i32;
+    pub fn GetClientRect(h_wnd: isize, lp_rect: *mut RECT) -> i32;
+    pub fn FillRect(hdc: isize, lprc: *const RECT, hbr: isize) -> i32;
+    pub fn FrameRect(hdc: isize, lprc: *const RECT, hbr: isize) -> i32;
+    pub fn ScreenToClient(h_wnd: isize, lp_point: *mut POINT) -> i32;
+    pub fn GetDC(h_wnd: isize) -> isize;
+    pub fn ReleaseDC(h_wnd: isize, hdc: isize) -> i32;
+    pub fn SetWindowLongPtrW(h_wnd: isize, n_index: i32, dw_new_long: isize) -> isize;
+    pub fn CallWindowProcW(
+        lp_prev_wnd_func: unsafe extern "system" fn(isize, u32, usize, isize) -> isize,
+        h_wnd: isize,
+        msg: u32,
+        w_param: usize,
+        l_param: isize,
+    ) -> isize;
+    pub fn GetClassNameW(h_wnd: isize, lp_class_name: *mut u16, n_max_count: i32) -> i32;
+    pub fn CreatePen(i_style: i32, c_width: i32, color: u32) -> isize;
+    pub fn SelectObject(hdc: isize, h: isize) -> isize;
+    pub fn RoundRect(
+        hdc: isize,
+        left: i32,
+        top: i32,
+        right: i32,
+        bottom: i32,
+        width: i32,
+        height: i32,
+    ) -> i32;
+    pub fn DrawTextW(
+        hdc: isize,
+        lpch_text: *const u16,
+        cch_text: i32,
+        lprc: *mut RECT,
+        format: u32,
+    ) -> i32;
+    pub fn BeginPaint(h_wnd: isize, lp_paint: *mut PAINTSTRUCT) -> isize;
+    pub fn EndPaint(h_wnd: isize, lp_paint: *const PAINTSTRUCT) -> i32;
+    pub fn RedrawWindow(
+        h_wnd: isize,
+        lprc_update: *const RECT,
+        hrgn_update: isize,
+        flags: u32,
+    ) -> i32;
+}
+
+#[link(name = "comctl32")]
+unsafe extern "system" {
+    pub fn SetWindowSubclass(
+        h_wnd: isize,
+        pfn_subclass: unsafe extern "system" fn(isize, u32, usize, isize, usize, usize) -> isize,
+        u_id_subclass: usize,
+        dw_ref_data: usize,
+    ) -> i32;
+    pub fn DefSubclassProc(h_wnd: isize, msg: u32, w_param: usize, l_param: isize) -> isize;
+    pub fn RemoveWindowSubclass(
+        h_wnd: isize,
+        pfn_subclass: unsafe extern "system" fn(isize, u32, usize, isize, usize, usize) -> isize,
+        u_id_subclass: usize,
+    ) -> i32;
+}
+
+pub const RDW_INVALIDATE: u32 = 0x0001;
+pub const RDW_ERASE: u32 = 0x0004;
+pub const RDW_ALLCHILDREN: u32 = 0x0080;
+pub const RDW_UPDATENOW: u32 = 0x0100;
+pub const RDW_FRAME: u32 = 0x0400;
+
+pub const SWP_FRAMECHANGED: u32 = 0x0020;
+pub const SWP_NOZORDER: u32 = 0x0004;
+
+#[repr(C)]
+pub struct PAINTSTRUCT {
+    pub hdc: isize,
+    pub f_erase: i32,
+    pub rc_paint: RECT,
+    pub f_restore: i32,
+    pub f_inc_update: i32,
+    pub rgb_reserved: [u8; 32],
+}
+
+pub const DT_CENTER: u32 = 0x00000001;
+pub const DT_VCENTER: u32 = 0x00000004;
+pub const DT_SINGLELINE: u32 = 0x00000020;
+pub const PS_SOLID: i32 = 0;
+pub const PS_NULL: i32 = 5;
+
+pub const IDC_ARROW: usize = 32512;
+pub const IDC_IBEAM: usize = 32513;
+pub const IDC_HAND: usize = 32649;
+
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn GetModuleHandleW(lp_module_name: *const u16) -> isize;
+    fn GetProcAddress(h_module: isize, lp_proc_name: *const u8) -> *const ();
+}
+
+#[link(name = "uxtheme")]
+unsafe extern "system" {
+    pub fn SetWindowTheme(
+        hwnd: isize,
+        psz_sub_app_name: *const u16,
+        psz_sub_id_list: *const u16,
+    ) -> i32;
+}
+
+/// Sets native Windows uxtheme preferred application mode (Windows 10 1903+ / Windows 11)
+pub fn set_preferred_app_mode(is_dark: bool) {
+    unsafe {
+        let uxtheme = GetModuleHandleW(to_wide("uxtheme.dll").as_ptr());
+        if uxtheme != 0 {
+            // Ordinal 135: SetPreferredAppMode (0 = Default, 1 = AllowDark, 2 = ForceDark, 3 = ForceLight)
+            let set_mode: Option<unsafe extern "system" fn(i32) -> i32> =
+                std::mem::transmute(GetProcAddress(uxtheme, 135 as *const u8));
+            if let Some(f) = set_mode {
+                let mode = if is_dark {
+                    2 /* ForceDark */
+                } else {
+                    3 /* ForceLight */
+                };
+                f(mode);
+            }
+            // Ordinal 136: FlushMenuThemes
+            let flush: Option<unsafe extern "system" fn()> =
+                std::mem::transmute(GetProcAddress(uxtheme, 136 as *const u8));
+            if let Some(f) = flush {
+                f();
+            }
+        }
+    }
+}
+
+/// Allows dark mode for a specific HWND (Windows 10 1809+ / Windows 11)
+pub fn allow_window_dark_mode(hwnd: isize, is_dark: bool) {
+    unsafe {
+        let uxtheme = GetModuleHandleW(to_wide("uxtheme.dll").as_ptr());
+        if uxtheme != 0 {
+            // Ordinal 133: AllowDarkModeForWindow (hwnd, bool)
+            let allow_dark: Option<unsafe extern "system" fn(isize, bool) -> bool> =
+                std::mem::transmute(GetProcAddress(uxtheme, 133 as *const u8));
+            if let Some(f) = allow_dark {
+                f(hwnd, is_dark);
+            }
+        }
+    }
 }
 
 #[link(name = "dwmapi")]
@@ -148,10 +317,6 @@ pub fn init_common_controls() {
     unsafe {
         InitCommonControlsEx(&icce);
     }
-}
-
-pub fn rgb(r: u8, g: u8, b: u8) -> u32 {
-    (r as u32) | ((g as u32) << 8) | ((b as u32) << 16)
 }
 
 pub const WS_OVERLAPPED: u32 = 0x00000000;
@@ -223,6 +388,14 @@ pub fn center_window(hwnd: isize, width: i32, height: i32) {
         let screen_h = GetSystemMetrics(SM_CYSCREEN);
         let x = (screen_w - width) / 2;
         let y = (screen_h - height) / 2;
-        SetWindowPos(hwnd, 0, x, y, width, height, 0x0004 /* SWP_NOZORDER */ | 0x0040 /* SWP_SHOWWINDOW */);
+        SetWindowPos(
+            hwnd,
+            0,
+            x,
+            y,
+            width,
+            height,
+            0x0004 /* SWP_NOZORDER */ | 0x0040, /* SWP_SHOWWINDOW */
+        );
     }
 }

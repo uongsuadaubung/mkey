@@ -51,28 +51,94 @@ fn main() {
             println!("========================================================");
             println!("         MKey Vietnamese Engine - Windows Hook          ");
             println!("========================================================");
-            let log_path = engine.config().debug_file_path.as_deref().unwrap_or("Không lưu");
-            println!("* Debug Keylogger: {}", if is_debug { "BẬT (Ghi vết chi tiết từng phím & state)" } else { "TẮT" });
-            println!("* File lưu nhật ký: {}", if is_debug { log_path } else { "TẮT" });
-            println!("* Gõ tắt (Macro): {}", if engine.config().use_macro { "BẬT" } else { "TẮT (Mặc định tắt)" });
+            let log_path = engine
+                .config()
+                .debug_file_path
+                .as_deref()
+                .unwrap_or("Không lưu");
+            println!(
+                "* Debug Keylogger: {}",
+                if is_debug {
+                    "BẬT (Ghi vết chi tiết từng phím & state)"
+                } else {
+                    "TẮT"
+                }
+            );
+            println!(
+                "* File lưu nhật ký: {}",
+                if is_debug { log_path } else { "TẮT" }
+            );
+            println!(
+                "* Gõ tắt (Macro): {}",
+                if engine.config().use_macro {
+                    "BẬT"
+                } else {
+                    "TẮT (Mặc định tắt)"
+                }
+            );
             println!("* Số lượng từ gõ tắt: {}", engine.macro_table.len());
-            println!("* Tự động viết hoa đầu câu: {}", if engine.config().auto_uppercase_first_char { "BẬT" } else { "TẮT" });
-            println!("* Phụ âm nhanh đầu từ (f->ph, j->gi, w->qu): {}", if engine.config().quick_start_consonant { "BẬT" } else { "TẮT" });
-            println!("* Phụ âm nhanh cuối từ (g->ng, h->nh, k->ch): {}", if engine.config().quick_end_consonant { "BẬT" } else { "TẮT" });
-            println!("* Phím tắt chuyển chế độ Việt [V] / Anh [E]: [{}]", if engine.config().switch_with_ctrl_shift { "Ctrl + Shift" } else { "Alt + Z" });
+            println!(
+                "* Tự động viết hoa đầu câu: {}",
+                if engine.config().auto_uppercase_first_char {
+                    "BẬT"
+                } else {
+                    "TẮT"
+                }
+            );
+            println!(
+                "* Phụ âm nhanh đầu từ (f->ph, j->gi, w->qu): {}",
+                if engine.config().quick_start_consonant {
+                    "BẬT"
+                } else {
+                    "TẮT"
+                }
+            );
+            println!(
+                "* Phụ âm nhanh cuối từ (g->ng, h->nh, k->ch): {}",
+                if engine.config().quick_end_consonant {
+                    "BẬT"
+                } else {
+                    "TẮT"
+                }
+            );
+            println!(
+                "* Phím tắt chuyển chế độ Việt [V] / Anh [E]: [{}]",
+                if engine.config().switch_with_ctrl_shift {
+                    "Ctrl + Shift"
+                } else {
+                    "Alt + Z"
+                }
+            );
             println!("* Phím tắt ngoặc: [ -> ư, ] -> ơ");
             println!("* Cấu hình lưu tại: {}", mkey::get_config_path().display());
             println!("--------------------------------------------------------");
 
-            if is_debug {
-                if let Some(ref path) = engine.config().debug_file_path {
-                    use std::io::Write;
-                    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
-                        let _ = writeln!(f, "\n========================================================");
-                        let _ = writeln!(f, "MKey Session Started: {}", mkey::engine::current_timestamp_str());
-                        let _ = writeln!(f, "Method: {:?} | Macro: {}", engine.config().method, engine.config().use_macro);
-                        let _ = writeln!(f, "========================================================");
-                    }
+            if is_debug && let Some(ref path) = engine.config().debug_file_path {
+                use std::io::Write;
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(path)
+                {
+                    let _ = writeln!(
+                        f,
+                        "\n========================================================"
+                    );
+                    let _ = writeln!(
+                        f,
+                        "MKey Session Started: {}",
+                        mkey::engine::current_timestamp_str()
+                    );
+                    let _ = writeln!(
+                        f,
+                        "Method: {:?} | Macro: {}",
+                        engine.config().method,
+                        engine.config().use_macro
+                    );
+                    let _ = writeln!(
+                        f,
+                        "========================================================"
+                    );
                 }
             }
 
@@ -115,7 +181,10 @@ fn run_cli(mut engine: VietnameseEngine) {
                 EngineAction::Passthrough => {
                     output.push(ch);
                 }
-                EngineAction::Replace { backspaces, output: new_text } => {
+                EngineAction::Replace {
+                    backspaces,
+                    output: new_text,
+                } => {
                     for _ in 0..backspaces {
                         output.pop();
                     }

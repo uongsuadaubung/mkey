@@ -1,7 +1,6 @@
 //! In-memory ICO file parser and HICON creator using pure Win32 API.
 //! Embeds .ico assets without needing external file dependencies or rc.exe.
 
-
 #[repr(C, packed)]
 struct IcoHeader {
     reserved: u16,
@@ -127,7 +126,11 @@ pub fn load_icon_from_memory(ico_bytes: &[u8], desired_w: i32, desired_h: i32) -
 
     for i in 0..count {
         let entry = unsafe { &*entries_ptr.add(i) };
-        let w = if entry.width == 0 { 256 } else { entry.width as i32 };
+        let w = if entry.width == 0 {
+            256
+        } else {
+            entry.width as i32
+        };
         let diff = (w - desired_w).abs();
         if diff < best_diff {
             best_diff = diff;
@@ -156,11 +159,7 @@ pub fn load_icon_from_memory(ico_bytes: &[u8], desired_w: i32, desired_h: i32) -
         )
     };
 
-    if hicon != 0 {
-        Some(hicon)
-    } else {
-        None
-    }
+    if hicon != 0 { Some(hicon) } else { None }
 }
 
 /// Helper to get standard small icon size (for tray)
@@ -175,6 +174,8 @@ pub fn get_small_icon_size() -> (i32, i32) {
 /// Safely destroy an icon
 pub fn safe_destroy_icon(hicon: isize) {
     if hicon != 0 {
-        unsafe { DestroyIcon(hicon); }
+        unsafe {
+            DestroyIcon(hicon);
+        }
     }
 }

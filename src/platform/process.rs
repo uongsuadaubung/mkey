@@ -8,7 +8,11 @@ use std::os::windows::ffi::OsStrExt;
 #[cfg(target_os = "windows")]
 #[link(name = "kernel32")]
 unsafe extern "system" {
-    fn CreateMutexW(lpMutexAttributes: *mut std::ffi::c_void, bInitialOwner: i32, lpName: *const u16) -> isize;
+    fn CreateMutexW(
+        lpMutexAttributes: *mut std::ffi::c_void,
+        bInitialOwner: i32,
+        lpName: *const u16,
+    ) -> isize;
     fn GetLastError() -> u32;
     fn AttachConsole(dwProcessId: u32) -> i32;
     fn AllocConsole() -> i32;
@@ -70,4 +74,3 @@ pub fn alloc_console() {
         AllocConsole();
     }
 }
-

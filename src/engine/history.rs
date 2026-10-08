@@ -30,7 +30,12 @@ impl WordHistory {
     }
 
     /// Record a newly completed word
-    pub fn commit_word(&mut self, raw_keys: Vec<RawKey>, emitted_text: String, is_raw_restored: bool) {
+    pub fn commit_word(
+        &mut self,
+        raw_keys: Vec<RawKey>,
+        emitted_text: String,
+        is_raw_restored: bool,
+    ) {
         if !raw_keys.is_empty() {
             if self.committed_words.len() >= MAX_HISTORY_WORDS {
                 self.committed_words.remove(0);
@@ -52,7 +57,9 @@ impl WordHistory {
     }
 
     pub fn has_trailing_spaces(&self) -> bool {
-        self.committed_words.last().map_or(false, |w| w.spaces_after > 0)
+        self.committed_words
+            .last()
+            .is_some_and(|w| w.spaces_after > 0)
     }
 
     /// Handles a backspace when the active word buffer is empty.
@@ -74,4 +81,3 @@ impl WordHistory {
         None
     }
 }
-

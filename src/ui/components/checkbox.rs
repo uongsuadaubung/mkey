@@ -1,7 +1,6 @@
 //! Native Win32 CheckBox Component
 
-use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
+use super::window::to_wide;
 use std::ptr::null_mut;
 
 #[link(name = "user32")]
@@ -33,16 +32,13 @@ const BST_CHECKED: usize = 0x0001;
 const BST_UNCHECKED: usize = 0x0000;
 const WM_SETFONT: u32 = 0x0030;
 
-fn to_wide(s: &str) -> Vec<u16> {
-    OsStr::new(s).encode_wide().chain(Some(0)).collect()
-}
-
 pub struct CheckBox {
     hwnd: isize,
     id: u32,
 }
 
 impl CheckBox {
+    #[allow(clippy::too_many_arguments)]
     pub fn create(
         parent: isize,
         id: u32,

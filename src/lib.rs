@@ -11,13 +11,12 @@ pub mod ui;
 pub mod vietnamese;
 
 pub use engine::{
+    VietnameseEngine,
     action::EngineAction,
-    config::{EngineConfig, InputMethod},
+    config::{EngineConfig, InputMethod, UiTheme},
     config_store::{
         get_config_path, load_config_and_macros, parse_config_and_macros, save_config_and_macros,
         serialize_config_and_macros, set_windows_autostart,
     },
     macro_table::MacroTable,
-    VietnameseEngine,
 };
-

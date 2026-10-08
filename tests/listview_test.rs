@@ -6,8 +6,8 @@ fn test_listview_initialization() {
     init_common_controls();
     // Test creating a listview with parent = 0 (or message-only / desktop window)
     // Actually, create a simple hidden parent window
-    use std::os::windows::ffi::OsStrExt;
     use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
 
     fn to_wide(s: &str) -> Vec<u16> {
         OsStr::new(s).encode_wide().chain(Some(0)).collect()
@@ -35,7 +35,20 @@ fn test_listview_initialization() {
 
     let class_name = to_wide("STATIC");
     let parent = unsafe {
-        CreateWindowExW(0, class_name.as_ptr(), std::ptr::null(), 0, 0, 0, 400, 300, 0, 0, 0, std::ptr::null_mut())
+        CreateWindowExW(
+            0,
+            class_name.as_ptr(),
+            std::ptr::null(),
+            0,
+            0,
+            0,
+            400,
+            300,
+            0,
+            0,
+            0,
+            std::ptr::null_mut(),
+        )
     };
     assert_ne!(parent, 0, "Parent window creation failed");
 
@@ -77,7 +90,14 @@ fn test_listview_initialization() {
         psz_text: buf.as_mut_ptr(),
         cch_text_max: 64,
     };
-    let len = unsafe { SendMessageW(lv.hwnd(), LVM_GETITEMTEXTW, 0, &mut item_check as *mut _ as isize) };
+    let len = unsafe {
+        SendMessageW(
+            lv.hwnd(),
+            LVM_GETITEMTEXTW,
+            0,
+            &mut item_check as *mut _ as isize,
+        )
+    };
     let text = String::from_utf16_lossy(&buf[..len as usize]);
     println!("Retrieved item 0 subitem 1 text: '{}'", text);
     assert_eq!(text, "không");
@@ -95,8 +115,8 @@ fn test_tab_and_listview_coexistence() {
 
     init_common_controls();
 
-    use std::os::windows::ffi::OsStrExt;
     use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
 
     fn to_wide(s: &str) -> Vec<u16> {
         OsStr::new(s).encode_wide().chain(Some(0)).collect()
@@ -125,7 +145,20 @@ fn test_tab_and_listview_coexistence() {
 
     let class_name = to_wide("STATIC");
     let parent = unsafe {
-        CreateWindowExW(0, class_name.as_ptr(), std::ptr::null(), 0, 0, 0, 500, 500, 0, 0, 0, std::ptr::null_mut())
+        CreateWindowExW(
+            0,
+            class_name.as_ptr(),
+            std::ptr::null(),
+            0,
+            0,
+            0,
+            500,
+            500,
+            0,
+            0,
+            0,
+            std::ptr::null_mut(),
+        )
     };
     assert_ne!(parent, 0);
 
@@ -153,8 +186,8 @@ fn test_tab_and_listview_coexistence() {
 fn test_button_text_and_macro_contains() {
     use mkey::engine::macro_table::MacroTable;
     use mkey::ui::components::button::PushButton;
-    use std::os::windows::ffi::OsStrExt;
     use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
 
     fn to_wide(s: &str) -> Vec<u16> {
         OsStr::new(s).encode_wide().chain(Some(0)).collect()
@@ -190,7 +223,20 @@ fn test_button_text_and_macro_contains() {
     // 2. Verify PushButton set_text
     let class_name = to_wide("STATIC");
     let parent = unsafe {
-        CreateWindowExW(0, class_name.as_ptr(), std::ptr::null(), 0, 0, 0, 200, 200, 0, 0, 0, std::ptr::null_mut())
+        CreateWindowExW(
+            0,
+            class_name.as_ptr(),
+            std::ptr::null(),
+            0,
+            0,
+            0,
+            200,
+            200,
+            0,
+            0,
+            0,
+            std::ptr::null_mut(),
+        )
     };
     assert_ne!(parent, 0);
 
@@ -213,7 +259,8 @@ fn test_button_text_and_macro_contains() {
     assert_eq!(text, "+ Thêm");
 
     // 3. Verify ListView clear_selection
-    let lv = mkey::ui::components::listview::ListView::create(parent, 502, 10, 50, 150, 100, 0).unwrap();
+    let lv =
+        mkey::ui::components::listview::ListView::create(parent, 502, 10, 50, 150, 100, 0).unwrap();
     lv.add_column(0, "Col", 80);
     lv.add_item(0, "A", "B");
     lv.clear_selection();
@@ -226,10 +273,10 @@ fn test_button_text_and_macro_contains() {
 
 #[test]
 fn test_macro_dynamic_buttons_visibility() {
-    use mkey::ui::views::ControlPanelControls;
     use mkey::ui::components::window::init_common_controls;
-    use std::os::windows::ffi::OsStrExt;
+    use mkey::ui::views::ControlPanelControls;
     use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
 
     init_common_controls();
 
@@ -260,7 +307,20 @@ fn test_macro_dynamic_buttons_visibility() {
 
     let class_name = to_wide("STATIC");
     let parent = unsafe {
-        CreateWindowExW(0, class_name.as_ptr(), std::ptr::null(), 0, 0, 0, 500, 500, 0, 0, 0, std::ptr::null_mut())
+        CreateWindowExW(
+            0,
+            class_name.as_ptr(),
+            std::ptr::null(),
+            0,
+            0,
+            0,
+            500,
+            500,
+            0,
+            0,
+            0,
+            std::ptr::null_mut(),
+        )
     };
     assert_ne!(parent, 0);
 
@@ -272,30 +332,76 @@ fn test_macro_dynamic_buttons_visibility() {
 
     // Initial state: not editing -> + Thêm is visible, Sửa/Hủy/Xóa are hidden
     unsafe {
-        assert_ne!(IsWindowVisible(controls.btn_add_macro.hwnd()), 0, "btn_add_macro should be visible");
-        assert_eq!(IsWindowVisible(controls.btn_edit_macro.hwnd()), 0, "btn_edit_macro should be hidden");
-        assert_eq!(IsWindowVisible(controls.btn_cancel_macro.hwnd()), 0, "btn_cancel_macro should be hidden");
-        assert_eq!(IsWindowVisible(controls.btn_del_macro.hwnd()), 0, "btn_del_macro should be hidden");
+        assert_ne!(
+            IsWindowVisible(controls.btn_add_macro.hwnd()),
+            0,
+            "btn_add_macro should be visible"
+        );
+        assert_eq!(
+            IsWindowVisible(controls.btn_edit_macro.hwnd()),
+            0,
+            "btn_edit_macro should be hidden"
+        );
+        assert_eq!(
+            IsWindowVisible(controls.btn_cancel_macro.hwnd()),
+            0,
+            "btn_cancel_macro should be hidden"
+        );
+        assert_eq!(
+            IsWindowVisible(controls.btn_del_macro.hwnd()),
+            0,
+            "btn_del_macro should be hidden"
+        );
     }
 
     // Switch to edit mode -> + Thêm is hidden, Sửa/Hủy/Xóa are visible
     controls.set_macro_edit_mode(true);
     unsafe {
-        assert_eq!(IsWindowVisible(controls.btn_add_macro.hwnd()), 0, "btn_add_macro should be hidden in edit mode");
-        assert_ne!(IsWindowVisible(controls.btn_edit_macro.hwnd()), 0, "btn_edit_macro should be visible in edit mode");
-        assert_ne!(IsWindowVisible(controls.btn_cancel_macro.hwnd()), 0, "btn_cancel_macro should be visible in edit mode");
-        assert_ne!(IsWindowVisible(controls.btn_del_macro.hwnd()), 0, "btn_del_macro should be visible in edit mode");
+        assert_eq!(
+            IsWindowVisible(controls.btn_add_macro.hwnd()),
+            0,
+            "btn_add_macro should be hidden in edit mode"
+        );
+        assert_ne!(
+            IsWindowVisible(controls.btn_edit_macro.hwnd()),
+            0,
+            "btn_edit_macro should be visible in edit mode"
+        );
+        assert_ne!(
+            IsWindowVisible(controls.btn_cancel_macro.hwnd()),
+            0,
+            "btn_cancel_macro should be visible in edit mode"
+        );
+        assert_ne!(
+            IsWindowVisible(controls.btn_del_macro.hwnd()),
+            0,
+            "btn_del_macro should be visible in edit mode"
+        );
     }
 
     // Switch back to normal mode -> + Thêm is visible, Sửa/Hủy/Xóa are hidden
     controls.set_macro_edit_mode(false);
     unsafe {
-        assert_ne!(IsWindowVisible(controls.btn_add_macro.hwnd()), 0, "btn_add_macro should be restored");
-        assert_eq!(IsWindowVisible(controls.btn_edit_macro.hwnd()), 0, "btn_edit_macro should be hidden again");
-        assert_eq!(IsWindowVisible(controls.btn_cancel_macro.hwnd()), 0, "btn_cancel_macro should be hidden again");
-        assert_eq!(IsWindowVisible(controls.btn_del_macro.hwnd()), 0, "btn_del_macro should be hidden again");
+        assert_ne!(
+            IsWindowVisible(controls.btn_add_macro.hwnd()),
+            0,
+            "btn_add_macro should be restored"
+        );
+        assert_eq!(
+            IsWindowVisible(controls.btn_edit_macro.hwnd()),
+            0,
+            "btn_edit_macro should be hidden again"
+        );
+        assert_eq!(
+            IsWindowVisible(controls.btn_cancel_macro.hwnd()),
+            0,
+            "btn_cancel_macro should be hidden again"
+        );
+        assert_eq!(
+            IsWindowVisible(controls.btn_del_macro.hwnd()),
+            0,
+            "btn_del_macro should be hidden again"
+        );
         DestroyWindow(parent);
     }
 }
-
-

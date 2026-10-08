@@ -1,8 +1,12 @@
-//! Native Win32 Edit (TextBox) Component
-
-use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
+use crate::ui::components::window::*;
 use std::ptr::null_mut;
+
+struct EditSubclassData {
+    cue: Vec<u16>,
+    font: isize,
+}
+
+const EDIT_SUBCLASS_ID: usize = 0x407;
 
 #[link(name = "user32")]
 unsafe extern "system" {
@@ -33,10 +37,69 @@ const WS_BORDER: u32 = 0x00800000;
 const WS_CLIPSIBLINGS: u32 = 0x04000000;
 const ES_AUTOHSCROLL: u32 = 0x0080;
 const WM_SETFONT: u32 = 0x0030;
-const EM_SETCUEBANNER: u32 = 0x1501;
 
-fn to_wide(s: &str) -> Vec<u16> {
-    OsStr::new(s).encode_wide().chain(Some(0)).collect()
+unsafe extern "system" fn edit_subclass_proc(
+    hwnd: isize,
+    msg: u32,
+    wparam: usize,
+    lparam: isize,
+    uid_subclass: usize,
+    ref_data: usize,
+) -> isize {
+    const WM_PAINT: u32 = 0x000F;
+    const WM_SETFOCUS: u32 = 0x0007;
+    const WM_KILLFOCUS: u32 = 0x0008;
+    const WM_NCDESTROY: u32 = 0x0082;
+
+    if msg == WM_NCDESTROY {
+        if ref_data != 0 {
+            unsafe {
+                RemoveWindowSubclass(hwnd, edit_subclass_proc, uid_subclass);
+                drop(Box::from_raw(ref_data as *mut EditSubclassData));
+            }
+        }
+        return unsafe { DefSubclassProc(hwnd, msg, wparam, lparam) };
+    }
+
+    let res = unsafe { DefSubclassProc(hwnd, msg, wparam, lparam) };
+
+    if msg == WM_SETFOCUS || msg == WM_KILLFOCUS {
+        unsafe {
+            InvalidateRect(hwnd, null_mut(), 1);
+        }
+    } else if msg == WM_PAINT && ref_data != 0 {
+        let data = unsafe { &*(ref_data as *const EditSubclassData) };
+        if !data.cue.is_empty() {
+            unsafe {
+                if GetWindowTextLengthW(hwnd) == 0 && GetFocus() != hwnd {
+                    let hdc = GetDC(hwnd);
+                    if hdc != 0 {
+                        let is_dark = crate::ui::is_current_dark();
+                        let palette = crate::ui::colors::ThemePalette::get(is_dark);
+                        let mut rc = RECT::default();
+                        GetClientRect(hwnd, &mut rc);
+                        rc.left += 6;
+                        rc.top += 1;
+                        SetBkMode(hdc, TRANSPARENT);
+                        SetTextColor(hdc, palette.text_secondary);
+                        if data.font != 0 {
+                            SelectObject(hdc, data.font);
+                        }
+                        DrawTextW(
+                            hdc,
+                            data.cue.as_ptr(),
+                            data.cue.len() as i32 - 1,
+                            &mut rc,
+                            DT_VCENTER | DT_SINGLELINE,
+                        );
+                        ReleaseDC(hwnd, hdc);
+                    }
+                }
+            }
+        }
+    }
+
+    res
 }
 
 pub struct TextBox {
@@ -45,6 +108,7 @@ pub struct TextBox {
 }
 
 impl TextBox {
+    #[allow(clippy::too_many_arguments)]
     pub fn create(
         parent: isize,
         id: u32,
@@ -61,7 +125,7 @@ impl TextBox {
 
         let hwnd = unsafe {
             CreateWindowExW(
-                0x00000200, // WS_EX_CLIENTEDGE
+                0, // Flat modern border (no harsh 3D sunken WS_EX_CLIENTEDGE)
                 class_name.as_ptr(),
                 window_name.as_ptr(),
                 WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_BORDER | WS_CLIPSIBLINGS | ES_AUTOHSCROLL,
@@ -87,9 +151,17 @@ impl TextBox {
         }
 
         if !cue_banner.is_empty() {
-            let cue_w = to_wide(cue_banner);
+            let data = Box::into_raw(Box::new(EditSubclassData {
+                cue: to_wide(cue_banner),
+                font: hfont,
+            }));
             unsafe {
-                SendMessageW(hwnd, EM_SETCUEBANNER, 1, cue_w.as_ptr() as isize);
+                SetWindowSubclass(
+                    hwnd,
+                    edit_subclass_proc,
+                    EDIT_SUBCLASS_ID,
+                    data as usize,
+                );
             }
         }
 
@@ -129,4 +201,3 @@ impl TextBox {
         self.set_text("");
     }
 }
-

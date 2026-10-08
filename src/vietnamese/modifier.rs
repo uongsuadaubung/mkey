@@ -1,5 +1,5 @@
-use crate::engine::config::InputMethod;
 use super::charset::{BaseVowel, Tone};
+use crate::engine::config::InputMethod;
 
 /// Abstract linguistic modifier action in the Vietnamese orthography.
 ///

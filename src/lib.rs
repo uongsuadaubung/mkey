@@ -5,11 +5,13 @@
 #![allow(non_snake_case)]
 
 pub mod engine;
+pub mod language;
 pub mod platform;
 #[cfg(windows)]
 pub mod ui;
 pub mod vietnamese;
 
+pub use language::{Language, LanguageStrings, current as current_strings, get_strings};
 pub use engine::{
     VietnameseEngine,
     action::EngineAction,

@@ -20,6 +20,7 @@ unsafe extern "system" {
         lp_param: *mut std::ffi::c_void,
     ) -> isize;
     fn SendMessageW(h_wnd: isize, msg: u32, w_param: usize, l_param: isize) -> isize;
+    fn SetWindowTextW(h_wnd: isize, lp_string: *const u16) -> i32;
 }
 
 const WS_CHILD: u32 = 0x40000000;
@@ -98,6 +99,13 @@ impl Label {
 
     pub fn hwnd(&self) -> isize {
         self.hwnd
+    }
+
+    pub fn set_text(&self, text: &str) {
+        let wide = to_wide(text);
+        unsafe {
+            SetWindowTextW(self.hwnd, wide.as_ptr());
+        }
     }
 }
 

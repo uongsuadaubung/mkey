@@ -31,6 +31,7 @@ pub const IDC_CHECK_SHOW_DIALOG: u32 = 424;
 pub const IDC_CHECK_DEBUG_LOG: u32 = 421;
 pub const IDC_BTN_OPEN_LOG: u32 = 422;
 pub const IDC_COMBO_THEME: u32 = 423;
+pub const IDC_COMBO_LANG: u32 = 425;
 
 // Tab 3: Thông tin
 pub const IDC_LABEL_EMAIL: u32 = 430;
@@ -78,6 +79,8 @@ pub struct ControlPanelControls {
     pub label_theme_title: Label,
     pub label_theme: Label,
     pub combo_theme: ComboBox,
+    pub label_lang: Label,
+    pub combo_lang: ComboBox,
 
     // Tab 3 Controls
     pub label_about_title: Label,
@@ -94,26 +97,28 @@ pub struct ControlPanelControls {
 
 impl ControlPanelControls {
     pub fn create(parent: isize, hfont_normal: isize, hfont_bold: isize) -> Option<Self> {
+        let strings = crate::language::current();
+
         // 1. Header Card controls (x: 20..440, y: 14..78)
-        let label_method = Label::create(parent, "Kiểu gõ:", 35, 26, 65, 20, hfont_bold)?;
+        let label_method = Label::create(parent, strings.label_method, 35, 26, 65, 20, hfont_bold)?;
         let combo_method =
             ComboBox::create(parent, IDC_COMBO_METHOD, 105, 22, 155, 150, hfont_normal)?;
-        combo_method.add_item("Telex");
-        combo_method.add_item("VNI");
-        combo_method.add_item("Simple Telex");
+        combo_method.add_item(strings.method_telex);
+        combo_method.add_item(strings.method_vni);
+        combo_method.add_item(strings.method_simple_telex);
         combo_method.set_selected(0);
 
-        let label_mode = Label::create(parent, "Chế độ:", 35, 52, 65, 20, hfont_bold)?;
+        let label_mode = Label::create(parent, strings.label_mode, 35, 52, 65, 20, hfont_bold)?;
         let combo_mode = ComboBox::create(parent, IDC_COMBO_MODE, 105, 48, 155, 150, hfont_normal)?;
-        combo_mode.add_item("Tiếng Việt");
-        combo_mode.add_item("Tiếng Anh");
+        combo_mode.add_item(strings.mode_vietnamese);
+        combo_mode.add_item(strings.mode_english);
         combo_mode.set_selected(0);
 
-        let label_switch = Label::create(parent, "Phím chuyển:", 280, 26, 95, 20, hfont_bold)?;
+        let label_switch = Label::create(parent, strings.label_switch, 280, 26, 95, 20, hfont_bold)?;
         let check_ctrl_shift = CheckBox::create(
             parent,
             IDC_CHECK_CTRL_SHIFT,
-            "Ctrl + Shift",
+            strings.check_ctrl_shift,
             280,
             48,
             120,
@@ -137,7 +142,7 @@ impl ControlPanelControls {
         // 3. Tab 0: Bộ gõ Controls (Body Card y: 134..444)
         let label_typing_title = Label::create(
             parent,
-            "Tính năng hỗ trợ gõ & kiểm tra chính tả",
+            strings.typing_title,
             40,
             150,
             360,
@@ -147,7 +152,7 @@ impl ControlPanelControls {
         let check_spelling = CheckBox::create(
             parent,
             IDC_CHECK_SPELLING,
-            "Bật kiểm tra chính tả tiếng Việt",
+            strings.check_spelling,
             40,
             185,
             360,
@@ -157,7 +162,7 @@ impl ControlPanelControls {
         let check_restore_wrong = CheckBox::create(
             parent,
             IDC_CHECK_RESTORE_WRONG,
-            "Tự động khôi phục phím khi gõ sai từ",
+            strings.check_restore_wrong,
             40,
             225,
             360,
@@ -167,7 +172,7 @@ impl ControlPanelControls {
         let check_auto_upper = CheckBox::create(
             parent,
             IDC_CHECK_AUTO_UPPER,
-            "Tự động viết hoa chữ cái đầu câu",
+            strings.check_auto_upper,
             40,
             265,
             360,
@@ -179,7 +184,7 @@ impl ControlPanelControls {
         let check_use_macro = CheckBox::create(
             parent,
             IDC_CHECK_USE_MACRO,
-            "Cho phép sử dụng bảng gõ tắt (Macro)",
+            strings.check_use_macro,
             40,
             148,
             360,
@@ -190,7 +195,7 @@ impl ControlPanelControls {
             parent,
             IDC_EDIT_MACRO_KEY,
             "",
-            "Từ viết tắt",
+            strings.edit_macro_key_placeholder,
             40,
             180,
             85,
@@ -201,7 +206,7 @@ impl ControlPanelControls {
             parent,
             IDC_EDIT_MACRO_VALUE,
             "",
-            "Cụm từ thay thế",
+            strings.edit_macro_val_placeholder,
             135,
             180,
             145,
@@ -211,7 +216,7 @@ impl ControlPanelControls {
         let btn_add_macro = PushButton::create(
             parent,
             IDC_BTN_ADD_MACRO,
-            "+ Thêm",
+            strings.btn_add_macro,
             290,
             179,
             110,
@@ -221,7 +226,7 @@ impl ControlPanelControls {
         let btn_edit_macro = PushButton::create(
             parent,
             IDC_BTN_EDIT_MACRO,
-            "Sửa",
+            strings.btn_edit_macro,
             290,
             179,
             34,
@@ -231,7 +236,7 @@ impl ControlPanelControls {
         let btn_cancel_macro = PushButton::create(
             parent,
             IDC_BTN_CANCEL_MACRO,
-            "Hủy",
+            strings.btn_cancel_macro,
             328,
             179,
             34,
@@ -241,7 +246,7 @@ impl ControlPanelControls {
         let btn_del_macro = PushButton::create(
             parent,
             IDC_BTN_DEL_MACRO,
-            "Xóa",
+            strings.btn_del_macro,
             366,
             179,
             34,
@@ -257,16 +262,16 @@ impl ControlPanelControls {
         }
 
         let list_macro = ListView::create(parent, IDC_LIST_MACRO, 40, 214, 360, 215, hfont_normal)?;
-        list_macro.add_column(0, "Từ viết tắt", 115);
-        list_macro.add_column(1, "Cụm từ thay thế", 243);
+        list_macro.add_column(0, strings.col_macro_key, 115);
+        list_macro.add_column(1, strings.col_macro_val, 243);
 
         // 5. Tab 2: Hệ thống Controls
         let label_sys_title =
-            Label::create(parent, "Khởi động & Nhật ký", 40, 150, 360, 22, hfont_bold)?;
+            Label::create(parent, strings.sys_title, 40, 150, 360, 22, hfont_bold)?;
         let check_autostart = CheckBox::create(
             parent,
             IDC_CHECK_AUTOSTART,
-            "Khởi động cùng hệ điều hành Windows",
+            strings.check_autostart,
             40,
             178,
             360,
@@ -276,7 +281,7 @@ impl ControlPanelControls {
         let check_show_dialog = CheckBox::create(
             parent,
             IDC_CHECK_SHOW_DIALOG,
-            "Bật hội thoại này khi khởi động",
+            strings.check_show_dialog,
             40,
             206,
             360,
@@ -286,7 +291,7 @@ impl ControlPanelControls {
         let check_debug_log = CheckBox::create(
             parent,
             IDC_CHECK_DEBUG_LOG,
-            "Bật ghi nhật ký chẩn đoán (Debug Log)",
+            strings.check_debug_log,
             40,
             236,
             250,
@@ -296,7 +301,7 @@ impl ControlPanelControls {
         let btn_open_log = PushButton::create(
             parent,
             IDC_BTN_OPEN_LOG,
-            "Xem log...",
+            strings.btn_open_log,
             300,
             233,
             100,
@@ -304,20 +309,28 @@ impl ControlPanelControls {
             hfont_normal,
         )?;
         let label_theme_title =
-            Label::create(parent, "Giao diện (Theme)", 40, 275, 360, 22, hfont_bold)?;
+            Label::create(parent, strings.label_theme_title, 40, 275, 360, 22, hfont_bold)?;
         let label_theme =
-            Label::create(parent, "Chế độ hiển thị:", 40, 307, 120, 20, hfont_normal)?;
+            Label::create(parent, strings.label_theme, 40, 307, 120, 20, hfont_normal)?;
         let combo_theme =
             ComboBox::create(parent, IDC_COMBO_THEME, 165, 303, 235, 150, hfont_normal)?;
-        combo_theme.add_item("Theo hệ thống (Auto)");
-        combo_theme.add_item("Sáng (Light)");
-        combo_theme.add_item("Tối (Dark)");
+        combo_theme.add_item(strings.theme_auto);
+        combo_theme.add_item(strings.theme_light);
+        combo_theme.add_item(strings.theme_dark);
         combo_theme.set_selected(0);
+
+        let label_lang =
+            Label::create(parent, strings.label_language, 40, 345, 120, 20, hfont_normal)?;
+        let combo_lang =
+            ComboBox::create(parent, IDC_COMBO_LANG, 165, 341, 235, 150, hfont_normal)?;
+        combo_lang.add_item("Tiếng Việt");
+        combo_lang.add_item("English");
+        combo_lang.set_selected(0);
 
         // 6. Tab 3: Thông tin Controls
         let label_about_title = Label::create(
             parent,
-            "MKey - Bộ gõ tiếng Việt",
+            strings.about_title,
             40,
             150,
             360,
@@ -325,13 +338,13 @@ impl ControlPanelControls {
             hfont_bold,
         )?;
         let label_about_ver =
-            Label::create(parent, "Phiên bản: 0.1.0", 40, 185, 360, 20, hfont_normal)?;
+            Label::create(parent, strings.about_ver, 40, 185, 360, 20, hfont_normal)?;
         let label_about_author =
-            Label::create(parent, "Tác giả: Mạnh Kiên", 40, 215, 360, 20, hfont_normal)?;
+            Label::create(parent, strings.about_author, 40, 215, 360, 20, hfont_normal)?;
         let label_about_email = Label::create_with_id(
             parent,
             IDC_LABEL_EMAIL,
-            "Email: manhkien13041997@gmail.com",
+            strings.about_email,
             40,
             245,
             360,
@@ -341,7 +354,7 @@ impl ControlPanelControls {
         let label_about_github = Label::create_with_id(
             parent,
             IDC_LABEL_GITHUB,
-            "GitHub: https://github.com/uongsuadaubung/mkey",
+            strings.about_github,
             40,
             275,
             360,
@@ -353,7 +366,7 @@ impl ControlPanelControls {
         let btn_exit = PushButton::create(
             parent,
             IDC_BTN_EXIT,
-            "Kết thúc",
+            strings.btn_exit,
             20,
             456,
             110,
@@ -363,7 +376,7 @@ impl ControlPanelControls {
         let btn_defaults = PushButton::create(
             parent,
             IDC_BTN_DEFAULTS,
-            "Mặc định",
+            strings.btn_defaults,
             175,
             456,
             110,
@@ -373,7 +386,7 @@ impl ControlPanelControls {
         let btn_close = PushButton::create(
             parent,
             IDC_BTN_CLOSE,
-            "Đóng",
+            strings.btn_close,
             330,
             456,
             110,
@@ -409,6 +422,8 @@ impl ControlPanelControls {
             label_theme_title,
             label_theme,
             combo_theme,
+            label_lang,
+            combo_lang,
             label_about_title,
             label_about_ver,
             label_about_author,
@@ -552,6 +567,8 @@ impl ControlPanelControls {
             ShowWindow(self.label_theme_title.hwnd(), show_t2);
             ShowWindow(self.label_theme.hwnd(), show_t2);
             ShowWindow(self.combo_theme.hwnd(), show_t2);
+            ShowWindow(self.label_lang.hwnd(), show_t2);
+            ShowWindow(self.combo_lang.hwnd(), show_t2);
 
             // Tab 3 controls
             let show_t3 = if tab_idx == 3 { SW_SHOW } else { SW_HIDE };
@@ -586,6 +603,7 @@ impl ControlPanelControls {
         self.check_debug_log.set_checked(config.debug);
 
         self.combo_theme.set_selected(config.theme.into());
+        self.combo_lang.set_selected(config.language.into());
     }
 
     /// Reads UI state into an EngineConfig
@@ -646,6 +664,14 @@ impl ControlPanelControls {
                 println!("[MKey] >> Đổi giao diện sang: {:?}", new_theme);
             }
         }
+
+        if let Some(lang_sel) = self.combo_lang.get_selected() {
+            let new_lang = crate::language::Language::from(lang_sel);
+            if config.language != new_lang {
+                config.language = new_lang;
+                println!("[MKey] >> Đổi ngôn ngữ giao diện sang: {:?}", new_lang);
+            }
+        }
     }
 
     /// Populates or updates the Macro ListView with given pairs
@@ -654,5 +680,61 @@ impl ControlPanelControls {
         for (i, (k, v)) in macros.iter().enumerate() {
             self.list_macro.add_item(i as i32, k, v);
         }
+    }
+
+    /// Dynamically refreshes all UI text labels, buttons, combobox options, and titles to match the given language
+    pub fn update_language(&self, lang: crate::language::Language) {
+        let strings = crate::language::get_strings(lang);
+        self.label_method.set_text(strings.label_method);
+        self.label_mode.set_text(strings.label_mode);
+        self.label_switch.set_text(strings.label_switch);
+        self.check_ctrl_shift.set_text(strings.check_ctrl_shift);
+
+        let cur_mode = self.combo_mode.get_selected().unwrap_or(0);
+        self.combo_mode.reset_items(
+            &[strings.mode_vietnamese, strings.mode_english],
+            Some(cur_mode),
+        );
+
+        self.label_typing_title.set_text(strings.typing_title);
+        self.check_spelling.set_text(strings.check_spelling);
+        self.check_restore_wrong.set_text(strings.check_restore_wrong);
+        self.check_auto_upper.set_text(strings.check_auto_upper);
+
+        self.check_use_macro.set_text(strings.check_use_macro);
+        self.edit_macro_key.set_cue_banner(strings.edit_macro_key_placeholder);
+        self.edit_macro_value.set_cue_banner(strings.edit_macro_val_placeholder);
+        self.btn_add_macro.set_text(strings.btn_add_macro);
+        self.btn_edit_macro.set_text(strings.btn_edit_macro);
+        self.btn_cancel_macro.set_text(strings.btn_cancel_macro);
+        self.btn_del_macro.set_text(strings.btn_del_macro);
+        self.list_macro.refresh_header();
+
+        self.label_sys_title.set_text(strings.sys_title);
+        self.check_autostart.set_text(strings.check_autostart);
+        self.check_show_dialog.set_text(strings.check_show_dialog);
+        self.check_debug_log.set_text(strings.check_debug_log);
+        self.btn_open_log.set_text(strings.btn_open_log);
+        self.label_theme_title.set_text(strings.label_theme_title);
+        self.label_theme.set_text(strings.label_theme);
+
+        let cur_theme = self.combo_theme.get_selected().unwrap_or(0);
+        self.combo_theme.reset_items(
+            &[strings.theme_auto, strings.theme_light, strings.theme_dark],
+            Some(cur_theme),
+        );
+
+        self.label_lang.set_text(strings.label_language);
+        self.combo_lang.set_selected(lang.into());
+
+        self.label_about_title.set_text(strings.about_title);
+        self.label_about_ver.set_text(strings.about_ver);
+        self.label_about_author.set_text(strings.about_author);
+        self.label_about_email.set_text(strings.about_email);
+        self.label_about_github.set_text(strings.about_github);
+
+        self.btn_exit.set_text(strings.btn_exit);
+        self.btn_defaults.set_text(strings.btn_defaults);
+        self.btn_close.set_text(strings.btn_close);
     }
 }

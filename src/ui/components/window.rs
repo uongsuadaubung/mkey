@@ -151,6 +151,7 @@ unsafe extern "system" {
         hrgn_update: isize,
         flags: u32,
     ) -> i32;
+    pub fn SetWindowTextW(h_wnd: isize, lp_string: *const u16) -> i32;
 }
 
 #[link(name = "comctl32")]

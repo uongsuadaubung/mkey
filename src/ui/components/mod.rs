@@ -34,8 +34,8 @@ pub use window::{
     RDW_ERASE, RDW_FRAME, RDW_INVALIDATE, RDW_UPDATENOW, RECT, RedrawWindow, ReleaseDC,
     RemoveWindowSubclass, SW_HIDE, SW_SHOW, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE,
     SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, ScreenToClient, SendMessageW, SetBkColor,
-    SetBkMode, SetTextColor, SetWindowLongPtrW, SetWindowPos, SetWindowSubclass, SetWindowTheme,
-    TRANSPARENT, UpdateWindow, WM_SETICON, WS_CLIPCHILDREN, WS_EX_APPWINDOW,
+    SetBkMode, SetTextColor, SetWindowLongPtrW, SetWindowPos, SetWindowSubclass, SetWindowTextW,
+    SetWindowTheme, TRANSPARENT, UpdateWindow, WM_SETICON, WS_CLIPCHILDREN, WS_EX_APPWINDOW,
     allow_window_dark_mode, apply_modern_window_styling, center_window, create_app_font,
     init_common_controls, set_preferred_app_mode, to_wide,
 };

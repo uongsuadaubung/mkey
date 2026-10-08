@@ -69,10 +69,11 @@ impl TrayHandler {
         if hicon != 0 {
             self.tray.set_icon(hicon);
         }
+        let strings = crate::language::current();
         let tip = if self.is_vietnamese {
-            "MKey - Bộ gõ tiếng Việt (Tiếng Việt)"
+            strings.tray_tooltip_vi
         } else {
-            "MKey - Bộ gõ tiếng Việt (English)"
+            strings.tray_tooltip_en
         };
         self.tray.set_tooltip(tip);
     }
@@ -94,8 +95,10 @@ impl TrayHandler {
             None => return 0,
         };
 
+        let strings = crate::language::current();
+
         // 1. Toggle V/E
-        menu.add_checked_item(IDM_TOGGLE_VIET, "Bật tiếng Việt", self.is_vietnamese);
+        menu.add_checked_item(IDM_TOGGLE_VIET, strings.tray_toggle_vi, self.is_vietnamese);
         menu.add_separator();
 
         // 2. Input Method
@@ -106,15 +109,15 @@ impl TrayHandler {
             InputMethod::SimpleTelex1 | InputMethod::SimpleTelex2
         );
 
-        menu.add_checked_item(IDM_TELEX, "Kiểu gõ Telex", is_telex);
-        menu.add_checked_item(IDM_VNI, "Kiểu gõ VNI", is_vni);
-        menu.add_checked_item(IDM_SIMPLE_TELEX, "Kiểu gõ Simple Telex", is_simple);
+        menu.add_checked_item(IDM_TELEX, strings.tray_method_telex, is_telex);
+        menu.add_checked_item(IDM_VNI, strings.tray_method_vni, is_vni);
+        menu.add_checked_item(IDM_SIMPLE_TELEX, strings.tray_method_simple_telex, is_simple);
         menu.add_separator();
 
         // 3. Control Panel & Exit
-        menu.add_item(IDM_CONTROL_PANEL, "Bảng điều khiển...");
+        menu.add_item(IDM_CONTROL_PANEL, strings.tray_control_panel);
         menu.add_separator();
-        menu.add_item(IDM_EXIT, "Thoát");
+        menu.add_item(IDM_EXIT, strings.tray_exit);
 
         menu.track(hwnd, x, y)
     }

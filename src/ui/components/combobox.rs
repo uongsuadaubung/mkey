@@ -32,6 +32,9 @@ const WS_VSCROLL: u32 = 0x00200000;
 const CB_ADDSTRING: u32 = 0x0143;
 const CB_SETCURSEL: u32 = 0x014E;
 const CB_GETCURSEL: u32 = 0x0147;
+const CB_RESETCONTENT: u32 = 0x014B;
+const CB_GETLBTEXTLEN: u32 = 0x0149;
+const CB_GETLBTEXT: u32 = 0x0148;
 const CB_ERR: isize = -1;
 const WM_SETFONT: u32 = 0x0030;
 
@@ -108,6 +111,38 @@ impl ComboBox {
     pub fn set_selected(&self, index: usize) {
         unsafe {
             SendMessageW(self.hwnd, CB_SETCURSEL, index, 0);
+        }
+    }
+
+    pub fn clear(&self) {
+        unsafe {
+            SendMessageW(self.hwnd, CB_RESETCONTENT, 0, 0);
+        }
+    }
+
+    pub fn reset_items(&self, items: &[&str], selected: Option<usize>) {
+        self.clear();
+        for item in items {
+            self.add_item(item);
+        }
+        if let Some(sel) = selected {
+            self.set_selected(sel);
+        }
+    }
+
+    pub fn get_item_text(&self, index: usize) -> String {
+        unsafe {
+            let len = SendMessageW(self.hwnd, CB_GETLBTEXTLEN, index, 0);
+            if len <= 0 || len == CB_ERR {
+                return String::new();
+            }
+            let mut buf = vec![0u16; (len + 1) as usize];
+            let res = SendMessageW(self.hwnd, CB_GETLBTEXT, index, buf.as_mut_ptr() as isize);
+            if res != CB_ERR && res >= 0 {
+                String::from_utf16_lossy(&buf[..res as usize])
+            } else {
+                String::new()
+            }
         }
     }
 }

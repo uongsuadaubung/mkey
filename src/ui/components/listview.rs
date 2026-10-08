@@ -76,9 +76,10 @@ unsafe extern "system" fn listview_subclass_proc(
                     DeleteObject(sep_brush);
 
                     // 3. Draw column header title with crisp primary text color
+                    let strings = crate::language::current();
                     let title = match nmcd.dw_item_spec {
-                        0 => "Từ viết tắt",
-                        1 => "Cụm từ thay thế",
+                        0 => strings.col_macro_key,
+                        1 => strings.col_macro_val,
                         _ => "",
                     };
                     let title_w = to_wide(title);
@@ -323,6 +324,18 @@ impl ListView {
                 index as usize,
                 &mut col as *mut _ as isize,
             );
+        }
+    }
+
+    pub fn refresh_header(&self) {
+        const LVM_GETHEADER: u32 = LVM_FIRST + 31;
+        unsafe {
+            let h_header = SendMessageW(self.hwnd, LVM_GETHEADER, 0, 0);
+            if h_header != 0 {
+                use crate::ui::components::window::{InvalidateRect, UpdateWindow};
+                InvalidateRect(h_header, null_mut(), 1);
+                UpdateWindow(h_header);
+            }
         }
     }
 

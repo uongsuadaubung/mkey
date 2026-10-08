@@ -22,7 +22,6 @@ static TAB_FONT_NORMAL: AtomicIsize = AtomicIsize::new(0);
 static TAB_FONT_BOLD: AtomicIsize = AtomicIsize::new(0);
 static TAB_PARENT: AtomicIsize = AtomicIsize::new(0);
 static TAB_CONTROL_ID: AtomicUsize = AtomicUsize::new(0);
-static TAB_TITLES: [&str; 4] = ["Bộ gõ", "Gõ tắt", "Hệ thống", "Thông tin"];
 
 #[link(name = "user32")]
 unsafe extern "system" {
@@ -139,17 +138,18 @@ unsafe extern "system" fn tab_bar_wnd_proc(
                     DeleteObject(pen_track);
 
                     // 2. Draw Tabs
-                    let num_tabs = TAB_TITLES.len() as i32;
+                    let tab_titles = crate::language::current().tab_titles();
+                    let num_tabs = tab_titles.len() as i32;
                     let track_padding = 3;
                     let available_w = (rc.right - rc.left) - (track_padding * 2);
                     let tab_w = available_w / num_tabs;
 
                     SetBkMode(hdc, TRANSPARENT);
 
-                    for (i, title) in TAB_TITLES.iter().enumerate() {
+                    for (i, title) in tab_titles.iter().enumerate() {
                         let i_i32 = i as i32;
                         let item_left = track_padding + i_i32 * tab_w;
-                        let item_right = if i == TAB_TITLES.len() - 1 {
+                        let item_right = if i == tab_titles.len() - 1 {
                             rc.right - track_padding
                         } else {
                             item_left + tab_w
@@ -301,7 +301,7 @@ impl TabBar {
     }
 
     pub fn set_cur_sel(&self, index: usize) {
-        if index < TAB_TITLES.len() {
+        if index < crate::language::current().tab_titles().len() {
             TAB_CUR_SEL.store(index, Ordering::Relaxed);
             unsafe {
                 InvalidateRect(self.hwnd, null_mut(), 0);

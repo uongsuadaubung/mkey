@@ -50,6 +50,7 @@ unsafe extern "system" fn edit_subclass_proc(
     const WM_SETFOCUS: u32 = 0x0007;
     const WM_KILLFOCUS: u32 = 0x0008;
     const WM_NCDESTROY: u32 = 0x0082;
+    const WM_SET_CUE_BANNER: u32 = 0x8000 + 10;
 
     if msg == WM_NCDESTROY {
         if ref_data != 0 {
@@ -59,6 +60,22 @@ unsafe extern "system" fn edit_subclass_proc(
             }
         }
         return unsafe { DefSubclassProc(hwnd, msg, wparam, lparam) };
+    }
+
+    if msg == WM_SET_CUE_BANNER && ref_data != 0 {
+        let text_ptr = lparam as *const u16;
+        if !text_ptr.is_null() {
+            let data = unsafe { &mut *(ref_data as *mut EditSubclassData) };
+            let mut len = 0;
+            while unsafe { *text_ptr.add(len) } != 0 {
+                len += 1;
+            }
+            data.cue = unsafe { std::slice::from_raw_parts(text_ptr, len + 1) }.to_vec();
+            unsafe {
+                InvalidateRect(hwnd, null_mut(), 1);
+            }
+        }
+        return 1;
     }
 
     let res = unsafe { DefSubclassProc(hwnd, msg, wparam, lparam) };
@@ -150,19 +167,17 @@ impl TextBox {
             }
         }
 
-        if !cue_banner.is_empty() {
-            let data = Box::into_raw(Box::new(EditSubclassData {
-                cue: to_wide(cue_banner),
-                font: hfont,
-            }));
-            unsafe {
-                SetWindowSubclass(
-                    hwnd,
-                    edit_subclass_proc,
-                    EDIT_SUBCLASS_ID,
-                    data as usize,
-                );
-            }
+        let data = Box::into_raw(Box::new(EditSubclassData {
+            cue: to_wide(cue_banner),
+            font: hfont,
+        }));
+        unsafe {
+            SetWindowSubclass(
+                hwnd,
+                edit_subclass_proc,
+                EDIT_SUBCLASS_ID,
+                data as usize,
+            );
         }
 
         Some(Self { hwnd, id })
@@ -194,6 +209,14 @@ impl TextBox {
         let wide = to_wide(text);
         unsafe {
             SetWindowTextW(self.hwnd, wide.as_ptr());
+        }
+    }
+
+    pub fn set_cue_banner(&self, text: &str) {
+        const WM_SET_CUE_BANNER: u32 = 0x8000 + 10;
+        let wide = to_wide(text);
+        unsafe {
+            SendMessageW(self.hwnd, WM_SET_CUE_BANNER, 0, wide.as_ptr() as isize);
         }
     }
 

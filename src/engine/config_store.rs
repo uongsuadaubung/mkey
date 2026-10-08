@@ -22,7 +22,7 @@ pub fn get_config_path() -> PathBuf {
 /// Autostart state is read directly from Windows Registry as the source of truth.
 pub fn load_config_and_macros() -> (EngineConfig, MacroTable) {
     let path = get_config_path();
-    if !path.exists() {
+    let (config, macros) = if !path.exists() {
         let config = EngineConfig::default();
         let macros = MacroTable::new();
         let _ = save_config_and_macros(&config, &macros);
@@ -32,7 +32,9 @@ pub fn load_config_and_macros() -> (EngineConfig, MacroTable) {
             Ok(content) => parse_config_and_macros(&content),
             Err(_) => (EngineConfig::default(), MacroTable::new()),
         }
-    }
+    };
+    crate::language::set_current_language(config.language);
+    (config, macros)
 }
 
 /// Parse INI content into EngineConfig and MacroTable
@@ -98,6 +100,9 @@ pub fn parse_config_and_macros(content: &str) -> (EngineConfig, MacroTable) {
                 "theme" => {
                     config.theme = val_l.parse().unwrap_or_default();
                 }
+                "language" | "lang" => {
+                    config.language = val_l.parse().unwrap_or_default();
+                }
                 _ => {}
             }
         }
@@ -151,6 +156,7 @@ pub fn serialize_config_and_macros(config: &EngineConfig, macros: &MacroTable) -
     ));
 
     out.push_str("[system]\n");
+    out.push_str(&format!("language = {}\n", config.language));
     out.push_str(&format!(
         "show_dialog_on_startup = {}\n",
         config.show_dialog_on_startup

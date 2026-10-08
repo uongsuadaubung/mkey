@@ -158,6 +158,7 @@ impl From<usize> for UiTheme {
 pub struct EngineConfig {
     pub method: InputMethod,
     pub theme: UiTheme,
+    pub language: crate::language::Language,
     /// Bật/tắt chế độ gõ tiếng Việt (true: bật gõ tiếng Việt, false: tiếng Anh)
     pub enabled: bool,
     /// Kiểm tra chính tả tiếng Việt
@@ -193,6 +194,7 @@ impl Default for EngineConfig {
         Self {
             method: InputMethod::Telex,
             theme: UiTheme::Auto,
+            language: crate::language::Language::default(),
             enabled: true,
             check_spelling: true,
             restore_on_wrong_spelling: true,

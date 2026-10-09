@@ -4,6 +4,7 @@ version = "0.2.0"
 edition = "2024"
 authors = ["Mạnh Kiên <manhkien13041997@gmail.com>"]
 description = "MKey - Bộ gõ tiếng Việt siêu nhẹ, hiệu năng cao viết bằng Rust"
+default-run = "MKey"
 
 [lib]
 name = "mkey"
@@ -13,9 +14,9 @@ path = "src/lib.rs"
 name = "MKey"
 path = "src/main.rs"
 
-[[bin]]
+[[example]]
 name = "combinatorial_tester"
-path = "src/bin/combinatorial_tester.rs"
+path = "examples/combinatorial_tester.rs"
 
 [dependencies]
 

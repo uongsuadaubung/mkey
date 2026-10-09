@@ -81,6 +81,14 @@ pub const LIGHT_PALETTE: ThemePalette = ThemePalette {
     text_link: rgb(0, 102, 204),        // #0066CC - Readable Fluent blue link
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TextRole {
+    Primary,
+    Secondary,
+    Input,
+    Link,
+}
+
 impl ThemePalette {
     #[inline]
     pub const fn get(is_dark: bool) -> &'static ThemePalette {
@@ -90,4 +98,25 @@ impl ThemePalette {
             &LIGHT_PALETTE
         }
     }
+
+    /// Resolves text color based on semantic role
+    #[inline]
+    pub const fn text_color(&self, role: TextRole) -> u32 {
+        match role {
+            TextRole::Primary => self.text_primary,
+            TextRole::Secondary => self.text_secondary,
+            TextRole::Input => self.text_input,
+            TextRole::Link => self.text_link,
+        }
+    }
+
+    /// Automatically resolves text color for a control given its Win32 Control ID
+    #[inline]
+    pub fn text_color_for_ctrl(&self, ctrl_id: u32) -> u32 {
+        match ctrl_id {
+            crate::ui::views::IDC_LABEL_EMAIL | crate::ui::views::IDC_LABEL_GITHUB => self.text_link,
+            _ => self.text_primary,
+        }
+    }
 }
+

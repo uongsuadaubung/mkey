@@ -48,6 +48,8 @@ pub struct POINT {
 }
 
 pub const GWLP_WNDPROC: i32 = -4;
+pub const GWL_STYLE: i32 = -16;
+
 
 #[link(name = "user32")]
 #[link(name = "gdi32")]
@@ -136,6 +138,10 @@ unsafe extern "system" {
         width: i32,
         height: i32,
     ) -> i32;
+    pub fn MoveToEx(hdc: isize, x: i32, y: i32, lppt: *mut POINT) -> i32;
+    pub fn LineTo(hdc: isize, x: i32, y: i32) -> i32;
+    pub fn GetWindowTextW(h_wnd: isize, lp_string: *mut u16, n_max_count: i32) -> i32;
+
     pub fn DrawTextW(
         hdc: isize,
         lpch_text: *const u16,
@@ -152,7 +158,15 @@ unsafe extern "system" {
         flags: u32,
     ) -> i32;
     pub fn SetWindowTextW(h_wnd: isize, lp_string: *const u16) -> i32;
+    pub fn GetWindowLongW(h_wnd: isize, n_index: i32) -> i32;
+    pub fn GetDlgCtrlID(h_wnd: isize) -> i32;
+    pub fn EnumChildWindows(
+        h_wnd_parent: isize,
+        lp_enum_func: Option<unsafe extern "system" fn(isize, isize) -> i32>,
+        l_param: isize,
+    ) -> i32;
 }
+
 
 #[link(name = "comctl32")]
 unsafe extern "system" {
@@ -212,7 +226,30 @@ unsafe extern "system" {
         psz_sub_app_name: *const u16,
         psz_sub_id_list: *const u16,
     ) -> i32;
+    pub fn OpenThemeData(hwnd: isize, psz_class_list: *const u16) -> isize;
+    pub fn CloseThemeData(h_theme: isize) -> i32;
+    pub fn DrawThemeBackground(
+        h_theme: isize,
+        hdc: isize,
+        i_part_id: i32,
+        i_state_id: i32,
+        p_rect: *const RECT,
+        p_clip_rect: *const RECT,
+    ) -> i32;
 }
+
+pub const BP_CHECKBOX: i32 = 3;
+pub const CBS_UNCHECKEDNORMAL: i32 = 1;
+pub const CBS_UNCHECKEDHOT: i32 = 2;
+pub const CBS_UNCHECKEDPRESSED: i32 = 3;
+pub const CBS_UNCHECKEDDISABLED: i32 = 4;
+pub const CBS_CHECKEDNORMAL: i32 = 5;
+pub const CBS_CHECKEDHOT: i32 = 6;
+pub const CBS_CHECKEDPRESSED: i32 = 7;
+pub const CBS_CHECKEDDISABLED: i32 = 8;
+pub const WS_DISABLED: u32 = 0x08000000;
+pub const WM_GETFONT: u32 = 0x0031;
+
 
 /// Sets native Windows uxtheme preferred application mode (Windows 10 1903+ / Windows 11)
 pub fn set_preferred_app_mode(is_dark: bool) {

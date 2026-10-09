@@ -27,15 +27,16 @@ pub use tab_control::TabControl;
 pub use textbox::TextBox;
 pub use tray_icon::TrayIcon;
 pub use window::{
-    CallWindowProcW, CreateSolidBrush, DefSubclassProc, DeleteObject, FW_NORMAL, FW_SEMIBOLD,
-    FillRect, FrameRect, GWLP_WNDPROC, GetClassNameW, GetClientRect, GetDC, GetFocus,
-    GetWindowRect, HBRUSH, HCURSOR, HDC, HFONT, HHOOK, HICON, HINSTANCE, HMENU, HMODULE, HWND,
-    HWND_BOTTOM, HWND_TOP, ICON_BIG, ICON_SMALL, InvalidateRect, POINT, RDW_ALLCHILDREN,
-    RDW_ERASE, RDW_FRAME, RDW_INVALIDATE, RDW_UPDATENOW, RECT, RedrawWindow, ReleaseDC,
-    RemoveWindowSubclass, SW_HIDE, SW_SHOW, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE,
-    SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, ScreenToClient, SendMessageW, SetBkColor,
-    SetBkMode, SetTextColor, SetWindowLongPtrW, SetWindowPos, SetWindowSubclass, SetWindowTextW,
-    SetWindowTheme, TRANSPARENT, UpdateWindow, WM_SETICON, WS_CLIPCHILDREN, WS_EX_APPWINDOW,
-    allow_window_dark_mode, apply_modern_window_styling, center_window, create_app_font,
-    init_common_controls, set_preferred_app_mode, to_wide,
+    CallWindowProcW, CreateSolidBrush, DefSubclassProc, DeleteObject, EnumChildWindows, FW_NORMAL,
+    FW_SEMIBOLD, FillRect, FrameRect, GWLP_WNDPROC, GWL_STYLE, GetClassNameW, GetClientRect, GetDC,
+    GetDlgCtrlID, GetFocus, GetWindowLongW, GetWindowRect, HBRUSH, HCURSOR, HDC, HFONT, HHOOK,
+    HICON, HINSTANCE, HMENU, HMODULE, HWND, HWND_BOTTOM, HWND_TOP, ICON_BIG, ICON_SMALL,
+    InvalidateRect, POINT, RDW_ALLCHILDREN, RDW_ERASE, RDW_FRAME, RDW_INVALIDATE, RDW_UPDATENOW,
+    RECT, RedrawWindow, ReleaseDC, RemoveWindowSubclass, SW_HIDE, SW_SHOW, SWP_FRAMECHANGED,
+    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, ScreenToClient,
+    SendMessageW, SetBkColor, SetBkMode, SetTextColor, SetWindowLongPtrW, SetWindowPos,
+    SetWindowSubclass, SetWindowTextW, SetWindowTheme, TRANSPARENT, UpdateWindow, WM_SETICON,
+    WS_CLIPCHILDREN, WS_EX_APPWINDOW, allow_window_dark_mode, apply_modern_window_styling,
+    center_window, create_app_font, init_common_controls, set_preferred_app_mode, to_wide,
+
 };

@@ -608,22 +608,9 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                     SetBkMode(hdc, TRANSPARENT);
                     SetBkColor(hdc, palette.bg_card);
 
-                    let is_link = if let Ok(ui_guard) = UI_MANAGER.try_lock() {
-                        if let Some(ref ui) = *ui_guard {
-                            hwnd_ctrl == ui.controls.label_about_email.hwnd()
-                                || hwnd_ctrl == ui.controls.label_about_github.hwnd()
-                        } else {
-                            false
-                        }
-                    } else {
-                        false
-                    };
-
-                    if is_link {
-                        SetTextColor(hdc, palette.text_link);
-                    } else {
-                        SetTextColor(hdc, palette.text_primary);
-                    }
+                    // Automatic text color resolution based on Control ID and Theme
+                    let ctrl_id = GetDlgCtrlID(hwnd_ctrl) as u32;
+                    SetTextColor(hdc, palette.text_color_for_ctrl(ctrl_id));
 
                     let card_br = get_tab_card_brush();
                     if card_br != 0 {
@@ -635,32 +622,26 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
         }
         WM_SETCURSOR => {
             let child_hwnd = wparam as isize;
-            let (is_link, is_edit) = if let Ok(ui_guard) = UI_MANAGER.try_lock() {
-                if let Some(ref ui) = *ui_guard {
-                    let link = child_hwnd == ui.controls.label_about_email.hwnd()
-                        || child_hwnd == ui.controls.label_about_github.hwnd();
-                    let edit = child_hwnd == ui.controls.edit_macro_key.hwnd()
-                        || child_hwnd == ui.controls.edit_macro_value.hwnd();
-                    (link, edit)
-                } else {
-                    (false, false)
-                }
-            } else {
-                (false, false)
-            };
+            let ctrl_id = unsafe { GetDlgCtrlID(child_hwnd) as u32 };
+            let is_link = ctrl_id == IDC_LABEL_EMAIL || ctrl_id == IDC_LABEL_GITHUB;
 
             if is_link {
                 unsafe {
                     SetCursor(LoadCursorW(0, IDC_HAND));
                 }
                 1
-            } else if is_edit {
-                unsafe {
-                    SetCursor(LoadCursorW(0, IDC_IBEAM));
-                }
-                1
             } else {
-                unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) }
+                let mut class_buf = [0u16; 16];
+                let len = unsafe { GetClassNameW(child_hwnd, class_buf.as_mut_ptr(), 16) };
+                let class_name = String::from_utf16_lossy(&class_buf[..len.max(0) as usize]);
+                if class_name.eq_ignore_ascii_case("Edit") {
+                    unsafe {
+                        SetCursor(LoadCursorW(0, IDC_IBEAM));
+                    }
+                    1
+                } else {
+                    unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) }
+                }
             }
         }
         WM_CLOSE => {

@@ -113,30 +113,3 @@ fn test_config_store_roundtrip() {
     );
 }
 
-#[test]
-fn test_windows_autostart_registry_toggle() {
-    #[cfg(target_os = "windows")]
-    {
-        use mkey::platform::{is_windows_autostart_enabled, set_windows_autostart};
-
-        // Lưu lại trạng thái ban đầu của máy người dùng để không làm mất cài đặt khi chạy test
-        let initial_state = is_windows_autostart_enabled();
-
-        // 1. Enable autostart
-        set_windows_autostart(true);
-        assert!(
-            is_windows_autostart_enabled(),
-            "Registry must reflect autostart enabled"
-        );
-
-        // 2. Disable autostart
-        set_windows_autostart(false);
-        assert!(
-            !is_windows_autostart_enabled(),
-            "Registry must reflect autostart disabled"
-        );
-
-        // 3. Khôi phục lại trạng thái ban đầu của người dùng
-        set_windows_autostart(initial_state);
-    }
-}

@@ -466,6 +466,49 @@ fn test_backspace_typo_recovery_from_passthrough() {
 }
 
 #[test]
+fn test_backspace_on_error_does_not_produce_eer() {
+    let mut engine = VietnameseEngine::new(EngineConfig::default());
+    let mut screen = String::new();
+
+    let type_key = |eng: &mut VietnameseEngine, ch: char, scr: &mut String| {
+        match eng.on_key(ch, false, false) {
+            EngineAction::Passthrough => scr.push(ch),
+            EngineAction::Replace { backspaces, output } => {
+                for _ in 0..backspaces {
+                    scr.pop();
+                }
+                scr.push_str(&output);
+            }
+            EngineAction::Consume => {}
+        }
+    };
+
+    let backspace = |eng: &mut VietnameseEngine, scr: &mut String| {
+        scr.pop();
+        eng.on_backspace();
+    };
+
+    // 1. Gõ "error" -> ra "error" (Smart English Bypass giữ nguyên phụ âm kép rr)
+    for ch in "error".chars() {
+        type_key(&mut engine, ch, &mut screen);
+    }
+    assert_eq!(screen, "error");
+
+    // 2. Người dùng xóa "or" đi (2 lần backspace)
+    backspace(&mut engine, &mut screen); // xóa 'r' -> còn "erro"
+    assert_eq!(screen, "erro");
+
+    backspace(&mut engine, &mut screen); // xóa 'o' -> còn "err"
+    assert_eq!(screen, "err");
+
+    // 3. Người dùng gõ tiếp "or" -> ra chuẩn "error", TUYỆT ĐỐI KHÔNG ĐƯỢC THÀNH "eer"!
+    type_key(&mut engine, 'o', &mut screen);
+    assert_eq!(screen, "erro");
+    type_key(&mut engine, 'r', &mut screen);
+    assert_eq!(screen, "error");
+}
+
+#[test]
 fn test_duoc_typing_variations() {
     let mut engine = VietnameseEngine::new(EngineConfig::default());
 
@@ -654,9 +697,13 @@ fn test_undo_toggle_backspace_recovery() {
         }
         EngineAction::Consume => {}
     }
+    assert_eq!(screen, "bajj");
+
+    // 4. Backspace xóa 2 chữ 'j' vừa phục hồi -> màn hình còn "ba", buffer phải quay về "ba"
+    screen.pop();
+    engine.on_backspace();
     assert_eq!(screen, "baj");
 
-    // 4. Backspace xóa 'j' vừa hủy -> màn hình còn "ba", buffer phải quay về "ba" (không ngậm dấu nặng)
     screen.pop();
     engine.on_backspace();
     assert_eq!(screen, "ba");
@@ -874,6 +921,7 @@ fn test_simple_telex_vs_standard_telex() {
     let mut telex_engine = VietnameseEngine::new(EngineConfig {
         method: InputMethod::Telex,
         bracket_w: true,
+        restore_on_wrong_spelling: false,
         ..Default::default()
     });
     // Trong Telex chuẩn: 'w' đứng một mình biến thành 'ư', '[' và ']' biến thành 'ư' và 'ơ'
@@ -1274,3 +1322,214 @@ fn test_backspace_across_space_does_not_trap_new_words() {
     type_str(&mut engine, " giups ", &mut screen);
     assert_eq!(screen, "tôi giúp ");
 }
+
+#[test]
+fn test_smart_english_bypass_on_the_fly() {
+    let mut engine = VietnameseEngine::new(EngineConfig::default());
+
+    // 1. Instant bypass for non-Vietnamese onsets (f, j, z) WITHOUT Space
+    assert_eq!(simulate_typing(&mut engine, "format"), "format");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "fix"), "fix");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "fox"), "fox");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "fax"), "fax");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "first"), "first");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "file"), "file");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "json"), "json");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "zoom"), "zoom");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "zero"), "zero");
+    engine.reset();
+
+    // 2. Instant bypass for English initial consonant clusters (pr, pl, cl, cr, br, bl, fl, gl, dr, sk, sm, sn, str, spr...) WITHOUT Space
+    assert_eq!(simulate_typing(&mut engine, "project"), "project");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "class"), "class");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "clear"), "clear");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "print"), "print");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "client"), "client");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "black"), "black");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "great"), "great");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "drive"), "drive");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "smart"), "smart");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "string"), "string");
+    engine.reset();
+
+    // 3. Instant rollback for English words where Telex tone/diacritic was temporarily placed on vowel
+    assert_eq!(simulate_typing(&mut engine, "server"), "server");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "service"), "service");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "card"), "card");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "word"), "word");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "win"), "win");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "user"), "user");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "case"), "case");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "base"), "base");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "team"), "team");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "read"), "read");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "sound"), "sound");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "port"), "port");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "part"), "part");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "after"), "after");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "often"), "often");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "left"), "left");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "text"), "text");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "next"), "next");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "soft"), "soft");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "chart"), "chart");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "gift"), "gift");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "what"), "what");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "when"), "when");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "where"), "where");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "which"), "which");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "white"), "white");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "write"), "write");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "wrong"), "wrong");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "web"), "web");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "week"), "week");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "work"), "work");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "good"), "good");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "look"), "look");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "book"), "book");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "cool"), "cool");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "tool"), "tool");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "action"), "action");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "open"), "open");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "input"), "input");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "order"), "order");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "other"), "other");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "testing"), "testing");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "listing"), "listing");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "posting"), "posting");
+    engine.reset();
+
+    // 4. TitleCase and ALL CAPS English word bypass
+    assert_eq!(simulate_typing(&mut engine, "Project"), "Project");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "Clear"), "Clear");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "Format"), "Format");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "Port"), "Port");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "Text"), "Text");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "Next"), "Next");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "Wrong"), "Wrong");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "PROJECT"), "PROJECT");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "SERVER"), "SERVER");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "FORMAT"), "FORMAT");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "TEXT"), "TEXT");
+    engine.reset();
+
+    // 4. Combined sentence with both English words and Vietnamese words
+    assert_eq!(
+        simulate_typing(&mut engine, "chungs tooi ddang fix bug trong file project mowsi "),
+        "chúng tôi đang fix bug trong file project mới "
+    );
+    engine.reset();
+    assert_eq!(
+        simulate_typing(&mut engine, "server mowsi cos user vaf format ddepj "),
+        "server mới có user và format đẹp "
+    );
+}
+
+#[test]
+fn test_hieuer_to_hieu() {
+    let mut engine = VietnameseEngine::new(EngineConfig::default());
+    assert_eq!(simulate_typing(&mut engine, "hieuer"), "hiểu");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "hieure"), "hiểu");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "tieuer"), "tiểu");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "kieues"), "kiếu");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "yeuer"), "yểu");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "yeue"), "yêu");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "muoios"), "muối");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "nguoiwf"), "người");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "keue"), "kêu");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "pass"), "pass");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "pass "), "pass ");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "password"), "password");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "password "), "password ");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "error"), "error");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "error "), "error ");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "off "), "off ");
+    engine.reset();
+    assert_eq!(simulate_typing(&mut engine, "coffee "), "coffee ");
+}
+

@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MKey — Bộ gõ tiếng Việt cho Windows</title>
+  <meta name="description" content="Bộ gõ tiếng Việt hiện đại viết bằng Rust. Tự động nhận diện từ tiếng Anh, không nuốt phím kép (pass, error), không nhân đôi chữ trên trình duyệt, tiêu thụ dưới 2 MB RAM.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="#" class="nav-brand">
+        <div class="brand-badge">M</div>
+        <span class="brand-text">MKey</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#playground">Gõ thử</a>
+        <a href="#macro">Gõ tắt</a>
+        <a href="#interface">Giao diện</a>
+        <a href="#features">Tính năng</a>
+        <a href="#performance">Hiệu năng</a>
+        <a href="#comparison">So sánh</a>
+        <a href="#faq">Hỏi đáp</a>
+        <a href="#download">Tải về</a>
+      </nav>
+      <div class="nav-actions">
+        <a href="https://github.com/uongsuadaubung/mkey" target="_blank" class="btn btn-ghost">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+        <a href="#download" class="btn btn-primary">Tải về</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container hero-container">
+      <div class="hero-tag">
+        <span class="pulse-indicator"></span>
+        <span>Bộ gõ tiếng Việt thế hệ mới cho Windows</span>
+      </div>
+
+      <h1 class="hero-title">
+        Gõ tiếng Việt tự nhiên.<br>
+        <span class="gradient-text">Không nuốt từ tiếng Anh.</span>
+      </h1>
+
+      <p class="hero-desc">
+        Bộ gõ tối giản, mượt mà và chuẩn xác. Thiết kế để phím bấm luôn theo kịp mạch suy nghĩ của bạn.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#download" class="btn btn-hero-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          <span>Tải MKey cho Windows</span>
+        </a>
+        <a href="#playground" class="btn btn-hero-secondary">
+          <span>Gõ thử trực tiếp</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 13l5 5 5-5M12 4v14"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Playground -->
+  <section class="section demo-section" id="playground">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-chip">Trải nghiệm</div>
+        <h2 class="section-title">Xem cách MKey xử lý văn bản</h2>
+        <p class="section-subtitle">So sánh trực tiếp kết quả gõ các từ tiếng Anh thông dụng giữa MKey và các bộ gõ truyền thống.</p>
+      </div>
+
+      <div class="demo-box">
+        <div class="demo-topbar">
+          <div class="demo-dots">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+          <div class="demo-title">Hộp gõ thử nghiệm</div>
+          <div class="sound-toggle-wrapper">
+            <label class="sound-toggle">
+              <input type="checkbox" id="soundCheckbox" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">Âm thanh phím</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="demo-presets">
+          <span class="preset-label">Từ mẫu:</span>
+          <button class="preset-btn active" data-word="error">error</button>
+          <button class="preset-btn" data-word="pass">pass</button>
+          <button class="preset-btn" data-word="coffee">coffee</button>
+        </div>
+
+        <div class="demo-display">
+          <div class="comparison-column legacy-col">
+            <div class="col-header">
+              <span class="col-tag bad">BỘ GÕ THÔNG THƯỜNG</span>
+            </div>
+            <div class="display-box legacy-display" id="legacyOutput">eror</div>
+            <div class="display-caption" id="legacyCaption">Phím <code>r</code> thứ hai bị hiểu nhầm là lệnh hủy dấu, nuốt mất chữ thành <strong>eror</strong>.</div>
+          </div>
+
+          <div class="comparison-divider">
+            <div class="divider-line"></div>
+            <span class="vs-badge">VS</span>
+            <div class="divider-line"></div>
+          </div>
+
+          <div class="comparison-column mkey-col">
+            <div class="col-header">
+              <span class="col-tag good">MKEY</span>
+            </div>
+            <div class="display-box mkey-display" id="mkeyOutput">error<span class="cursor"></span></div>
+            <div class="display-caption" id="mkeyCaption">Tự nhận diện từ tiếng Anh, giữ nguyên chữ <strong>error</strong>.</div>
+          </div>
+        </div>
+
+        <div class="demo-interactive-area">
+          <div class="input-wrapper">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="input-icon"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            <input type="text" id="liveInput" placeholder="Tự gõ thử một từ bất kỳ tại đây (ví dụ: pass, error, coffee)..." autocomplete="off" spellcheck="false">
+            <button class="clear-btn" id="clearBtn" title="Xóa">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Smart Macro Playground -->
+  <section class="section demo-section" id="macro">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-chip">GÕ TẮT THÔNG MINH</div>
+        <h2 class="section-title">3 Kiểu gõ tắt linh hoạt</h2>
+        <p class="section-subtitle">Tùy biến bảng viết tắt theo thói quen của bạn: đổi hoa/thường cả từ, viết tắt phụ âm đầu hoặc phụ âm cuối.</p>
+      </div>
+
+      <!-- Macro Type Tabs -->
+      <div class="macro-tabs">
+        <button class="macro-tab-btn active" data-type="normal">
+          <span>Gõ tắt cả từ</span>
+          <span class="badge-pill">Hoa / Thường</span>
+        </button>
+        <button class="macro-tab-btn" data-type="start">
+          <span>Phụ âm đầu</span>
+          <span class="badge-pill">f &rarr; ph</span>
+        </button>
+        <button class="macro-tab-btn" data-type="end">
+          <span>Phụ âm cuối</span>
+          <span class="badge-pill">g &rarr; ng</span>
+        </button>
+      </div>
+
+      <div class="demo-box macro-box">
+        <div class="demo-topbar">
+          <div class="demo-dots">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+          <div class="demo-title" id="macroModeTitle">Kiểu 1: Gõ tắt cả từ (Tự động đổi hoa / thường)</div>
+          <div class="macro-rule-hint" id="macroRuleHint">Chỉ cần cài 1 từ viết tắt, tự động đổi hoa thường</div>
+        </div>
+
+        <div class="demo-presets" id="macroPresetsContainer">
+          <span class="preset-label">Từ mẫu:</span>
+          <button class="preset-btn macro-preset-btn active" data-macro="ko">ko</button>
+          <button class="preset-btn macro-preset-btn" data-macro="Ko">Ko</button>
+          <button class="preset-btn macro-preset-btn" data-macro="KO">KO</button>
+          <button class="preset-btn macro-preset-btn" data-macro="dc">dc</button>
+          <button class="preset-btn macro-preset-btn" data-macro="vn">vn</button>
+        </div>
+
+        <div class="demo-display">
+          <div class="comparison-column macro-input-col">
+            <div class="col-header">
+              <span class="col-tag">TỪ VIẾT TẮT</span>
+            </div>
+            <div class="display-box macro-input-display" id="macroInputDisplay">ko</div>
+            <div class="display-caption" id="macroInputCaption">Từ bạn gõ khi soạn thảo văn bản hàng ngày.</div>
+          </div>
+
+          <div class="comparison-divider">
+            <div class="divider-line"></div>
+            <span class="vs-badge">&rarr;</span>
+            <div class="divider-line"></div>
+          </div>
+
+          <div class="comparison-column mkey-col">
+            <div class="col-header">
+              <span class="col-tag good">MKEY TỰ ĐỘNG MỞ RỘNG</span>
+            </div>
+            <div class="display-box mkey-display" id="macroOutputDisplay">không<span class="cursor"></span></div>
+            <div class="display-caption" id="macroOutputCaption">Tự động nhận diện từ viết tắt: <code>ko</code> &rarr; <strong>không</strong>.</div>
+          </div>
+        </div>
+
+        <div class="demo-interactive-area">
+          <div class="input-wrapper">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="input-icon"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            <input type="text" id="macroLiveInput" placeholder="Tự gõ thử từ viết tắt tại đây (ví dụ: ko, Ko, KO, fa, sag, tih)..." autocomplete="off" spellcheck="false">
+            <button class="clear-btn" id="macroClearBtn" title="Xóa">✕</button>
+          </div>
+          <div class="demo-hint">Gõ từ viết tắt hoặc chọn các từ mẫu / bấm vào bảng quy tắc bên dưới để thử nghiệm trực tiếp</div>
+        </div>
+      </div>
+
+      <!-- Macro Rules Table (Collapsible Accordion) -->
+      <details class="accordion-details macro-accordion">
+        <summary class="accordion-summary">
+          <div class="summary-left">
+            <span class="summary-icon">📋</span>
+            <span class="summary-text"><strong>Bảng tra cứu 10 quy tắc gõ tắt tham khảo</strong> &amp; Lưu ý khi dùng gõ tắt phụ âm</span>
+          </div>
+          <span class="summary-badge">Xem chi tiết &darr;</span>
+        </summary>
+
+        <div class="macro-table-wrapper">
+        <div class="macro-table-header">
+          <div class="macro-table-title-area">
+            <h3 class="macro-table-title">Ví dụ các quy tắc gõ tắt tham khảo</h3>
+            <p class="macro-table-subtitle">Minh họa 3 cơ chế gõ tắt MKey hỗ trợ &mdash; nhấp vào bất kỳ dòng nào để xem cách hoạt động</p>
+          </div>
+          <div class="macro-table-filter">
+            <button class="macro-filter-btn active" data-filter="all">Tất cả (10)</button>
+            <button class="macro-filter-btn" data-filter="normal">Cả từ (4)</button>
+            <button class="macro-filter-btn" data-filter="start">Phụ âm đầu (3)</button>
+            <button class="macro-filter-btn" data-filter="end">Phụ âm cuối (3)</button>
+          </div>
+        </div>
+
+        <div class="macro-table-box">
+          <table class="macro-table">
+            <thead>
+              <tr>
+                <th class="th-key">Phím tắt</th>
+                <th class="th-arrow"></th>
+                <th class="th-val">Thay thế bằng</th>
+                <th class="th-type">Phân loại</th>
+                <th class="th-desc">Cơ chế hoạt động &amp; Ví dụ thực tế</th>
+                <th class="th-action">Thử nghiệm</th>
+              </tr>
+            </thead>
+            <tbody id="macroTableRows">
+              <!-- Normal entries -->
+              <tr class="macro-row" data-type="normal" data-test="ko">
+                <td class="td-key"><kbd class="macro-kbd">ko</kbd></td>
+                <td class="td-arrow">&rarr;</td>
+                <td class="td-val"><strong>không</strong></td>
+                <td class="td-type"><span class="macro-tag tag-normal">Cả từ</span></td>
+                <td class="td-desc">Tự động giữ dạng chữ: gõ <kbd>ko</kbd> &rarr; <em>không</em>, <kbd>Ko</kbd> &rarr; <em>Không</em>, <kbd>KO</kbd> &rarr; <em>KHÔNG</em></td>
+                <td class="td-action"><button class="btn-try-macro" data-macro="ko" data-type="normal">Thử ngay</button></td>
+              </tr>
+              <tr class="macro-row" data-type="normal" data-test="dc">
+                <td class="td-key"><kbd class="macro-kbd">dc</kbd></td>
+                <td class="td-arrow">&rarr;</td>
+                <td class="td-val"><strong>được</strong></td>
+                <td class="td-type"><span class="macro-tag tag-normal">Cả từ</span></td>
+                <td class="td-desc">Tự động giữ dấu và viết hoa: gõ <kbd>dc</kbd> &rarr; <em>được</em>, <kbd>Dc</kbd> &rarr; <em>Được</em>, <kbd>DC</kbd> &rarr; <em>ĐƯỢC</em></td>
+                <td class="td-action"><button class="btn-try-macro" data-macro="dc" data-type="normal">Thử ngay</button></td>
+              </tr>
+              <tr class="macro-row" data-type="normal" data-test="vn">
+                <td class="td-key"><kbd class="macro-kbd">vn</kbd></td>
+                <td class="td-arrow">&rarr;</td>
+                <td class="td-val"><strong>Việt Nam</strong></td>
+                <td class="td-type"><span class="macro-tag tag-normal">Cả từ</span></td>
+                <td class="td-desc">Viết tắt cụm từ nhiều chữ: gõ <kbd>vn</kbd> &rarr; <em>Việt Nam</em>, <kbd>VN</kbd> &rarr; <em>VIỆT NAM</em></td>
+                <td class="td-action"><button class="btn-try-macro" data-macro="vn" data-type="normal">Thử ngay</button></td>
+              </tr>
+              <tr class="macro-row" data-type="normal" data-test="ng">
+                <td class="td-key"><kbd class="macro-kbd">ng</kbd></td>
+                <td class="td-arrow">&rarr;</td>
+                <td class="td-val"><strong>người</strong></td>
+                <td class="td-type"><span class="macro-tag tag-normal">Cả từ</span></td>
+                <td class="td-desc">Từ thông dụng hàng ngày: gõ <kbd>ng</kbd> &rarr; <em>người</em>, <kbd>Ng</kbd> &rarr; <em>Người</em>, <kbd>NG</kbd> &rarr; <em>NGƯỜI</em></td>
+                <td class="td-action"><button class="btn-try-macro" data-macro="ng" data-type="normal">Thử ngay</button></td>
+              </tr>
+
+              <!-- Start Consonant entries -->
+              <tr class="macro-row" data-type="start" data-test="fong">
+                <td class="td-key"><kbd class="macro-kbd">f</kbd></td>
+                <td class="td-arrow">&rarr;</td>
+                <td class="td-val"><strong>ph</strong></td>
+                <td class="td-type"><span class="macro-tag tag-start">Phụ âm đầu</span></td>
+                <td class="td-desc">Đi kèm nguyên âm: gõ <kbd>fa</kbd> &rarr; <em>pha</em>, <kbd>fong</kbd> &rarr; <em>phong</em> (đứng 1 mình như <code>f(x)</code> không bị đổi)</td>
+                <td class="td-action"><button class="btn-try-macro" data-macro="fong" data-type="start">Thử ngay</button></td>
+              </tr>
+              <tr class="macro-row" data-type="start" data-test="ja">
+                <td class="td-key"><kbd class="macro-kbd">j</kbd></td>
+                <td class="td-arrow">&rarr;</td>
+                <td class="td-val"><strong>gi</strong></td>
+                <td class="td-type"><span class="macro-tag tag-start">Phụ âm đầu</span></td>
+                <td class="td-desc">Đi kèm nguyên âm: gõ <kbd>ja</kbd> &rarr; <em>gia</em>, <kbd>jo</kbd> &rarr; <em>gio</em> (nếu gõ thêm dấu: <kbd>jos</kbd> &rarr; <em>gió</em>, <kbd>jeengs</kbd> &rarr; <em>giếng</em>)</td>
+                <td class="td-action"><button class="btn-try-macro" data-macro="ja" data-type="start">Thử ngay</button></td>
+              </tr>
+              <tr class="macro-row" data-type="start" data-test="wa">
+                <td class="td-key"><kbd class="macro-kbd">w</kbd></td>
+                <td class="td-arrow">&rarr;</td>
+                <td class="td-val"><strong>qu</strong></td>
+                <td class="td-type"><span class="macro-tag tag-start">Phụ âm đầu</span></td>
+                <td class="td-desc">Đi kèm nguyên âm: gõ <kbd>wa</kbd> &rarr; <em>qua</em>, <kbd>we</kbd> &rarr; <em>que</em>, <kbd>wi</kbd> &rarr; <em>qui</em> (nếu gõ thêm dấu: <kbd>woocs</kbd> &rarr; <em>quốc</em>)</td>
+                <td class="td-action"><button class="btn-try-macro" data-macro="wa" data-type="start">Thử ngay</button></td>
+              </tr>
+
+              <!-- End Consonant entries -->
+              <tr class="macro-row" data-type="end" data-test="sag">
+                <td class="td-key"><kbd class="macro-kbd">g</kbd></td>
+                <td class="td-arrow">&rarr;</td>
+                <td class="td-val"><strong>ng</strong></td>
+                <td class="td-type"><span class="macro-tag tag-end">Phụ âm cuối</span></td>
+                <td class="td-desc">Đứng sau nguyên âm: gõ <kbd>sag</kbd> &rarr; <em>sang</em>, <kbd>mag</kbd> &rarr; <em>mang</em>, <kbd>lag</kbd> &rarr; <em>lang</em> (nếu gõ <kbd>ddag</kbd> &rarr; <em>đang</em>)</td>
+                <td class="td-action"><button class="btn-try-macro" data-macro="sag" data-type="end">Thử ngay</button></td>
+              </tr>
+              <tr class="macro-row" data-type="end" data-test="tih">
+                <td class="td-key"><kbd class="macro-kbd">h</kbd></td>
+                <td class="td-arrow">&rarr;</td>
+                <td class="td-val"><strong>nh</strong></td>
+                <td class="td-type"><span class="macro-tag tag-end">Phụ âm cuối</span></td>
+                <td class="td-desc">Đứng sau nguyên âm: gõ <kbd>tih</kbd> &rarr; <em>tinh</em>, <kbd>xih</kbd> &rarr; <em>xinh</em>, <kbd>mih</kbd> &rarr; <em>minh</em></td>
+                <td class="td-action"><button class="btn-try-macro" data-macro="tih" data-type="end">Thử ngay</button></td>
+              </tr>
+              <tr class="macro-row" data-type="end" data-test="sak">
+                <td class="td-key"><kbd class="macro-kbd">k</kbd></td>
+                <td class="td-arrow">&rarr;</td>
+                <td class="td-val"><strong>ch</strong></td>
+                <td class="td-type"><span class="macro-tag tag-end">Phụ âm cuối</span></td>
+                <td class="td-desc">Đứng sau nguyên âm: gõ <kbd>sak</kbd> &rarr; <em>sach</em>, <kbd>lik</kbd> &rarr; <em>lich</em> (kèm phím dấu: <kbd>saks</kbd> &rarr; <em>sách</em>, <kbd>thiks</kbd> &rarr; <em>thích</em>)</td>
+                <td class="td-action"><button class="btn-try-macro" data-macro="sak" data-type="end">Thử ngay</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="macro-table-footer">
+          <div class="macro-footer-tip">
+            <span class="tip-icon">💡</span>
+            <span class="tip-text"><strong>Bạn nắm toàn quyền chủ động:</strong> MKey không cài sẵn bất kỳ từ viết tắt nào làm phiền bạn. Bạn hoàn toàn tự do thêm mới, sửa hoặc xóa quy tắc gõ tắt theo thói quen cá nhân trong Bảng điều khiển.</span>
+          </div>
+
+          <!-- Macro Caution Warning -->
+          <div class="macro-warning-box">
+            <div class="warning-header">
+              <span class="warning-icon">⚠️</span>
+              <span class="warning-title">Cân nhắc khi dùng gõ tắt phụ âm (Đầu / Cuối)</span>
+            </div>
+            <p class="warning-text">
+              Gõ tắt phụ âm giúp bạn gõ tiếng Việt siêu tốc nhưng cũng có thể gây phiền toái khi bạn gõ từ tiếng Anh hoặc thuật ngữ chuyên ngành do bị biến đổi ký tự ngoài ý muốn:
+            </p>
+            <div class="warning-grid">
+              <div class="warning-item">
+                <span class="warning-item-rule">f &rarr; ph</span>
+                <span class="warning-item-desc">Gõ <em>fong</em> &rarr; <strong>phong</strong>, nhưng gõ <em>file</em> &rarr; <strong>phile</strong>, <em>fast</em> &rarr; <strong>phast</strong>, <em>fix</em> &rarr; <strong>phix</strong></span>
+              </div>
+              <div class="warning-item">
+                <span class="warning-item-rule">w &rarr; qu</span>
+                <span class="warning-item-desc">Gõ <em>wa</em> &rarr; <strong>qua</strong>, nhưng gõ <em>web</em> &rarr; <strong>queb</strong>, <em>win</em> &rarr; <strong>quin</strong>, <em>word</em> &rarr; <strong>quord</strong></span>
+              </div>
+              <div class="warning-item">
+                <span class="warning-item-rule">j &rarr; gi</span>
+                <span class="warning-item-desc">Gõ <em>ja</em> &rarr; <strong>gia</strong>, nhưng gõ <em>job</em> &rarr; <strong>giob</strong>, <em>join</em> &rarr; <strong>gioin</strong>, <em>json</em> &rarr; <strong>gison</strong></span>
+              </div>
+              <div class="warning-item">
+                <span class="warning-item-rule">g &rarr; ng</span>
+                <span class="warning-item-desc">Gõ <em>sag</em> &rarr; <strong>sang</strong>, nhưng gõ <em>bag</em> &rarr; <strong>bang</strong>, <em>tag</em> &rarr; <strong>tang</strong>, <em>bug</em> &rarr; <strong>bung</strong></span>
+              </div>
+              <div class="warning-item">
+                <span class="warning-item-rule">k &rarr; ch</span>
+                <span class="warning-item-desc">Gõ <em>sak</em> &rarr; <strong>sach</strong>, nhưng gõ <em>link</em> &rarr; <strong>linch</strong>, <em>disk</em> &rarr; <strong>disch</strong>, <em>check</em> &rarr; <strong>chench</strong></span>
+              </div>
+              <div class="warning-item">
+                <span class="warning-item-rule">h &rarr; nh</span>
+                <span class="warning-item-desc">Gõ <em>tih</em> &rarr; <strong>tinh</strong>, nhưng gõ <em>with</em> &rarr; <strong>witnh</strong>, <em>path</em> &rarr; <strong>patnh</strong></span>
+              </div>
+            </div>
+            <div class="warning-advice">
+              👉 <strong>Lời khuyên:</strong> Nếu công việc thường xuyên phải gõ tiếng Anh hoặc code, bạn nên ưu tiên dùng <strong>Gõ tắt cả từ (Kiểu 1)</strong> và chỉ kích hoạt gõ tắt phụ âm khi thực sự cần soạn thảo văn bản tiếng Việt tốc độ cao.
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- App Interface Showcase -->
+  <section class="section" id="interface">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-chip">GIAO DIỆN</div>
+        <h2 class="section-title">Bảng điều khiển trực quan, chuẩn Windows 11</h2>
+        <p class="section-subtitle">Giao diện Dark Mode nguyên bản hiện đại, các tab cấu hình rõ ràng, dễ sử dụng ngay từ lần đầu mở.</p>
+      </div>
+
+      <div class="ui-gallery-grid">
+        <!-- Card 1: Tab Bộ gõ -->
+        <div class="ui-card">
+          <div class="ui-card-header">
+            <span class="ui-dot"></span>
+            <span class="ui-window-title">MKey • Tab Bộ gõ</span>
+          </div>
+          <div class="ui-img-frame">
+            <img src="images/ui-tab-bogo.png" alt="Giao diện MKey - Tab Bộ gõ" loading="lazy">
+          </div>
+          <div class="ui-card-body">
+            <span class="ui-tab-tag">TAB 1 • BỘ GÕ</span>
+            <h3 class="ui-card-title">Cấu hình kiểu gõ &amp; chính tả</h3>
+            <ul class="ui-card-list">
+              <li><strong>Kiểu gõ linh hoạt:</strong> Hỗ trợ Simple Telex, Telex chuẩn, VNI.</li>
+              <li><strong>Phím chuyển nhanh:</strong> Tổ hợp <code>Ctrl + Shift</code> an toàn, không cướp phím game hay Photoshop.</li>
+              <li><strong>Kiểm tra chính tả:</strong> Tự động khôi phục phím khi gõ sai từ.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Card 2: Tab Gõ tắt -->
+        <div class="ui-card">
+          <div class="ui-card-header">
+            <span class="ui-dot"></span>
+            <span class="ui-window-title">MKey • Tab Gõ tắt</span>
+          </div>
+          <div class="ui-img-frame">
+            <img src="images/ui-tab-gotat.png" alt="Giao diện MKey - Tab Gõ tắt" loading="lazy">
+          </div>
+          <div class="ui-card-body">
+            <span class="ui-tab-tag">TAB 2 • GÕ TẮT</span>
+            <h3 class="ui-card-title">Quản lý viết tắt Macro</h3>
+            <ul class="ui-card-list">
+              <li><strong>Bảng từ viết tắt:</strong> Thêm, sửa, xóa quy tắc gõ tắt trực quan và tức thì.</li>
+              <li><strong>Gõ tắt mọi chế độ:</strong> Cho phép gõ tắt cả khi đang ở chế độ tiếng Anh.</li>
+              <li><strong>Thông minh:</strong> Tự nhận diện chữ hoa / chữ thường theo ngữ cảnh gõ.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Card 3: Tab Hệ thống -->
+        <div class="ui-card">
+          <div class="ui-card-header">
+            <span class="ui-dot"></span>
+            <span class="ui-window-title">MKey • Tab Hệ thống</span>
+          </div>
+          <div class="ui-img-frame">
+            <img src="images/ui-tab-hethong.png" alt="Giao diện MKey - Tab Hệ thống" loading="lazy">
+          </div>
+          <div class="ui-card-body">
+            <span class="ui-tab-tag">TAB 3 • HỆ THỐNG</span>
+            <h3 class="ui-card-title">Khởi động &amp; Chẩn đoán</h3>
+            <ul class="ui-card-list">
+              <li><strong>Khởi động cùng Windows:</strong> Tự động chạy ngầm siêu nhẹ chỉ 0.7 MB RAM.</li>
+              <li><strong>Chủ đề giao diện:</strong> Đồng bộ theo hệ thống (Auto), Dark Mode hoặc Light Mode.</li>
+              <li><strong>Nhật ký chẩn đoán:</strong> Mở và xem file log chỉ với 1 click.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Design Philosophy Callout -->
+      <div class="philosophy-box">
+        <div class="philosophy-header">
+          <div class="philosophy-badge">TRIẾT LÝ THIẾT KẾ HIỆN ĐẠI</div>
+          <h3 class="philosophy-title">Tối giản để tập trung 100% vào trải nghiệm gõ</h3>
+          <p class="philosophy-desc">
+            Không còn rừng checkbox kỹ thuật hay những tính năng từ thập niên 90 mà chẳng còn ai dùng. MKey sinh ra để làm đúng một việc duy nhất tốt nhất: <strong>gõ phím mượt mà, chuẩn xác và không gián đoạn mạch suy nghĩ</strong>.
+          </p>
+        </div>
+
+        <div class="philosophy-grid">
+          <div class="philosophy-item">
+            <div class="philosophy-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            </div>
+            <div class="philosophy-content">
+              <h4>Nói "Không" với các bảng mã cổ (TCVN3, VNI-Windows...)</h4>
+              <p>Thập kỷ này là của <strong>chuẩn quốc tế Unicode (UTF-8)</strong>. Ngày nay, 100% website, trình duyệt, Word, Excel và ứng dụng chat đều dùng Unicode. Việc nhồi nhét hàng chục bảng mã cổ xưa (TCVN3, VNI-Windows, BK HCM, VIQR...) chỉ làm rối mắt người dùng, nặng dung lượng và dễ gây lỗi nhảy font chữ ngoài ý muốn.</p>
+            </div>
+          </div>
+
+          <div class="philosophy-item">
+            <div class="philosophy-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            </div>
+            <div class="philosophy-content">
+              <h4>Không bắt bạn phải làm "chuyên gia cấu hình"</h4>
+              <p>Các bộ gõ truyền thống thường phơi bày hàng tá checkbox rối rắm: <em>"Sử dụng clipboard cho unicode", "Cho phép gõ tự do"...</em> cùng hàng loạt thiết lập mở rộng phức tạp khiến người dùng phổ thông không biết phải chọn thế nào. MKey tự động hóa toàn bộ logic thông minh bên dưới — mở lên là dùng hoàn hảo ngay lập tức.</p>
+            </div>
+          </div>
+
+          <div class="philosophy-item">
+            <div class="philosophy-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <div class="philosophy-content">
+              <h4>Dồn toàn bộ tài nguyên cho trải nghiệm cốt lõi</h4>
+              <p>Khi giải phóng phần mềm khỏi hàng nghìn dòng mã cũ kỹ không ai dùng đến, MKey có thể tập trung tối đa vào những thứ thực sự tạo nên sự khác biệt hàng ngày: <strong>gõ tiếng Anh không bị nuốt chữ</strong>, <strong>sửa dấu hồi quy thông minh</strong>, <strong>giả lập âm thanh phím cơ WASAPI sống động</strong> và mức tiêu thụ RAM siêu nhẹ <strong>dưới 1 MB</strong>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Features -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-chip">TÍNH NĂNG NỔI BẬT</div>
+        <h2 class="section-title">Gõ văn bản tự nhiên, không gián đoạn</h2>
+        <p class="section-subtitle">MKey hiểu cách bạn gõ hàng ngày và tự động xử lý chuẩn xác, để bạn không còn phải bực mình vì lỗi nhảy chữ hay nuốt phím.</p>
+      </div>
+
+      <div class="specs-grid">
+        <div class="spec-card">
+          <span class="spec-tag">CHÍNH TẢ HIỆN ĐẠI</span>
+          <div class="spec-title">Bỏ dấu chuẩn xác cho nguyên âm mở</div>
+          <div class="spec-desc">Áp dụng chuẩn ngữ pháp mới cho các vần đôi mở như <code>hòa</code>, <code>thúy</code>, <code>khỏe</code> (thay vì lối đặt dấu cũ hoà, thuý). Dấu thanh luôn đặt đúng âm chính, không nhảy lộn xộn khi gõ nhanh.</div>
+          <div class="feature-demo-screen" data-feature="tone">
+            <div class="feature-screen-top">
+              <span class="screen-dot"></span>
+              <span class="screen-title">Quy tắc bỏ dấu mới</span>
+            </div>
+            <div class="feature-screen-content">
+              <span class="typing-text"></span><span class="typing-cursor"></span>
+            </div>
+            <div class="feature-screen-status">Chuẩn âm chính hiện đại: hòa, thúy, khỏe</div>
+          </div>
+        </div>
+
+        <div class="spec-card">
+          <span class="spec-tag">TRÌNH DUYỆT</span>
+          <div class="spec-title">Không lặp chữ trên thanh tìm kiếm</div>
+          <div class="spec-desc">Khắc phục triệt để lỗi bị nhân đôi chữ cái đầu tiên (như <code>ggoogle</code>, <code>ttoán</code>) khi bạn tìm kiếm trên Chrome hay Edge. Mọi thao tác tìm kiếm hay nhập địa chỉ web đều mượt mà ngay từ chữ cái đầu.</div>
+          <div class="feature-demo-screen" data-feature="browser">
+            <div class="feature-screen-top">
+              <span class="screen-dot"></span>
+              <span class="screen-title">🔍 Thanh tìm kiếm trình duyệt</span>
+            </div>
+            <div class="feature-screen-content">
+              <span class="typing-text"></span><span class="typing-cursor"></span>
+            </div>
+            <div class="feature-screen-status">Ký tự đầu tiên không bị nhân đôi (sạch hoàn toàn)</div>
+          </div>
+        </div>
+
+        <div class="spec-card">
+          <span class="spec-tag">TỰ ĐỘNG</span>
+          <div class="spec-title">Tự động khôi phục phím khi gõ sai từ</div>
+          <div class="spec-desc">Khi bạn gõ nhầm phím hoặc tổ hợp ký tự không có thật trong tiếng Việt, MKey tự động hoàn lại các ký tự thô ban đầu, ngăn chặn việc nuốt phím hoặc tạo ra ký tự rác khó chịu.</div>
+          <div class="feature-demo-screen" data-feature="restore">
+            <div class="feature-screen-top">
+              <span class="screen-dot"></span>
+              <span class="screen-title">Khôi phục phím thông minh</span>
+            </div>
+            <div class="feature-screen-content">
+              <span class="typing-text"></span><span class="typing-cursor"></span>
+            </div>
+            <div class="feature-screen-status">Tự hoàn lại phím gốc khi phát hiện gõ sai vần</div>
+          </div>
+        </div>
+
+        <div class="spec-card">
+          <span class="spec-tag">TIỆN LỢI</span>
+          <div class="spec-title">Sửa dấu sau khi đã bấm phím cách</div>
+          <div class="spec-desc">Nếu lỡ gõ sang từ tiếp theo mới nhận ra từ trước bị thiếu dấu, bạn chỉ cần bấm Backspace lùi về từ cũ rồi gõ phím dấu. MKey sẽ tự động thêm dấu vào từ trước giúp bạn gõ tiếp ngay mà không phải xóa đi gõ lại từ đầu.</div>
+          <div class="feature-demo-screen" data-feature="backspace">
+            <div class="feature-screen-top">
+              <span class="screen-dot"></span>
+              <span class="screen-title">Sửa dấu hồi quy</span>
+            </div>
+            <div class="feature-screen-content">
+              <span class="typing-text"></span><span class="typing-cursor"></span>
+            </div>
+            <div class="feature-screen-status">Lùi về từ cũ + gõ phím dấu ➔ tự động sửa dấu và gõ tiếp</div>
+          </div>
+        </div>
+
+        <div class="spec-card">
+          <span class="spec-tag">PHÍM TẮT</span>
+          <div class="spec-title">Chuyển Anh / Việt an toàn</div>
+          <div class="spec-desc">Chuyển đổi nhanh chế độ gõ bằng <code>Ctrl + Shift</code>. Cơ chế cô lập thông minh giúp bạn thoải mái thao tác mà không lo cướp phím tắt của game, Photoshop hay phần mềm làm việc.</div>
+          <div class="feature-demo-screen" data-feature="toggle">
+            <div class="feature-screen-top">
+              <span class="screen-dot"></span>
+              <span class="screen-title">Phím tắt Ctrl + Shift</span>
+            </div>
+            <div class="feature-screen-content">
+              <span class="typing-text"></span><span class="typing-cursor"></span>
+            </div>
+            <div class="feature-screen-status">Chuyển đổi tức thì, không giật phím phần mềm</div>
+          </div>
+        </div>
+
+        <div class="spec-card">
+          <span class="spec-tag">ÂM THANH PHÍM</span>
+          <div class="spec-title">Giả lập âm thanh phím cơ sống động</div>
+          <div class="spec-desc">Trải nghiệm tiếng gõ phím cơ chân thực với 13 bộ switch tuyển chọn (Holy Panda, Cherry MX, Topre...). Âm thanh vang lên êm ái, phản hồi tức thì qua WASAPI mà không làm nặng máy.</div>
+          <div class="feature-demo-screen" data-feature="sound">
+            <div class="feature-screen-top">
+              <span class="screen-dot"></span>
+              <span class="screen-title">Âm thanh phím cơ</span>
+            </div>
+            <div class="feature-screen-content">
+              <span class="typing-text"></span><span class="typing-cursor"></span>
+            </div>
+            <div class="feature-screen-status audio-status">
+              <span>Holy Panda</span>
+              <button class="btn-play-sound-mini" id="miniSoundBtn">▶ Nghe thử</button>
+            </div>
+          </div>
+          <div class="sound-quick-tip">
+            <span class="tip-icon">📦</span>
+            <span>Cần tải gói âm thanh riêng. <a href="#sound-guide">Xem hướng dẫn cài đặt &darr;</a></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Soundpack Installation Guide -->
+      <div class="soundpack-guide-card" id="sound-guide">
+        <div class="guide-header">
+          <div class="guide-badge">HƯỚNG DẪN CÀI ĐẶT GÓI ÂM THANH</div>
+          <h3 class="guide-title">Cách tải và cài đặt âm thanh phím cơ cho MKey</h3>
+          <p class="guide-subtitle">File chạy MKey được tối ưu siêu nhẹ (~549 KB) nên không kèm sẵn file âm thanh lớn. Hãy làm theo 3 bước đơn giản dưới đây để kích hoạt:</p>
+        </div>
+
+        <div class="guide-steps-grid">
+          <div class="guide-step-item">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <strong>Tự động cài đặt (Khuyên dùng)</strong>
+              <p>Mở PowerShell (hoặc Terminal) và dán lệnh sau để tự động tải &amp; giải nén vào thư mục config:</p>
+              <div class="guide-path-box">
+                <div class="path-label">1 dòng lệnh tự động (PowerShell):</div>
+                <div class="path-code-wrapper">
+                  <code>irm https://raw.githubusercontent.com/uongsuadaubung/mkey/main/scripts/install-soundpack.ps1 | iex</code>
+                  <button class="btn-copy-mini" data-copy="irm https://raw.githubusercontent.com/uongsuadaubung/mkey/main/scripts/install-soundpack.ps1 | iex" title="Sao chép lệnh">Copy</button>
+                </div>
+              </div>
+              <p class="guide-mini-alt">Hoặc tải file chạy tự động: <a href="https://raw.githubusercontent.com/uongsuadaubung/mkey/main/scripts/install-soundpack.bat" download>install-soundpack.bat</a></p>
+            </div>
+          </div>
+
+          <div class="guide-step-item">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <strong>Hoặc copy thủ công từ GitHub</strong>
+              <p>Nếu bạn đã clone hoặc tải mã nguồn MKey từ GitHub, chỉ cần copy thư mục <code>switches</code> vào thư mục config:</p>
+              <a href="https://github.com/uongsuadaubung/mkey/tree/main/switches" target="_blank" class="btn-step-action">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span>Xem thư mục switches trên GitHub</span>
+              </a>
+              <div class="guide-path-box" style="margin-top: 12px;">
+                <div class="path-label">Thư mục đích:</div>
+                <div class="path-code-wrapper">
+                  <code>%USERPROFILE%\.config\mkey\switches\</code>
+                  <button class="btn-copy-mini" data-copy="%USERPROFILE%\.config\mkey\switches" title="Sao chép đường dẫn">Copy</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="guide-step-item">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <strong>Bật và trải nghiệm</strong>
+              <p>Mở Bảng điều khiển của MKey, tích chọn <strong>"Bật âm thanh gõ phím cơ"</strong>, chọn bộ switch yêu thích và bấm <strong>"Nghe thử"</strong>.</p>
+              <div class="guide-status-note">
+                <span class="note-dot"></span>
+                <span>Tự động nhận diện 13 bộ switch sau khi hoàn tất.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Soundpack & File Naming Info (Collapsible Accordion) -->
+        <details class="accordion-details sound-accordion">
+          <summary class="accordion-summary">
+            <div class="summary-left">
+              <span class="summary-icon">🎛️</span>
+              <span class="summary-text"><strong>Tự tạo gói âm thanh theo sở thích</strong> &amp; Danh sách tên file chuẩn (.wav)</span>
+            </div>
+            <span class="summary-badge">Xem chi tiết &darr;</span>
+          </summary>
+
+          <div class="custom-soundpack-box">
+          <div class="custom-sound-header">
+            <div class="custom-sound-badge">TÙY BIẾN KHÔNG GIỚI HẠN</div>
+            <h4 class="custom-sound-title">Tự tạo gói âm thanh theo sở thích của riêng bạn</h4>
+            <p class="custom-sound-desc">
+              Bạn không hề bị giới hạn trong 13 bộ switch có sẵn! MKey cho phép bạn đưa <strong>bất kỳ file âm thanh nào bạn thích</strong> vào sử dụng — từ tiếng gõ phím cơ custom, máy đánh chữ cổ điển, meme hài hước, cho đến âm thanh anime, lồng tiếng troll :))) Chỉ cần tạo một thư mục mới trong <code>%USERPROFILE%\.config\mkey\switches\&lt;Tên_Gói&gt;\</code> và thả các file <code>.wav</code> vào, MKey sẽ tự động nhận diện ngay trong Bảng điều khiển.
+            </p>
+          </div>
+
+          <div class="naming-rules-wrapper">
+            <div class="rules-table-title">Danh sách tên file chuẩn cố định cho từng phím (định dạng <code>.wav</code>):</div>
+            
+            <div class="naming-categories">
+              <!-- Group 1 -->
+              <div class="naming-group-card">
+                <div class="group-title">1. Phím soạn thảo chính</div>
+                <div class="group-rows">
+                  <div class="naming-row">
+                    <span class="row-key">Phím Cách (Spacebar)</span>
+                    <span class="row-file"><code>space.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Xóa (Backspace)</span>
+                    <span class="row-file"><code>backspace.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Xuống dòng (Enter)</span>
+                    <span class="row-file"><code>enter.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Tab</span>
+                    <span class="row-file"><code>tab.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Xóa tới (Delete)</span>
+                    <span class="row-file"><code>delete.wav</code></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group 2 -->
+              <div class="naming-group-card">
+                <div class="group-title">2. Phím bổ trợ & Hệ thống</div>
+                <div class="group-rows">
+                  <div class="naming-row">
+                    <span class="row-key">Phím Shift</span>
+                    <span class="row-file"><code>shift.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Control (Ctrl)</span>
+                    <span class="row-file"><code>ctrl.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Alt</span>
+                    <span class="row-file"><code>alt.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Windows (Win)</span>
+                    <span class="row-file"><code>win.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Caps Lock</span>
+                    <span class="row-file"><code>capslock.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Thoát (Esc)</span>
+                    <span class="row-file"><code>esc.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím F1 đến F12 (Fn)</span>
+                    <span class="row-file"><code>fn.wav</code></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group 3 -->
+              <div class="naming-group-card">
+                <div class="group-title">3. Phím điều hướng & Con trỏ</div>
+                <div class="group-rows">
+                  <div class="naming-row">
+                    <span class="row-key">4 Phím Mũi tên</span>
+                    <span class="row-file"><code>arrow.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Home</span>
+                    <span class="row-file"><code>home.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím End</span>
+                    <span class="row-file"><code>end.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Page Up</span>
+                    <span class="row-file"><code>pageup.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Page Down</span>
+                    <span class="row-file"><code>pagedown.wav</code></span>
+                  </div>
+                  <div class="naming-row">
+                    <span class="row-key">Phím Insert</span>
+                    <span class="row-file"><code>insert.wav</code></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group 4 -->
+              <div class="naming-group-card highlight-card">
+                <div class="group-title">4. Phím gõ chữ thường (Tất cả ký tự còn lại)</div>
+                <div class="group-rows">
+                  <div class="naming-row-full">
+                    <p><strong>Áp dụng cho:</strong> Toàn bộ chữ cái (A-Z), chữ số (0-9) và các dấu câu.</p>
+                    <p><strong>Tên file chuẩn:</strong> Đánh số thứ tự <code>1.wav</code>, <code>2.wav</code>, <code>3.wav</code>, <code>4.wav</code>, <code>5.wav</code>... (hoặc bất kỳ tên file nào không trùng với 18 phím cố định ở trên).</p>
+                    <p class="row-subtext">💡 <strong>Tự động luân phiên:</strong> Khi bạn để nhiều file số (1.wav, 2.wav...), MKey sẽ tự động đổi tiếng luân phiên sau mỗi lần gõ phím. Nếu bất kỳ phím chức năng nào không có file riêng, MKey sẽ tự động phát âm thanh gõ thường này làm mặc định.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="custom-sound-footer">
+            <span class="format-tip">✨ <strong>Chuẩn âm thanh hỗ trợ:</strong> Định dạng file <code>.wav</code> (chuẩn PCM 8/16/24-bit hoặc 32-bit float, Mono hoặc Stereo). Engine WASAPI thuần Rust sẽ tự động nạp vào RAM và resample về 48kHz, gõ siêu nhạy với độ trễ cực thấp (&lt; 1ms).</span>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Performance & Engineering Metrics -->
+  <section class="section" id="performance">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-chip">HIỆU NĂNG</div>
+        <h2 class="section-title">Gọn nhẹ, mượt mà và bền bỉ</h2>
+        <p class="section-subtitle">Khởi động ngay tức khắc, chạy ngầm êm ái với mức tiêu thụ tài nguyên gần như bằng không.</p>
+      </div>
+
+      <div class="telemetry-grid">
+        <div class="telemetry-card highlight">
+          <div class="telemetry-value">&lt; 1<span class="telemetry-unit">MB</span></div>
+          <div class="telemetry-label">Bộ nhớ RAM sử dụng</div>
+          <div class="telemetry-sub">Chỉ tốn chưa đầy 1 MB RAM, hoàn toàn không làm nặng máy tính của bạn</div>
+          <div class="telemetry-bar"><div class="bar-fill cyan" style="width: 100%"></div></div>
+        </div>
+
+        <div class="telemetry-card">
+          <div class="telemetry-value">0<span class="telemetry-unit">độ trễ</span></div>
+          <div class="telemetry-label">Phản hồi tức thì</div>
+          <div class="telemetry-sub">Chữ xuất hiện ngay lập tức dưới đầu ngón tay, cảm giác gõ dính phím mượt mà</div>
+          <div class="telemetry-bar"><div class="bar-fill green" style="width: 100%"></div></div>
+        </div>
+
+        <div class="telemetry-card">
+          <div class="telemetry-value">~549<span class="telemetry-unit">KB</span></div>
+          <div class="telemetry-label">Dung lượng siêu nhỏ gọn</div>
+          <div class="telemetry-sub">Tải về trong 1 giây, mở lên là dùng được ngay, không cần cài đặt rườm rà</div>
+          <div class="telemetry-bar"><div class="bar-fill crimson" style="width: 100%"></div></div>
+        </div>
+
+        <div class="telemetry-card">
+          <div class="telemetry-value">100<span class="telemetry-unit">%</span></div>
+          <div class="telemetry-label">An toàn & Riêng tư</div>
+          <div class="telemetry-sub">Hoạt động hoàn toàn ngoại tuyến, không gửi bất kỳ dữ liệu phím bấm nào ra ngoài</div>
+          <div class="telemetry-bar"><div class="bar-fill purple" style="width: 100%"></div></div>
+        </div>
+      </div>
+
+      <!-- Real-world Task Manager Benchmark Showcase -->
+      <div class="benchmark-showcase">
+        <div class="benchmark-showcase-header">
+          <div class="benchmark-badge">ĐỐI CHIẾU THỰC TẾ TRÊN WINDOWS TASK MANAGER</div>
+          <h3 class="benchmark-title">Tiêu thụ RAM thực tế: Ẩn cửa sổ vs. Mở cửa sổ</h3>
+          <p class="benchmark-subtitle">
+            Minh chứng trực tiếp từ Task Manager khi chạy song song <strong>MKey</strong> cùng <strong>UniKey</strong> và <strong>OpenKey</strong>:
+          </p>
+        </div>
+
+        <div class="benchmark-cards-grid">
+          <!-- Card 1: Ẩn cửa sổ -->
+          <div class="benchmark-card">
+            <div class="benchmark-card-header">
+              <div class="benchmark-status-badge">
+                <span class="status-dot"></span>
+                <span>ẨN CỬA SỔ (CHẠY NGẦM KHAY HỆ THỐNG)</span>
+              </div>
+              <div class="benchmark-ram-val">0.7 MB RAM</div>
+            </div>
+            <div class="benchmark-img-container">
+              <img src="images/benchmark-tray.png" alt="Task Manager khi MKey ẩn cửa sổ - 0.7 MB RAM" loading="lazy">
+            </div>
+            <div class="benchmark-card-desc">
+              <div class="benchmark-metric-row win">
+                <span class="proc-name">MKey (Rust):</span>
+                <span class="proc-num">0.7 MB</span>
+                <span class="proc-tag">Tự động giải phóng bộ nhớ</span>
+              </div>
+              <div class="benchmark-metric-row">
+                <span class="proc-name">UniKey / OpenKey:</span>
+                <span class="proc-num">2.4 MB</span>
+                <span class="proc-tag">Nặng gấp ~3.5 lần</span>
+              </div>
+              <p class="benchmark-analysis">
+                🔍 <strong>Nhận xét:</strong> Khi đóng cửa sổ về khay hệ thống (không có mũi tên <code>&gt;</code>), MKey tự động cắt tỉa working set xuống chỉ còn <strong>0.7 MB RAM</strong>, tiết kiệm hơn <strong>70%</strong> so với các bộ gõ truyền thống.
+              </p>
+            </div>
+          </div>
+
+          <!-- Card 2: Mở cửa sổ -->
+          <div class="benchmark-card">
+            <div class="benchmark-card-header">
+              <div class="benchmark-status-badge active-state">
+                <span class="status-dot active"></span>
+                <span>MỞ CỬA SỔ (BẢNG ĐIỀU KHIỂN ĐANG BẬT)</span>
+              </div>
+              <div class="benchmark-ram-val">1.5 MB RAM</div>
+            </div>
+            <div class="benchmark-img-container">
+              <img src="images/benchmark-window.png" alt="Task Manager khi MKey mở cửa sổ - 1.5 MB RAM" loading="lazy">
+            </div>
+            <div class="benchmark-card-desc">
+              <div class="benchmark-metric-row win">
+                <span class="proc-name">MKey (Rust):</span>
+                <span class="proc-num">1.5 MB</span>
+                <span class="proc-tag">Đang hiển thị toàn bộ giao diện</span>
+              </div>
+              <div class="benchmark-metric-row">
+                <span class="proc-name">OpenKey / UniKey:</span>
+                <span class="proc-num">2.4 MB</span>
+                <span class="proc-tag">Vẫn giữ 2.4 MB</span>
+              </div>
+              <p class="benchmark-analysis">
+                🔍 <strong>Nhận xét:</strong> Ngay cả khi đang mở bảng điều khiển (có mũi tên <code>&gt;</code> trong Task Manager), MKey chỉ tiêu tốn <strong>1.5 MB RAM</strong> — con số này vẫn nhẹ hơn gần <strong>1 MB</strong> so với UniKey & OpenKey.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Table -->
+  <section class="section" id="comparison">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-chip">SO SÁNH</div>
+        <h2 class="section-title">Khác biệt trong từng trải nghiệm hàng ngày</h2>
+        <p class="section-subtitle">So sánh cảm giác sử dụng thực tế giữa MKey và các bộ gõ tiếng Việt trước đây.</p>
+      </div>
+
+      <div class="comparison-table-wrapper">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th class="feature-col">Tình huống hàng ngày</th>
+              <th class="legacy-th">Bộ gõ truyền thống</th>
+              <th class="mkey-th">MKey</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="feature-name">
+                <strong>Gõ từ tiếng Anh quen thuộc</strong>
+                <span>error, pass, coffee, class</span>
+              </td>
+              <td class="legacy-td">
+                <span class="badge-fail">Bị nuốt chữ</span>
+                <p>Chữ bị biến thành <code>eror</code>, <code>pas</code>, <code>cofee</code>. Phải gõ lặp 3 lần (<code>passs</code>) hoặc tắt tiếng Việt.</p>
+              </td>
+              <td class="mkey-td">
+                <span class="badge-win">Giữ nguyên vẹn</span>
+                <p>Tự động nhận diện từ tiếng Anh và giữ đúng từ, không nuốt chữ, không cần gõ 3 lần.</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>Tìm kiếm trên Chrome & Edge</strong>
+                <span>Gõ từ khóa trên thanh địa chỉ</span>
+              </td>
+              <td class="legacy-td">
+                <span class="badge-fail">Dễ lặp chữ đầu</span>
+                <p>Thường bị nhảy chữ thành <code>ggoogle</code>, <code>ttoán</code> gây khó chịu khi tìm kiếm.</p>
+              </td>
+              <td class="mkey-td">
+                <span class="badge-win">Gõ chuẩn xác</span>
+                <p>Chữ hiển thị chuẩn từng ký tự ngay từ đầu, tìm kiếm hay nhập link web đều mượt mà.</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>Tính năng gõ tắt (viết tắt)</strong>
+                <span>Tự động viết hoa / viết thường</span>
+              </td>
+              <td class="legacy-td">
+                <span class="badge-neutral">Phải tạo nhiều lần</span>
+                <p>Muốn gõ tắt cả chữ thường và hoa phải tạo thủ công từng từ như <code>ko</code>, <code>Ko</code>, <code>KO</code>.</p>
+              </td>
+              <td class="mkey-td">
+                <span class="badge-win">Tự động đổi kiểu chữ</span>
+                <p>Chỉ cần tạo 1 từ <code>ko</code> &rarr; <code>không</code>, MKey tự nhận diện để xuất <code>Không</code> hoặc <code>KHÔNG</code> theo cách bạn gõ.</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>Quên bỏ dấu trước khi bấm Space</strong>
+                <span>Nhỡ bấm phím cách khi chưa xong dấu</span>
+              </td>
+              <td class="legacy-td">
+                <span class="badge-fail">Phải gõ lại cả từ</span>
+                <p>Xóa cách rồi gõ dấu sẽ thành <code>chao s</code>. Buộc bạn phải xóa hết cả từ để gõ lại từ đầu.</p>
+              </td>
+              <td class="mkey-td">
+                <span class="badge-win">Tự động thêm dấu</span>
+                <p>Chỉ cần xóa cách rồi gõ dấu, chữ tự đổi thành <code>cháo</code> mà không mất công gõ lại.</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>Âm thanh gõ phím cơ</strong>
+                <span>Cảm giác âm thanh khi nhấn phím</span>
+              </td>
+              <td class="legacy-td">
+                <span class="badge-fail">Không có sẵn</span>
+                <p>Phải cài thêm ứng dụng ngoài cồng kềnh, ngốn hàng trăm MB bộ nhớ RAM của máy.</p>
+              </td>
+              <td class="mkey-td">
+                <span class="badge-win">Hỗ trợ 13 bộ switch</span>
+                <p>Hỗ trợ phát âm thanh phím cơ sống động qua WASAPI, chỉ tốn ~1.5 MB RAM khi bật và không cần cài phần mềm ngoài nặng nề.</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>Mức độ ngốn máy & RAM</strong>
+                <span>Tài nguyên khi mở chạy ngầm cả ngày</span>
+              </td>
+              <td class="legacy-td">
+                <span class="badge-neutral">2.4 MB (cố định)</span>
+                <p>UniKey và OpenKey luôn chiếm từ 2.4 MB RAM trở lên dù ẩn hay mở cửa sổ.</p>
+              </td>
+              <td class="mkey-td">
+                <span class="badge-win">Chỉ 0.7 MB &rarr; 1.5 MB</span>
+                <p>Khi ẩn cửa sổ chỉ tốn <strong>0.7 MB RAM</strong> (nhẹ hơn 70%). Khi mở bảng điều khiển cũng chỉ <strong>1.5 MB</strong> (<a href="#performance" style="color: #38bdf8; text-decoration: underline;">xem ảnh Task Manager &uarr;</a>).</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>Bảng mã &amp; Tùy chọn cài đặt</strong>
+                <span>Mức độ phức tạp khi thiết lập</span>
+              </td>
+              <td class="legacy-td">
+                <span class="badge-neutral">Rườm rà, nhiều tùy chọn cổ</span>
+                <p>Nhiều bảng mã cũ từ thập niên 90 (TCVN3, VNI...) và hàng chục checkbox kỹ thuật rườm rà dễ gây rối mắt và nhầm lẫn.</p>
+              </td>
+              <td class="mkey-td">
+                <span class="badge-win">Tối giản chuẩn Unicode</span>
+                <p>Chuẩn Unicode hiện đại 100%. Tự động hóa ngầm toàn bộ cơ chế, không bắt bạn phải làm chuyên gia cấu hình để gõ văn bản mượt mà.</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
+                <strong>Độ mượt mà khi gõ & chơi game</strong>
+                <span>Phản hồi khi gõ nhanh hoặc chơi game</span>
+              </td>
+              <td class="legacy-td">
+                <span class="badge-neutral">Đôi khi khựng nhịp phím</span>
+                <p>Dễ xung đột các phím di chuyển khi chơi game nếu quên tắt chế độ tiếng Việt.</p>
+              </td>
+              <td class="mkey-td">
+                <span class="badge-win">Hoàn toàn mượt mà</span>
+                <p>Nhạy bén tức thì, phản hồi êm ái kể cả khi bạn gõ văn bản cực nhanh hay chơi game.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="section" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-chip">HỎI ĐÁP</div>
+        <h2 class="section-title">Câu hỏi thường gặp</h2>
+        <p class="section-subtitle">Giải đáp nhanh các thắc mắc phổ biến nhất khi bắt đầu sử dụng bộ gõ MKey.</p>
+      </div>
+
+      <div class="faq-grid">
+        <div class="faq-card">
+          <div class="faq-q">
+            <span class="faq-icon">🛡️</span>
+            <h3>Windows SmartScreen có báo file lạ không?</h3>
+          </div>
+          <p class="faq-a">
+            MKey là phần mềm mã nguồn mở hoàn toàn miễn phí (chưa mua chứng chỉ số đắt tiền hàng năm từ Microsoft), nên khi tải về lần đầu, Windows SmartScreen có thể hiển thị cảnh báo bảo vệ. Bạn chỉ cần nhấn vào <strong>"More info" (Thông tin khác)</strong> &rarr; chọn <strong>"Run anyway" (Vẫn chạy)</strong>. Toàn bộ mã nguồn MKey đều công khai 100% trên GitHub để bạn tự kiểm chứng.
+          </p>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-q">
+            <span class="faq-icon">💻</span>
+            <h3>MKey hỗ trợ những phiên bản Windows nào?</h3>
+          </div>
+          <p class="faq-a">
+            MKey hoạt động tối ưu trên <strong>Windows 10</strong> và <strong>Windows 11 (64-bit)</strong>. File chạy là dạng <strong>Portable độc lập</strong>, không cần cài đặt, không ghi rác vào Windows Registry và không yêu cầu quyền Quản trị viên (Administrator).
+          </p>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-q">
+            <span class="faq-icon">⚡</span>
+            <h3>Tôi có cần gỡ UniKey hoặc OpenKey cũ không?</h3>
+          </div>
+          <p class="faq-a">
+            Bạn không nhất thiết phải gỡ cài đặt, nhưng <strong>cần tắt hoặc thoát hoàn toàn</strong> các bộ gõ cũ (UniKey, OpenKey, EVKey...) trước khi bật MKey. Nếu để 2 bộ gõ cùng chạy ngầm song song, cả hai sẽ cùng bắt phím và gây ra lỗi lặp hoặc nhảy ký tự.
+          </p>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-q">
+            <span class="faq-icon">⌨️</span>
+            <h3>Làm sao để chuyển đổi nhanh giữa tiếng Việt và tiếng Anh?</h3>
+          </div>
+          <p class="faq-a">
+            Bạn có thể dùng tổ hợp phím tắt <code>Ctrl + Shift</code> hoặc click chuột trái trực tiếp vào biểu tượng icon chữ <strong>V</strong> / <strong>E</strong> ở khay hệ thống (góc dưới bên phải màn hình). Click chuột phải vào icon để mở Bảng điều khiển hoặc Thoát ứng dụng.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download Section -->
+  <section class="section" id="download">
+    <div class="container download-container">
+      <div class="download-card">
+        <div class="download-badge">PHIÊN BẢN 0.3.0 • MIỄN PHÍ & MÃ NGUỒN MỞ</div>
+        <h2 class="download-title">Bắt đầu sử dụng MKey</h2>
+        <p class="download-desc">
+          Tải bản chạy ngay (portable) mở lên là sử dụng ngay, không cần cài đặt rườm rà. Tương thích hoàn hảo Windows 10 &amp; 11 (64-bit), không cần quyền Quản trị viên (Admin).
+        </p>
+
+        <div class="download-buttons">
+          <a href="https://github.com/uongsuadaubung/mkey/releases/latest" class="btn btn-download-main">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            <div class="btn-text-block">
+              <span class="btn-main-text">Tải MKey (.exe)</span>
+              <span class="btn-sub-text">Bản Portable cho Windows 10 / 11 (64-bit)</span>
+            </div>
+          </a>
+
+          <a href="#sound-guide" class="btn btn-download-sub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <div class="btn-text-block">
+              <span class="btn-main-text">Gói âm thanh Switch</span>
+              <span class="btn-sub-text">Xem script tải tự động từ GitHub</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="download-guarantee">
+          Mã nguồn mở theo giấy phép GPL-3.0 • Hoạt động offline 100% • Không theo dõi, không thu thập dữ liệu phím
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-container">
+      <div class="footer-left">
+        <div class="footer-brand">MKey</div>
+        <p class="footer-tagline">Bộ gõ tiếng Việt hiện đại cho Windows.</p>
+        <p class="footer-copy">Mã nguồn mở trên GitHub.</p>
+      </div>
+      <div class="footer-right">
+        <a href="https://github.com/uongsuadaubung/mkey" target="_blank">Mã nguồn GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

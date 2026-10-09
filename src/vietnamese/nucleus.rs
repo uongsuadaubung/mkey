@@ -267,7 +267,7 @@ impl NucleusState {
         coda: Option<&[(char, bool)]>,
         config: &EngineConfig,
     ) -> ModifierOutcome {
-        let make_raw = |n: &NucleusState| -> String {
+        let make_raw = |n: &NucleusState, double_tone_key: bool| -> String {
             let mut s = String::with_capacity(16);
             n.render_to(&mut s);
             if let Some(coda_chars) = coda {
@@ -278,6 +278,9 @@ impl NucleusState {
                         s.push(c.to_ascii_lowercase());
                     }
                 }
+            }
+            if double_tone_key {
+                s.push(key.ch);
             }
             s.push(key.ch);
             s
@@ -309,7 +312,7 @@ impl NucleusState {
                             v.base == target_base && v.diacritic == Diacritic::Circumflex
                         }) {
                             self.vowels[pos].diacritic = Diacritic::None;
-                            ModifierOutcome::Undone(make_raw(self))
+                            ModifierOutcome::Undone(make_raw(self, false))
                         } else if self.toggle_circumflex(target_base) {
                             ModifierOutcome::Applied
                         } else {
@@ -336,7 +339,7 @@ impl NucleusState {
                         if config.method.is_telex_family() && onset.is_d_stroke {
                             // Telex undo toggle: 3rd 'd' cancels 'đ' into 'dd'
                             onset.is_d_stroke = false;
-                            ModifierOutcome::Undone(make_raw(self))
+                            ModifierOutcome::Undone(make_raw(self, false))
                         } else {
                             onset.is_d_stroke = !onset.is_d_stroke;
                             ModifierOutcome::Applied
@@ -364,7 +367,7 @@ impl NucleusState {
                 if self.apply_horn(coda.is_some()) {
                     ModifierOutcome::Applied
                 } else if self.revert_horn() {
-                    ModifierOutcome::Undone(make_raw(self))
+                    ModifierOutcome::Undone(make_raw(self, false))
                 } else {
                     ModifierOutcome::NotApplied
                 }
@@ -400,7 +403,8 @@ impl NucleusState {
                 if self.tone == tone {
                     if config.method.is_telex_family() {
                         self.tone = Tone::None;
-                        ModifierOutcome::Undone(make_raw(self))
+                        let double_key = coda.is_none();
+                        ModifierOutcome::Undone(make_raw(self, double_key))
                     } else {
                         self.tone = Tone::None;
                         ModifierOutcome::Applied

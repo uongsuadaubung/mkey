@@ -36,8 +36,8 @@ fn test_group_1_english_words_preservation() {
     assert_eq!(simulate(&mut engine, "bug "), "bug ");
     assert_eq!(simulate(&mut engine, "flag "), "flag ");
     assert_eq!(simulate(&mut engine, "dog "), "dog ");
-    assert_eq!(simulate(&mut engine, "passs "), "pass "); // Gõ 'passs' (3 phím 's') để ra 'pass'
-    assert_eq!(simulate(&mut engine, "pass "), "pas "); // Gõ 2 phím 's' hủy sắc trả lại 1 chữ 's' -> 'pas'
+    // MKey Smart Bypass: Gõ 'pass' ra thẳng 'pass' mà không bị nuốt thành 'pas'
+    assert_eq!(simulate(&mut engine, "pass "), "pass ");
 }
 
 #[test]
@@ -108,10 +108,10 @@ fn test_group_4_casing_preservation() {
         simulate(&mut engine, "COONGJ HOAF XAX HOOIJ CHUR NGHIAX VIEETJ NAM "),
         "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM "
     );
-    // Gõ 'RUSST' (với 2 phím 'S') để giữ chữ tiếng Anh 'RUST' thay vì biến thành 'RÚT'
+    // MKey Smart Bypass: Các từ tiếng Anh có phụ âm kép như CLASS, PASS bảo toàn 100%
     assert_eq!(
-        simulate(&mut engine, "TOOI GOX TIEESNG VIEETJ TREEN RUSST "),
-        "TÔI GÕ TIẾNG VIỆT TRÊN RUST "
+        simulate(&mut engine, "TOOI GOX TIEESNG VIEETJ TREEN CLASS "),
+        "TÔI GÕ TIẾNG VIỆT TRÊN CLASS "
     );
 
     // CamelCase trong lập trình: Giữ nguyên từng case qua ranh giới từ
@@ -119,8 +119,7 @@ fn test_group_4_casing_preservation() {
     assert_eq!(simulate(&mut engine, "itemCount "), "itemCount ");
     assert_eq!(simulate(&mut engine, "getOption "), "getOption ");
     assert_eq!(simulate(&mut engine, "checkFlag "), "checkFlag ");
-    // 'List' chứa phím 's' tạo thành từ tiếng Việt 'lít', dùng 'ss' để giữ 'List'
-    assert_eq!(simulate(&mut engine, "dataLisst "), "dataList ");
+    assert_eq!(simulate(&mut engine, "passCount "), "passCount ");
 }
 
 #[test]

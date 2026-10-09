@@ -84,6 +84,48 @@ pub fn is_valid_vowel_combination(vowels: &[VowelLetter]) -> bool {
     }
 }
 
+/// Validates whether a sequence of vowels forms a legitimate intermediate or completed Vietnamese vowel cluster during typing.
+#[inline]
+pub fn is_valid_intermediate_vowel_combination(vowels: &[VowelLetter]) -> bool {
+    match vowels.len() {
+        0 | 1 => true,
+        2 => {
+            if is_valid_vowel_combination(vowels) {
+                return true;
+            }
+            let v0 = (vowels[0].base, vowels[0].diacritic);
+            let v1 = (vowels[1].base, vowels[1].diacritic);
+            matches!(
+                (v0, v1),
+                // Intermediate typing bases for iê, yê, uô, ươ, uê, ê, êu
+                ((BaseVowel::I, Diacritic::None), (BaseVowel::E, Diacritic::None))
+                    | ((BaseVowel::Y, Diacritic::None), (BaseVowel::E, Diacritic::None))
+                    | ((BaseVowel::U, Diacritic::None), (BaseVowel::O, Diacritic::None))
+                    | ((BaseVowel::U, Diacritic::None), (BaseVowel::E, Diacritic::None))
+                    | ((BaseVowel::E, Diacritic::None), (BaseVowel::E, Diacritic::None))
+                    | ((BaseVowel::E, Diacritic::None), (BaseVowel::U, Diacritic::None))
+            )
+        }
+        3 => {
+            if is_valid_vowel_combination(vowels) {
+                return true;
+            }
+            let v0 = vowels[0].base;
+            let v1 = vowels[1].base;
+            let v2 = vowels[2].base;
+            matches!(
+                (v0, v1, v2),
+                (BaseVowel::U, BaseVowel::Y, BaseVowel::E)
+                    | (BaseVowel::I, BaseVowel::E, BaseVowel::U)
+                    | (BaseVowel::Y, BaseVowel::E, BaseVowel::U)
+                    | (BaseVowel::U, BaseVowel::O, BaseVowel::I)
+                    | (BaseVowel::U, BaseVowel::O, BaseVowel::U)
+            )
+        }
+        _ => false,
+    }
+}
+
 /// Validates whether an onset consonant sequence is a legitimate Vietnamese onset.
 #[inline]
 pub fn is_valid_onset(onset: &[(char, bool)], is_d_stroke: bool) -> bool {
@@ -261,7 +303,7 @@ pub fn is_valid_vietnamese_components(
             _ => return false,
         }
 
-        // Stop codas (c, ch, p, t, k) only accept Acute (Sắc) or DotBelow (Nặng).
+        // Stop codas (c, ch, p, t, k) only accept Acute (Sắc) or DotBelow (Nặng), or Tone::None (for Dak Lak loanwords / typing bases).
         // Nasal coda 'nh' accepts all 6 tones.
         if is_stop_coda(coda) {
             match tone {

@@ -84,14 +84,41 @@ impl TypingBuffer {
         let mut current_len = 0;
         let mut effective = Vec::with_capacity(keys.len());
         let mut last_action = EngineAction::Passthrough;
+        let mut last_rendered = String::new();
 
-        for &key in keys {
+        for (idx, &key) in keys.iter().enumerate() {
             effective.push(key);
-            let (next_state, action) = state.feed_key(key, current_len, config);
+            let was_nucleus_or_coda = matches!(state, SyllableState::Nucleus(_) | SyllableState::Coda(_));
+            let prev_rendered = last_rendered.clone();
+            let prev_rendered_len = last_rendered.chars().count();
+
+            let (mut next_state, mut action) = state.feed_key(key, current_len, config);
+
+            // Smart English Word Bypass / Instant Restore on Wrong Spelling:
+            // If the state machine just transitioned from a structured Vietnamese state into Passthrough,
+            // and the rendered text on screen had modifications (diacritics/tones),
+            // rollback immediately to raw keys!
+            if config.restore_on_wrong_spelling
+                && was_nucleus_or_coda
+                && matches!(next_state, SyllableState::Passthrough(_))
+                && matches!(action, EngineAction::Passthrough)
+            {
+                let raw_str: String = keys[..=idx].iter().map(|k| k.ch).collect();
+                let prev_raw_slice: String = keys[..idx].iter().map(|k| k.ch).collect();
+                if prev_rendered != prev_raw_slice {
+                    next_state = SyllableState::Passthrough(InlineList::from(raw_str.as_str()));
+                    action = EngineAction::Replace {
+                        backspaces: prev_rendered_len,
+                        output: raw_str,
+                    };
+                }
+            }
+
             state = next_state;
             match &action {
                 EngineAction::Replace { output, .. } => {
                     current_len = output.encode_utf16().count();
+                    last_rendered = output.clone();
                     // If an undo toggle transitioned into Passthrough (e.g. toanss -> toans, chuww -> chuw),
                     // synchronize effective keys to match the explicit cancelled output.
                     if let SyllableState::Passthrough(raw) = state {
@@ -100,13 +127,19 @@ impl TypingBuffer {
                 }
                 EngineAction::Passthrough => {
                     current_len += key.ch.len_utf16();
+                    last_rendered.push(key.ch);
                 }
                 EngineAction::Consume => {}
             }
             last_action = action;
         }
 
-        let rendered = state.render();
+        let rendered = if matches!(state, SyllableState::Passthrough(_)) && !last_rendered.is_empty() {
+            last_rendered
+        } else {
+            state.render()
+        };
+
         EvaluationResult {
             state,
             rendered,
@@ -149,8 +182,36 @@ impl TypingBuffer {
 
         self.raw_keys.push(key);
 
+        let was_nucleus_or_coda = matches!(self.state, SyllableState::Nucleus(_) | SyllableState::Coda(_));
+        let prev_rendered = self.last_rendered.clone();
+        let prev_rendered_len = self.last_rendered.chars().count();
+
         let current_state = std::mem::take(&mut self.state);
-        let (next_state, action) = current_state.feed_key(key, self.emitted_len, config);
+        let (mut next_state, mut action) = current_state.feed_key(key, self.emitted_len, config);
+
+        // Smart English Word Bypass / Instant Restore on Wrong Spelling:
+        // If the state machine just transitioned from a structured Vietnamese state into Passthrough,
+        // and the rendered text on screen had modifications (diacritics/tones),
+        // rollback immediately to raw keys!
+        if config.restore_on_wrong_spelling
+            && was_nucleus_or_coda
+            && matches!(next_state, SyllableState::Passthrough(_))
+            && matches!(action, EngineAction::Passthrough)
+        {
+            let raw_str: String = self.raw_keys.iter().map(|k| k.ch).collect();
+            let prev_raw_slice: String = self.raw_keys[..self.raw_keys.len() - 1]
+                .iter()
+                .map(|k| k.ch)
+                .collect();
+            if prev_rendered != prev_raw_slice {
+                next_state = SyllableState::Passthrough(InlineList::from(raw_str.as_str()));
+                action = EngineAction::Replace {
+                    backspaces: prev_rendered_len,
+                    output: raw_str,
+                };
+            }
+        }
+
         self.state = next_state;
 
         // Common Prefix Optimization:
@@ -204,10 +265,10 @@ impl TypingBuffer {
 
         self.emitted_len = new_emitted_len;
 
-        if matches!(&action, EngineAction::Replace { .. })
-            && let SyllableState::Passthrough(raw) = self.state
-        {
-            self.raw_keys = raw.iter().map(|&c| RawKey::from(c)).collect();
+        if let SyllableState::Passthrough(raw) = self.state {
+            if matches!(&action, EngineAction::Replace { .. }) {
+                self.raw_keys = raw.iter().map(|&c| RawKey::from(c)).collect();
+            }
             self.is_passthrough = true;
         }
 
@@ -219,6 +280,31 @@ impl TypingBuffer {
     pub fn handle_backspace(&mut self, config: &EngineConfig) -> bool {
         if self.is_empty() {
             return false;
+        }
+
+        if self.is_passthrough {
+            self.raw_keys.pop();
+            self.last_rendered.pop();
+            self.emitted_len = self.last_rendered.encode_utf16().count();
+
+            if self.raw_keys.is_empty() {
+                self.clear();
+            } else {
+                // Check if the remaining raw keys can legitimately recover a structured Vietnamese syllable
+                // that EXACTLY matches the text on screen (e.g. "tjee" backspaced to "t" matches Onset('t')).
+                let eval = Self::evaluate_keys(&self.raw_keys, config);
+                if eval.rendered == self.last_rendered {
+                    self.raw_keys = eval.effective_raw_keys;
+                    self.state = eval.state;
+                    self.emitted_len = eval.emitted_len;
+                    self.last_rendered = eval.rendered;
+                    self.is_passthrough = matches!(self.state, SyllableState::Passthrough(_));
+                } else {
+                    let raw_str: String = self.raw_keys.iter().map(|k| k.ch).collect();
+                    self.state = SyllableState::Passthrough(InlineList::from(raw_str.as_str()));
+                }
+            }
+            return true;
         }
 
         let target_len = self.emitted_len.saturating_sub(1);

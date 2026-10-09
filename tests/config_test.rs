@@ -173,3 +173,38 @@ fn test_inspect_sound_banks() {
         }
     }
 }
+
+#[test]
+fn test_exact_match_file_tag() {
+    use mkey::platform::win32::{match_file_tag, KeyTag};
+
+    // Strict 1:1 match for all 18 canonical keys
+    assert_eq!(match_file_tag("space"), Some(KeyTag::Space));
+    assert_eq!(match_file_tag("backspace"), Some(KeyTag::Backspace));
+    assert_eq!(match_file_tag("enter"), Some(KeyTag::Enter));
+    assert_eq!(match_file_tag("tab"), Some(KeyTag::Tab));
+    assert_eq!(match_file_tag("delete"), Some(KeyTag::Delete));
+    assert_eq!(match_file_tag("shift"), Some(KeyTag::Shift));
+    assert_eq!(match_file_tag("ctrl"), Some(KeyTag::Ctrl));
+    assert_eq!(match_file_tag("alt"), Some(KeyTag::Alt));
+    assert_eq!(match_file_tag("win"), Some(KeyTag::Win));
+    assert_eq!(match_file_tag("capslock"), Some(KeyTag::CapsLock));
+    assert_eq!(match_file_tag("esc"), Some(KeyTag::Esc));
+    assert_eq!(match_file_tag("fn"), Some(KeyTag::Fn));
+    assert_eq!(match_file_tag("arrow"), Some(KeyTag::Arrow));
+    assert_eq!(match_file_tag("home"), Some(KeyTag::Home));
+    assert_eq!(match_file_tag("end"), Some(KeyTag::End));
+    assert_eq!(match_file_tag("pageup"), Some(KeyTag::PageUp));
+    assert_eq!(match_file_tag("pagedown"), Some(KeyTag::PageDown));
+    assert_eq!(match_file_tag("insert"), Some(KeyTag::Insert));
+
+    // Ambiguous and non-canonical names must NOT match special keys, must fallback to None (Normal)
+    assert_eq!(match_file_tag("winter"), None);
+    assert_eq!(match_file_tag("alter"), None);
+    assert_eq!(match_file_tag("space_enter"), None);
+    assert_eq!(match_file_tag("del"), None);
+    assert_eq!(match_file_tag("back"), None);
+    assert_eq!(match_file_tag("escape"), None);
+    assert_eq!(match_file_tag("1"), None);
+    assert_eq!(match_file_tag("click"), None);
+}

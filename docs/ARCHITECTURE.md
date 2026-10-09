@@ -91,10 +91,18 @@ flowchart TD
   - Mọi thao tác gõ trong phiên từ hiện tại đều được ghi nhận vào mảng `raw_keys: Vec<RawKey>`.
   - Trạng thái âm tiết `state: SyllableState` và độ dài ký tự hiển thị `emitted_len` được tính toán độc lập và nhất quán thông qua hàm chiếu thuần túy:
     $$\text{evaluate\_keys}(\text{raw\_keys}, \text{config}) \rightarrow (\text{state}, \text{rendered}, \text{emitted\_len}, \dots)$$
-- **Thuật toán Backspace tất định (`handle_backspace`):**
+- **Thuật toán Backspace tất định (`handle_backspace`) & Định lý Bất biến Đồng bộ Màn hình (Screen-Buffer State Invariant):**
   - Không dựa vào giả định số lượng ký tự xóa của hệ điều hành.
   - Khi nhận sự kiện Backspace, buffer tính `target_len = emitted_len - 1` và thực hiện `raw_keys.pop()` kèm tái chiếu `evaluate_keys` liên tục cho đến khi độ dài hiển thị giảm chính xác 1 đơn vị.
-  - Đối với từ ở chế độ thô (`is_passthrough`), Backspace giảm trực tiếp từng ký tự một ($1:1$ với màn hình).
+  - **Đồng bộ hóa trong chế độ thô (`is_passthrough`):**
+    - Khi đang ở `Passthrough`, Backspace rút ngắn đồng thời cả `raw_keys` và `last_rendered` ($1:1$ với màn hình thực tế).
+    - **Điều kiện phục hồi trạng thái âm tiết (Syllable State Recovery Condition):** Buffer chỉ chuyển dịch từ `Passthrough` về trạng thái tiếng Việt (`Onset`, `Nucleus`, `Coda`) khi và chỉ khi chuỗi tái diễn giải trùng khớp hoàn toàn với màn hình:
+      $$\text{eval.rendered} == \text{self.last\_rendered}$$
+      *(Ví dụ: gõ nhầm `tjee`, Backspace 3 lần về `t` thì phục hồi thành công `Onset('t')` vì `eval.rendered("t") == last_rendered("t")`)*.
+    - **Triệt tiêu lỗi Ký tự ma (Ghost Character Bug Elimination - ví dụ `eer`):**
+      Nếu kết quả diễn giải lại không khớp với chuỗi thực tế đang có trên màn hình (ví dụ: gõ `error` ra `eror`, Backspace 2 lần còn `er`; nếu diễn giải `['e', 'r']` sẽ ra `ẻ` có độ dài 1 khác với `er` có độ dài 2 trên màn hình), engine **bắt buộc duy trì trạng thái `Passthrough`** với chuỗi `"er"`. Điều này ngăn chặn việc engine gửi thiếu Backspace khi người dùng gõ tiếp ký tự sau đó (tránh lỗi `e` + `er` = `eer`), đảm bảo tính bất biến đồng bộ tuyệt đối giữa bộ gõ và OS.
+  - **Bảo lưu Phụ âm Đôi lặp phím dấu (Geminate Consonants Preservation):**
+    - Khi nhận diện chuyển tiếp sang `Passthrough` do người dùng gõ lặp phím dấu thanh (như `rr`, `ss`, `ff` trong `error`, `pass`, `off`), `feed_key` bảo lưu nguyên vẹn toàn bộ mảng `raw_keys` và gán trạng thái `is_passthrough = true`, xuất ra trực tiếp các từ tiếng Anh có phụ âm kép chuẩn xác mà không bị nuốt phím (chi tiết ngữ âm học tại [LINGUISTIC_RESEARCH_SMART_BYPASS.md](file:///c:/Users/uongsuadaubung/Desktop/mkey/docs/LINGUISTIC_RESEARCH_SMART_BYPASS.md#53-xử-lý-phụ-âm-đôi-lặp-phím-dấu-telex-modifier-geminate-consonants-rr-ss-ff)).
 - **Bộ đệm Hiển thị Tái sử dụng (Zero-Allocation `last_rendered` Caching):**
   - Lưu trữ trực tiếp trường `last_rendered: String` tái sử dụng dung lượng bộ đệm.
   - Khi gõ phím `Passthrough`, engine đẩy trực tiếp ký tự vào `last_rendered` mà không gọi `state.render()`, loại bỏ hoàn toàn việc cấp phát heap rải rác trên từng phím gõ.

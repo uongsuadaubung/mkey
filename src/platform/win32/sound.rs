@@ -728,65 +728,30 @@ pub fn vk_to_tag(vk: u32) -> KeyTag {
     }
 }
 
-/// Matches a sound file stem name to its canonical key tag without substring collisions.
-/// Ensures 'backspace' is matched before 'space', and 'pagedown/pageup' before 'arrow/up/down'.
+/// Matches a sound file stem name strictly to its canonical fixed key tag.
+/// Eliminates substring ambiguities and keyword collisions completely.
 pub fn match_file_tag(stem: &str) -> Option<KeyTag> {
-    if stem.contains("backspace") || stem == "back" || stem.starts_with("back_") {
-        return Some(KeyTag::Backspace);
+    match stem {
+        "space" => Some(KeyTag::Space),
+        "backspace" => Some(KeyTag::Backspace),
+        "enter" => Some(KeyTag::Enter),
+        "tab" => Some(KeyTag::Tab),
+        "delete" => Some(KeyTag::Delete),
+        "shift" => Some(KeyTag::Shift),
+        "ctrl" => Some(KeyTag::Ctrl),
+        "alt" => Some(KeyTag::Alt),
+        "win" => Some(KeyTag::Win),
+        "capslock" => Some(KeyTag::CapsLock),
+        "esc" => Some(KeyTag::Esc),
+        "fn" => Some(KeyTag::Fn),
+        "arrow" => Some(KeyTag::Arrow),
+        "home" => Some(KeyTag::Home),
+        "end" => Some(KeyTag::End),
+        "pageup" => Some(KeyTag::PageUp),
+        "pagedown" => Some(KeyTag::PageDown),
+        "insert" => Some(KeyTag::Insert),
+        _ => None,
     }
-    if stem.contains("space") {
-        return Some(KeyTag::Space);
-    }
-    if stem.contains("enter") || stem.contains("return") {
-        return Some(KeyTag::Enter);
-    }
-    if stem.contains("escape") || stem.contains("esc") {
-        return Some(KeyTag::Esc);
-    }
-    if stem.contains("shift") {
-        return Some(KeyTag::Shift);
-    }
-    if stem.contains("tab") {
-        return Some(KeyTag::Tab);
-    }
-    if stem.contains("capslock") || stem.contains("caps") {
-        return Some(KeyTag::CapsLock);
-    }
-    if stem.contains("ctrl") || stem.contains("control") {
-        return Some(KeyTag::Ctrl);
-    }
-    if stem.contains("alt") {
-        return Some(KeyTag::Alt);
-    }
-    if stem.contains("delete") || stem == "del" || stem.starts_with("del_") {
-        return Some(KeyTag::Delete);
-    }
-    if stem.contains("insert") {
-        return Some(KeyTag::Insert);
-    }
-    if stem.contains("pagedown") || stem.contains("pgdn") {
-        return Some(KeyTag::PageDown);
-    }
-    if stem.contains("pageup") || stem.contains("pgup") {
-        return Some(KeyTag::PageUp);
-    }
-    if stem.contains("home") {
-        return Some(KeyTag::Home);
-    }
-    if stem.contains("end") {
-        return Some(KeyTag::End);
-    }
-    if stem.contains("arrow") || stem == "up" || stem == "down" || stem == "left" || stem == "right"
-    {
-        return Some(KeyTag::Arrow);
-    }
-    if stem.contains("win") || stem.contains("super") || stem == "gui" {
-        return Some(KeyTag::Win);
-    }
-    if stem.contains("fn") {
-        return Some(KeyTag::Fn);
-    }
-    None
 }
 
 struct SoundBank {

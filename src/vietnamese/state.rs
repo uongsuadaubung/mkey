@@ -8,8 +8,8 @@ use super::{
     onset::OnsetState,
     spelling::{
         can_vowels_accept_coda, is_special_k_coda_allowed_during_typing, is_valid_coda_pair,
-        is_valid_coda_start, is_valid_onset, is_valid_onset_extension,
-        is_valid_vietnamese_components,
+        is_valid_coda_start, is_valid_intermediate_vowel_combination, is_valid_onset,
+        is_valid_onset_extension, is_valid_vietnamese_components, is_valid_vowel_combination,
     },
     syllable::Syllable,
 };
@@ -376,6 +376,15 @@ impl SyllableState {
             return (SyllableState::Onset(onset), EngineAction::Passthrough);
         }
 
+        // Non-Vietnamese initial consonants: 'f', 'j', 'z', and non-standalone 'w'
+        let is_non_vi_consonant = matches!(ch_lower, 'f' | 'j' | 'z')
+            || (!config.method.has_standalone_w() && ch_lower == 'w');
+        if is_non_vi_consonant {
+            let mut raw = InlineList::new();
+            raw.push(key.ch);
+            return (SyllableState::Passthrough(raw), EngineAction::Passthrough);
+        }
+
         // If consonant
         if key.ch.is_alphabetic() {
             let onset = OnsetState::from_single(key.ch, key.is_upper, false);
@@ -615,6 +624,7 @@ impl SyllableState {
                 // In Vietnamese Telex typing, typing 'o' after 'ư' automatically couples into 'ươ'
                 // e.g. "đư" + 'o' -> "đươ", "bư" + 'o' -> "bươ", "tư" + 'o' -> "tươ"
                 if is_telex
+                    && nucleus.tone == Tone::None
                     && base_vowel == BaseVowel::O
                     && diacritic == Diacritic::None
                     && nucleus.vowels.len() == 1
@@ -622,6 +632,25 @@ impl SyllableState {
                     && nucleus.vowels[0].diacritic == Diacritic::Horn
                 {
                     diacritic = Diacritic::Horn;
+                }
+
+                let mut candidate_vowels = nucleus.vowels;
+                candidate_vowels.push(VowelLetter {
+                    base: base_vowel,
+                    diacritic,
+                    is_upper: key.is_upper,
+                });
+
+                let is_valid = if nucleus.tone != Tone::None {
+                    is_valid_vowel_combination(candidate_vowels.as_slice())
+                } else {
+                    is_valid_intermediate_vowel_combination(candidate_vowels.as_slice())
+                };
+
+                if !is_valid {
+                    let mut raw = InlineList::from(nucleus.render().as_str());
+                    raw.push(key.ch);
+                    return (SyllableState::Passthrough(raw), EngineAction::Passthrough);
                 }
 
                 let prev_has_tone = nucleus.tone != Tone::None;
@@ -671,7 +700,11 @@ impl SyllableState {
                 is_special_k_coda_allowed_during_typing(&o.chars, o.is_d_stroke, &nucleus.vowels)
             });
         let can_accept_coda = can_vowels_accept_coda(&nucleus.vowels);
-        if can_accept_coda && (is_valid_coda_start(key.ch) || is_special_k) {
+        let is_stop = matches!(key.ch.to_ascii_lowercase(), 'c' | 'p' | 't' | 'k');
+        let tone_incompatible = config.restore_on_wrong_spelling
+            && is_stop
+            && matches!(nucleus.tone, Tone::Grave | Tone::HookAbove | Tone::Tilde);
+        if can_accept_coda && (is_valid_coda_start(key.ch) || is_special_k) && !tone_incompatible {
             let coda = CodaState::from_single(nucleus, key.ch, key.is_upper);
 
             // Fast path: if horn was not upgraded and there is no tone mark to shift,

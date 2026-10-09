@@ -58,11 +58,11 @@ impl Syllable {
             let v0 = self.vowels[0].base;
             let v1 = self.vowels[1].base;
 
-            // "oa", "oe", "uy": tone on second vowel (hòa, khóe, thủy)
+            // "oa", "oe", "uy": tone on first vowel (hòa, khóe, thủy, thúy)
             if (v0 == BaseVowel::O && (v1 == BaseVowel::A || v1 == BaseVowel::E))
                 || (v0 == BaseVowel::U && v1 == BaseVowel::Y)
             {
-                return 1;
+                return 0;
             }
 
             // "ua", "ưa", "ia", "ya" -> tone on first vowel (múa, cứa, mía)

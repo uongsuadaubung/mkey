@@ -96,11 +96,11 @@ impl NucleusState {
             }
 
             // Neither vowel has a diacritic:
-            // "oa", "oe", "uy": in modern orthography, tone is always placed on the main vowel (index 1: hòa, khóe, thủy)
+            // "oa", "oe", "uy": tone is placed on the first vowel (index 0: hòa, khóe, thủy, thúy)
             if (v0.base == BaseVowel::O && (v1.base == BaseVowel::A || v1.base == BaseVowel::E))
                 || (v0.base == BaseVowel::U && v1.base == BaseVowel::Y)
             {
-                return 1;
+                return 0;
             }
 
             // "ua", "ia", "ya" -> tone on first vowel

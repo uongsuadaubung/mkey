@@ -84,11 +84,11 @@ fn test_group_3_free_mark_and_tone_placement() {
     assert_eq!(simulate(&mut engine, "thuyeesn "), "thuyến ");
     assert_eq!(simulate(&mut engine, "thuyeens "), "thuyến ");
 
-    // Đặt dấu kiểu mới chuẩn hiện đại: dấu rơi vào nguyên âm chính (thuỷ, thuý, hòa, hoàn)
-    assert_eq!(simulate(&mut engine, "thuyr "), "thu\u{1EF7} ");
-    assert_eq!(simulate(&mut engine, "thuys "), "thu\u{00FD} ");
-    assert_eq!(simulate(&mut engine, "hoaf "), "ho\u{00E0} ");
-    assert_eq!(simulate(&mut engine, "hoafn "), "ho\u{00E0}n ");
+    // Đặt dấu chuẩn hiện đại: hòa, thúy, thủy, hoàn
+    assert_eq!(simulate(&mut engine, "thuyr "), "thủy ");
+    assert_eq!(simulate(&mut engine, "thuys "), "thúy ");
+    assert_eq!(simulate(&mut engine, "hoaf "), "hòa ");
+    assert_eq!(simulate(&mut engine, "hoafn "), "hoàn ");
 
     // Gõ tự do nét đ và sừng cuối từ: dudowjc -> được
     assert_eq!(simulate(&mut engine, "dudowjc "), "được ");
@@ -106,7 +106,7 @@ fn test_group_4_casing_preservation() {
     // ALL CAPS: Không bao giờ bị nhảy về chữ thường
     assert_eq!(
         simulate(&mut engine, "COONGJ HOAF XAX HOOIJ CHUR NGHIAX VIEETJ NAM "),
-        "CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM "
+        "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM "
     );
     // Gõ 'RUSST' (với 2 phím 'S') để giữ chữ tiếng Anh 'RUST' thay vì biến thành 'RÚT'
     assert_eq!(

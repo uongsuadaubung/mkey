@@ -3,7 +3,7 @@
 use super::app_detect::{AutocompleteFixType, detect_autocomplete_context};
 use super::types::{
     INPUT, INPUT_KEYBOARD, INPUT_UNION, KEYBDINPUT, KEYEVENTF_KEYUP, KEYEVENTF_UNICODE,
-    MAGIC_EXTRA_INFO, SendInput, VK_BACK, VK_END, VK_RIGHT, VK_SHIFT,
+    MAGIC_EXTRA_INFO, SendInput, VK_BACK,
 };
 
 #[inline]
@@ -62,30 +62,6 @@ pub fn push_unicode_char(inputs: &mut Vec<INPUT>, code_unit: u16) {
     });
 }
 
-#[inline]
-pub fn push_key_event(inputs: &mut Vec<INPUT>, vk: u16, scan: u16, flags: u32) {
-    inputs.push(INPUT {
-        r#type: INPUT_KEYBOARD,
-        u: INPUT_UNION {
-            ki: KEYBDINPUT {
-                w_vk: vk,
-                w_scan: scan,
-                dw_flags: flags,
-                time: 0,
-                dw_extra_info: MAGIC_EXTRA_INFO,
-            },
-        },
-    });
-}
-
-#[inline]
-pub fn push_combine_key(inputs: &mut Vec<INPUT>, mod_vk: u16, key_vk: u16, key_flags: u32) {
-    push_key_event(inputs, mod_vk, 0, 0);
-    push_key_event(inputs, key_vk, 0, key_flags);
-    push_key_event(inputs, key_vk, 0, key_flags | KEYEVENTF_KEYUP);
-    push_key_event(inputs, mod_vk, 0, KEYEVENTF_KEYUP);
-}
-
 /// Sends backspaces and replacement string in a SINGLE atomic SendInput batch.
 /// - In normal apps & web pages: sends pure standard Backspaces and replacement characters (no invisible chars).
 /// - In browser Omnibox / Excel: collapses inline autocomplete selection cleanly without polluting document text.
@@ -99,20 +75,22 @@ pub fn send_replace(backspaces: usize, text: &str) {
 
     let fix_type = detect_autocomplete_context();
     match fix_type {
-        AutocompleteFixType::ChromiumOmnibox => {
-            // Omnibox fix:
-            // Shift + Right collapses/drops current omnibox autocomplete selection
-            // while positioning caret at true end of typed text without any extra Backspace needed
-            push_combine_key(&mut inputs, VK_SHIFT as u16, VK_RIGHT as u16, 0);
-            for _ in 0..backspaces {
+        AutocompleteFixType::ChromiumOmnibox | AutocompleteFixType::GenericAutocomplete => {
+            // Autocomplete / Omnibox fix (Chrome, Edge, Brave, Firefox, Excel):
+            // When user types in browser address bar with an active suggestion (e.g. "truye[nqq.com.vn/]"),
+            // sending keys directly or sending Shift+Right / End causes the suggestion to be accepted,
+            // resulting in unwanted appending (e.g. "truyenqq.com.vnê").
+            //
+            // Solution:
+            // 1. Send Unicode U+202F (Narrow No-Break Space).
+            //    In any text field with selected autocomplete text, typing a character immediately
+            //    overwrites and neutralizes the active selection without moving caret to the end.
+            // 2. Send 1 backspace to erase the temporary U+202F character.
+            // 3. Send the normal `backspaces` to delete the target characters to be replaced.
+            if backspaces > 0 && !utf16.is_empty() {
+                push_unicode_char(&mut inputs, 0x202F);
                 push_backspace(&mut inputs);
             }
-        }
-        AutocompleteFixType::GenericAutocomplete => {
-            // Firefox / Excel fix:
-            // End key deselects autocomplete suggestion and puts caret right at end of typed word
-            push_key_event(&mut inputs, VK_END as u16, 0, 0);
-            push_key_event(&mut inputs, VK_END as u16, 0, KEYEVENTF_KEYUP);
             for _ in 0..backspaces {
                 push_backspace(&mut inputs);
             }

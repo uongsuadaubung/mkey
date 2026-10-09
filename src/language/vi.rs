@@ -61,7 +61,7 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
 
     // Tab 3: About
     about_title: "MKey - Bộ gõ tiếng Việt",
-    about_ver: "Phiên bản: 0.1.0",
+    about_ver: concat!("Phiên bản: ", env!("CARGO_PKG_VERSION")),
     about_author: "Tác giả: Mạnh Kiên",
     about_email: "Email: manhkien13041997@gmail.com",
     about_github: "GitHub: https://github.com/uongsuadaubung/mkey",

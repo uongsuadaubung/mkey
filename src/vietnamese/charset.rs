@@ -179,7 +179,7 @@ pub fn compose_d(has_stroke: bool, uppercase: bool) -> char {
 
 /// Decomposes a character into (BaseVowel, Diacritic, Tone) if it is a Vietnamese vowel
 pub fn decompose_vowel(c: char) -> Option<(BaseVowel, Diacritic, Tone)> {
-    let lower = c.to_ascii_lowercase();
+    let lower = c.to_lowercase().next().unwrap_or(c);
     match lower {
         'a' => Some((BaseVowel::A, Diacritic::None, Tone::None)),
         'á' => Some((BaseVowel::A, Diacritic::None, Tone::Acute)),

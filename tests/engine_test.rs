@@ -1171,3 +1171,38 @@ fn test_macro_type_serialization_and_roundtrip() {
     assert_eq!(entry_ko.macro_type, MacroType::Normal);
 }
 
+#[test]
+fn test_special_coda_dak_lak_and_english_guard() {
+    let mut engine = VietnameseEngine::new(EngineConfig {
+        method: InputMethod::Telex,
+        restore_on_wrong_spelling: true,
+        ..Default::default()
+    });
+
+    // 1. Gõ dấu sau: DDawks Lawks -> Đắk Lắk
+    assert_eq!(simulate_typing(&mut engine, "DDawks Lawks "), "Đắk Lắk ");
+
+    // 2. Gõ dấu trước: DDawsk Lawsk -> Đắk Lắk
+    assert_eq!(simulate_typing(&mut engine, "DDawsk Lawsk "), "Đắk Lắk ");
+
+    // 3. Chữ thường: ddawsk lawsk -> đắk lắk
+    assert_eq!(simulate_typing(&mut engine, "ddawsk lawsk "), "đắk lắk ");
+
+    // 4. Không dấu: ddawk lawk -> đăk lăk
+    assert_eq!(simulate_typing(&mut engine, "ddawk lawk "), "đăk lăk ");
+
+    // 5. Viết HOA: DDAWSK LAWSK -> ĐẮK LẮK
+    assert_eq!(simulate_typing(&mut engine, "DDAWSK LAWSK "), "ĐẮK LẮK ");
+
+    // 6. Đak trong Đak Bla, Đak Đoa
+    assert_eq!(simulate_typing(&mut engine, "DDak "), "Đak ");
+
+    // 7. Bảo vệ các từ tiếng Anh kết thúc bằng -sk không bị biến thành tiếng Việt
+    assert_eq!(simulate_typing(&mut engine, "task "), "task ");
+    assert_eq!(simulate_typing(&mut engine, "desk "), "desk ");
+    assert_eq!(simulate_typing(&mut engine, "risk "), "risk ");
+    assert_eq!(simulate_typing(&mut engine, "mask "), "mask ");
+    assert_eq!(simulate_typing(&mut engine, "ask "), "ask ");
+    assert_eq!(simulate_typing(&mut engine, "disk "), "disk ");
+}
+

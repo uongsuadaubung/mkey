@@ -227,7 +227,11 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
         match syllable.coda.len() {
             1 => {
                 let c = syllable.coda[0].0.to_ascii_lowercase();
-                if !matches!(c, 'c' | 'm' | 'n' | 'p' | 't' | 'g' | 'h' | 'k') {
+                if c == 'k' {
+                    if !is_special_k_coda_allowed_completed(&syllable.onset, syllable.d_stroke, vowels_to_check) {
+                        return false;
+                    }
+                } else if !matches!(c, 'c' | 'm' | 'n' | 'p' | 't' | 'g' | 'h') {
                     return false;
                 }
             }
@@ -239,7 +243,7 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
             _ => return false,
         }
 
-        // Stop codas (c, ch, p, t) only accept Acute (Sắc) or DotBelow (Nặng).
+        // Stop codas (c, ch, p, t, k) only accept Acute (Sắc) or DotBelow (Nặng).
         // Nasal coda 'nh' accepts all 6 tones.
         if is_stop_coda(&syllable.coda) {
             match syllable.tone {
@@ -252,13 +256,13 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
     true
 }
 
-/// Returns true if the coda is a stop coda ('c', 'ch', 'p', 't').
+/// Returns true if the coda is a stop coda ('c', 'ch', 'p', 't', 'k').
 /// Stop codas in Vietnamese phonotactics only accept Acute (Sắc) or DotBelow (Nặng) tones,
 /// and do not accept additional vowels when followed by tone.
 #[inline]
 pub fn is_stop_coda(coda: &[(char, bool)]) -> bool {
     match coda {
-        [(c, _)] => matches!(c.to_ascii_lowercase(), 'c' | 'p' | 't'),
+        [(c, _)] => matches!(c.to_ascii_lowercase(), 'c' | 'p' | 't' | 'k'),
         [(c1, _), (c2, _)] => c1.eq_ignore_ascii_case(&'c') && c2.eq_ignore_ascii_case(&'h'),
         _ => false,
     }
@@ -293,6 +297,47 @@ pub fn is_valid_onset_extension(current_onset: &[(char, bool)], next_ch: char) -
             first == 'n' && second == 'g' && next_lower == 'h'
         }
         _ => false,
+    }
+}
+
+/// Validates whether 'k' is permitted as a coda for this syllable/nucleus during typing.
+/// In standard Vietnamese, 'k' is never a coda. However, in official Vietnamese administrative
+/// and geographical names (e.g. Đắk Lắk, Đắk Nông, Đắk Hà, Đăk Đoa, hồ Lắk), 'k' is used:
+/// - Onset 'd'/'đ' with vowel 'a' (user may type 'w' or 'd' later: dawkd, dakswd, etc.)
+/// - Onset 'l'/'L' with vowel 'a' (user may type 'w' or 's' later: lakws, laksw, etc.)
+pub fn is_special_k_coda_allowed_during_typing(
+    onset_chars: &[(char, bool)],
+    is_d_stroke: bool,
+    vowels: &[VowelLetter],
+) -> bool {
+    if vowels.len() != 1 || vowels[0].base != BaseVowel::A {
+        return false;
+    }
+
+    is_d_stroke
+        || (!onset_chars.is_empty() && onset_chars[0].0.eq_ignore_ascii_case(&'d'))
+        || (onset_chars.len() == 1 && onset_chars[0].0.eq_ignore_ascii_case(&'l'))
+}
+
+/// Validates whether a completed syllable with 'k' coda is valid Vietnamese spelling.
+/// For completed syllables:
+/// - 'đ' onset allows 'a' (Đak) or 'ă' (Đăk, Đắk)
+/// - 'l' onset requires 'ă' (Lăk, Lắk)
+pub fn is_special_k_coda_allowed_completed(
+    onset_chars: &[(char, bool)],
+    is_d_stroke: bool,
+    vowels: &[VowelLetter],
+) -> bool {
+    if vowels.len() != 1 || vowels[0].base != BaseVowel::A {
+        return false;
+    }
+
+    if is_d_stroke {
+        vowels[0].diacritic == Diacritic::Breve || vowels[0].diacritic == Diacritic::None
+    } else if onset_chars.len() == 1 && onset_chars[0].0.eq_ignore_ascii_case(&'l') {
+        vowels[0].diacritic == Diacritic::Breve
+    } else {
+        false
     }
 }
 

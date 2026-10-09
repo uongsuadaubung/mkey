@@ -1,6 +1,6 @@
 [package]
 name = "mkey"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 authors = ["Mạnh Kiên <manhkien13041997@gmail.com>"]
 description = "MKey - Bộ gõ tiếng Việt siêu nhẹ, hiệu năng cao viết bằng Rust"
@@ -12,6 +12,10 @@ path = "src/lib.rs"
 [[bin]]
 name = "MKey"
 path = "src/main.rs"
+
+[[bin]]
+name = "combinatorial_tester"
+path = "src/bin/combinatorial_tester.rs"
 
 [dependencies]
 

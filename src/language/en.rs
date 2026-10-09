@@ -61,7 +61,7 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
 
     // Tab 3: About
     about_title: "MKey - Vietnamese Input Engine",
-    about_ver: "Version: 0.1.0",
+    about_ver: concat!("Version: ", env!("CARGO_PKG_VERSION")),
     about_author: "Author: Manh Kien",
     about_email: "Email: manhkien13041997@gmail.com",
     about_github: "GitHub: https://github.com/uongsuadaubung/mkey",

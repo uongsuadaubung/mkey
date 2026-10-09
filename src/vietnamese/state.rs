@@ -5,8 +5,8 @@ use super::{
     nucleus::{ModifierOutcome, NucleusState},
     onset::OnsetState,
     spelling::{
-        can_vowels_accept_coda, is_valid_coda_pair, is_valid_coda_start,
-        is_valid_onset_extension,
+        can_vowels_accept_coda, is_special_k_coda_allowed_during_typing, is_valid_coda_pair,
+        is_valid_coda_start, is_valid_onset_extension,
     },
     syllable::Syllable,
     VowelLetter,
@@ -620,17 +620,36 @@ impl SyllableState {
         }
 
         // 6. Consonant -> Transition from Nucleus to Coda!
+        let prev_rendered = nucleus.to_string();
+
+        // If vowels are "uơ" (e.g. from typing 'thuow' or 'huow') and a coda arrives (e.g. 'c' in "thước" or 'n' in "thương"),
+        // upgrade "uơ" to "ươ" because "uơ" cannot accept codas while "ươ" does!
+        let mut upgraded_u_horn = false;
+        if nucleus.vowels.len() == 2
+            && nucleus.vowels[0].base == BaseVowel::U
+            && nucleus.vowels[0].diacritic == Diacritic::None
+            && nucleus.vowels[1].base == BaseVowel::O
+            && nucleus.vowels[1].diacritic == Diacritic::Horn
+            && is_valid_coda_start(key.ch)
+        {
+            nucleus.vowels[0].diacritic = Diacritic::Horn;
+            upgraded_u_horn = true;
+        }
+
+        let is_special_k = key.ch.eq_ignore_ascii_case(&'k')
+            && nucleus.onset.as_ref().is_some_and(|o| {
+                is_special_k_coda_allowed_during_typing(&o.chars, o.is_d_stroke, &nucleus.vowels)
+            });
         let can_accept_coda = can_vowels_accept_coda(&nucleus.vowels);
-        if can_accept_coda && is_valid_coda_start(key.ch) {
+        if can_accept_coda && (is_valid_coda_start(key.ch) || is_special_k) {
             let coda_chars = vec![(key.ch, key.is_upper)];
-            let prev_rendered = nucleus.to_string();
             let coda = CodaState {
                 nucleus,
                 coda: coda_chars,
             };
             let output = coda.to_string();
 
-            if output == format!("{}{}", prev_rendered, key.ch) {
+            if !upgraded_u_horn && output == format!("{}{}", prev_rendered, key.ch) {
                 return (SyllableState::Coda(coda), EngineAction::Passthrough);
             }
 

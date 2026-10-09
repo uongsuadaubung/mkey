@@ -105,7 +105,7 @@ impl NucleusState {
     /// - Diphthongs "ui", "oi" -> "ưi", "ơi" (first vowel gets horn: gửi, chơi)
     /// - Diphthong "iu" -> "ưu" (second vowel gets horn: cừu, lựu)
     /// - Triphthong "uoi", "uou" -> "ươi", "ươu" (u and o get horn)
-    pub fn apply_horn(&mut self) -> bool {
+    pub fn apply_horn(&mut self, has_coda: bool) -> bool {
         match self.vowels.len() {
             0 => false,
             1 => {
@@ -131,11 +131,26 @@ impl NucleusState {
                 let (b1, d1) = (self.vowels[1].base, self.vowels[1].diacritic);
                 match (b0, b1) {
                     // "uo" -> both get horn: "ươ"
+                    // Special exception: in Vietnamese, "thuở" and "huơ" have horn only on 'o' (uơ)
+                    // when there is no coda ("thưở" and "hươ" do not exist in Vietnamese).
                     (BaseVowel::U, BaseVowel::O)
                         if d0 == Diacritic::None || d1 == Diacritic::None =>
                     {
-                        self.vowels[0].diacritic = Diacritic::Horn;
-                        self.vowels[1].diacritic = Diacritic::Horn;
+                        let is_thuo_or_huo = !has_coda
+                            && self.onset.as_ref().is_some_and(|o| {
+                                let s: String = o
+                                    .chars
+                                    .iter()
+                                    .map(|(c, _)| c.to_ascii_lowercase())
+                                    .collect();
+                                s == "th" || s == "h"
+                            });
+                        if is_thuo_or_huo {
+                            self.vowels[1].diacritic = Diacritic::Horn;
+                        } else {
+                            self.vowels[0].diacritic = Diacritic::Horn;
+                            self.vowels[1].diacritic = Diacritic::Horn;
+                        }
                         true
                     }
                     // "ua" -> only 'u' gets horn: "ưa" (mưa, chưa)
@@ -233,7 +248,8 @@ impl NucleusState {
                 if let Some(coda_chars) = coda {
                     // English word guard: "data" (onset 'd' without d-stroke + 'a' + 't' + 'a')
                     // In Vietnamese, 'ât' only combines with 'đ' (đất), never with uncrossed 'd'.
-                    if target == Some(BaseVowel::A)
+                    if self.tone == Tone::None
+                        && target == Some(BaseVowel::A)
                         && coda_chars.len() == 1
                         && coda_chars[0].0.eq_ignore_ascii_case(&'t')
                         && self.onset.as_ref().is_some_and(|o| {
@@ -313,7 +329,7 @@ impl NucleusState {
                     return ModifierOutcome::Undone(raw_w);
                 }
 
-                if self.apply_horn() {
+                if self.apply_horn(coda.is_some()) {
                     ModifierOutcome::Applied
                 } else if self.revert_horn() {
                     ModifierOutcome::Undone(make_raw(self))
@@ -323,7 +339,7 @@ impl NucleusState {
             }
 
             KeyEffect::Horn => {
-                if self.apply_horn() {
+                if self.apply_horn(coda.is_some()) {
                     ModifierOutcome::Applied
                 } else {
                     ModifierOutcome::NotApplied

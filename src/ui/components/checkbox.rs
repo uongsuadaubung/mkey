@@ -23,6 +23,7 @@ unsafe extern "system" {
 }
 
 #[repr(C)]
+#[allow(clippy::upper_case_acronyms)]
 struct TRACKMOUSEEVENT {
     cb_size: u32,
     dw_flags: u32,
@@ -317,6 +318,18 @@ impl CheckBox {
         unsafe {
             SetWindowTextW(self.hwnd, wide.as_ptr());
             InvalidateRect(self.hwnd, null_mut(), 0);
+        }
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        let style = unsafe { GetWindowLongW(self.hwnd, GWL_STYLE) } as u32;
+        (style & WS_DISABLED) == 0
+    }
+
+    pub fn set_enabled(&self, enabled: bool) {
+        unsafe {
+            EnableWindow(self.hwnd, if enabled { 1 } else { 0 });
+            InvalidateRect(self.hwnd, null_mut(), 1);
         }
     }
 }

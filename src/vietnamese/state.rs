@@ -238,55 +238,6 @@ impl SyllableState {
             }
         }
 
-        // 2. Quick start consonants: f -> ph, j -> gi, w -> qu
-        if config.quick_start_consonant {
-            match ch_lower {
-                'f' => {
-                    let onset = OnsetState {
-                        chars: vec![('p', key.is_upper), ('h', false)],
-                        is_d_stroke: false,
-                    };
-                    let output = onset.to_string();
-                    return (
-                        SyllableState::Onset(onset),
-                        EngineAction::Replace {
-                            backspaces: 0,
-                            output,
-                        },
-                    );
-                }
-                'j' => {
-                    let onset = OnsetState {
-                        chars: vec![('g', key.is_upper), ('i', false)],
-                        is_d_stroke: false,
-                    };
-                    let output = onset.to_string();
-                    return (
-                        SyllableState::Onset(onset),
-                        EngineAction::Replace {
-                            backspaces: 0,
-                            output,
-                        },
-                    );
-                }
-                'w' => {
-                    let onset = OnsetState {
-                        chars: vec![('q', key.is_upper), ('u', false)],
-                        is_d_stroke: false,
-                    };
-                    let output = onset.to_string();
-                    return (
-                        SyllableState::Onset(onset),
-                        EngineAction::Replace {
-                            backspaces: 0,
-                            output,
-                        },
-                    );
-                }
-                _ => {}
-            }
-        }
-
         // Standalone 'w' -> 'ư'
         if config.method.has_standalone_w() && ch_lower == 'w' {
             let nucleus = NucleusState {
@@ -532,7 +483,6 @@ impl SyllableState {
         current_len: usize,
         config: &EngineConfig,
     ) -> (Self, EngineAction) {
-        let ch_lower = key.ch.to_ascii_lowercase();
         let is_telex = config.method.is_telex_family();
 
         // 1. Bracket W shortcuts: [[ -> [, ]] -> ]
@@ -671,28 +621,8 @@ impl SyllableState {
 
         // 6. Consonant -> Transition from Nucleus to Coda!
         let can_accept_coda = can_vowels_accept_coda(&nucleus.vowels);
-        if can_accept_coda && is_valid_coda_start(key.ch, config.quick_end_consonant) {
-            let mut coda_chars = vec![(key.ch, key.is_upper)];
-            let mut did_quick_end = false;
-
-            if config.quick_end_consonant {
-                match ch_lower {
-                    'g' => {
-                        coda_chars = vec![('n', key.is_upper), ('g', key.is_upper)];
-                        did_quick_end = true;
-                    }
-                    'h' => {
-                        coda_chars = vec![('n', key.is_upper), ('h', key.is_upper)];
-                        did_quick_end = true;
-                    }
-                    'k' => {
-                        coda_chars = vec![('c', key.is_upper), ('h', key.is_upper)];
-                        did_quick_end = true;
-                    }
-                    _ => {}
-                }
-            }
-
+        if can_accept_coda && is_valid_coda_start(key.ch) {
+            let coda_chars = vec![(key.ch, key.is_upper)];
             let prev_rendered = nucleus.to_string();
             let coda = CodaState {
                 nucleus,
@@ -700,7 +630,7 @@ impl SyllableState {
             };
             let output = coda.to_string();
 
-            if !did_quick_end && output == format!("{}{}", prev_rendered, key.ch) {
+            if output == format!("{}{}", prev_rendered, key.ch) {
                 return (SyllableState::Coda(coda), EngineAction::Passthrough);
             }
 
@@ -762,35 +692,6 @@ impl SyllableState {
                     );
                 }
                 ModifierOutcome::NotApplied => {}
-            }
-        }
-
-        // 2. Quick end consonant undo: if user types the same quick key again, revert to single consonant
-        // e.g. "lo" + 'g' -> "long", then typing 'g' again -> "log"
-        if config.quick_end_consonant {
-            let ch_l = key.ch.to_ascii_lowercase();
-            if (ch_l == 'g'
-                && coda.coda.len() == 2
-                && coda.coda[0].0.eq_ignore_ascii_case(&'n')
-                && coda.coda[1].0.eq_ignore_ascii_case(&'g'))
-                || (ch_l == 'h'
-                    && coda.coda.len() == 2
-                    && coda.coda[0].0.eq_ignore_ascii_case(&'n')
-                    && coda.coda[1].0.eq_ignore_ascii_case(&'h'))
-                || (ch_l == 'k'
-                    && coda.coda.len() == 2
-                    && coda.coda[0].0.eq_ignore_ascii_case(&'c')
-                    && coda.coda[1].0.eq_ignore_ascii_case(&'h'))
-            {
-                coda.coda = vec![(key.ch, key.is_upper)];
-                let output = coda.to_string();
-                return (
-                    SyllableState::Coda(coda),
-                    EngineAction::Replace {
-                        backspaces: current_len,
-                        output,
-                    },
-                );
             }
         }
 

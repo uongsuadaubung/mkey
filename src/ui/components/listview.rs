@@ -80,6 +80,7 @@ unsafe extern "system" fn listview_subclass_proc(
                     let title = match nmcd.dw_item_spec {
                         0 => strings.col_macro_key,
                         1 => strings.col_macro_val,
+                        2 => strings.col_macro_type,
                         _ => "",
                     };
                     let title_w = to_wide(title);
@@ -339,7 +340,7 @@ impl ListView {
         }
     }
 
-    pub fn add_item(&self, index: i32, shortcut: &str, expansion: &str) {
+    pub fn add_item(&self, index: i32, shortcut: &str, expansion: &str, macro_type: &str) {
         let mut text0 = to_wide(shortcut);
         let mut item = LVITEMW {
             mask: LVIF_TEXT,
@@ -363,7 +364,7 @@ impl ListView {
         }
 
         let mut text1 = to_wide(expansion);
-        let mut sub_item = LVITEMW {
+        let mut sub_item1 = LVITEMW {
             mask: LVIF_TEXT,
             i_item: index,
             i_sub_item: 1,
@@ -385,7 +386,34 @@ impl ListView {
                 self.hwnd,
                 LVM_SETITEMTEXTW,
                 index as usize,
-                &mut sub_item as *mut _ as isize,
+                &mut sub_item1 as *mut _ as isize,
+            );
+        }
+
+        let mut text2 = to_wide(macro_type);
+        let mut sub_item2 = LVITEMW {
+            mask: LVIF_TEXT,
+            i_item: index,
+            i_sub_item: 2,
+            state: 0,
+            state_mask: 0,
+            psz_text: text2.as_mut_ptr(),
+            cch_text_max: text2.len() as i32,
+            i_image: 0,
+            l_param: 0,
+            i_indent: 0,
+            i_group_id: 0,
+            c_columns: 0,
+            pu_columns: null_mut(),
+            pi_col_fmt: null_mut(),
+            i_group: 0,
+        };
+        unsafe {
+            SendMessageW(
+                self.hwnd,
+                LVM_SETITEMTEXTW,
+                index as usize,
+                &mut sub_item2 as *mut _ as isize,
             );
         }
     }

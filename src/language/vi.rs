@@ -32,6 +32,7 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
 
     // Tab 1: Macro
     check_use_macro: "Cho phép sử dụng bảng gõ tắt (Macro)",
+    check_macro_in_english: "Cho phép gõ tắt cả khi ở chế độ tiếng Anh",
     edit_macro_key_placeholder: "Từ viết tắt",
     edit_macro_val_placeholder: "Cụm từ thay thế",
     btn_add_macro: "+ Thêm",
@@ -40,6 +41,10 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
     btn_del_macro: "Xóa",
     col_macro_key: "Từ viết tắt",
     col_macro_val: "Cụm từ thay thế",
+    col_macro_type: "Phân loại",
+    macro_type_normal: "Toàn từ",
+    macro_type_start: "Phụ âm đầu",
+    macro_type_end: "Phụ âm cuối",
 
     // Tab 2: System
     sys_title: "Khởi động & Nhật ký",

@@ -59,8 +59,6 @@ vn = Việt Nam
     assert!(config.auto_uppercase_first_char);
     assert!(config.use_macro);
     assert!(!config.bracket_w);
-    assert!(config.quick_start_consonant);
-    assert!(config.quick_end_consonant);
     assert!(config.remember_history_across_space);
     assert_eq!(config.language, mkey::Language::English);
     assert!(!config.show_dialog_on_startup);
@@ -79,7 +77,6 @@ fn test_config_store_roundtrip() {
         method: InputMethod::SimpleTelex1,
         language: mkey::Language::English,
         use_macro: false,
-        quick_start_consonant: true,
         show_dialog_on_startup: false,
         theme: UiTheme::Dark,
         ..Default::default()
@@ -96,7 +93,6 @@ fn test_config_store_roundtrip() {
     assert_eq!(loaded_config.method, InputMethod::SimpleTelex1);
     assert_eq!(loaded_config.language, mkey::Language::English);
     assert!(!loaded_config.use_macro);
-    assert!(loaded_config.quick_start_consonant);
     assert!(!loaded_config.show_dialog_on_startup);
     assert_eq!(loaded_config.theme, UiTheme::Dark);
     assert_eq!(loaded_macros.lookup("test"), Some("thử nghiệm".to_string()));

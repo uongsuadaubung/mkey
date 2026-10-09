@@ -231,13 +231,16 @@ impl NucleusState {
         match effect {
             KeyEffect::Circumflex(target) => {
                 if let Some(coda_chars) = coda {
-                    // In Vietnamese, multi-vowel diphthongs like "ie" -> "iê", "uo" -> "uô" always allow circumflex
-                    // even before tone is typed (e.g. "tiep" + 'e' -> "tiêp" + 's' -> "tiếp").
-                    // For single vowels with stop codas (c, ch, p, t) and no tone, incoming vowels are English
-                    // continuations (e.g. "data", "delete", "compete"), so avoid applying circumflex.
-                    if self.vowels.len() <= 1
-                        && is_stop_coda(coda_chars)
-                        && self.tone == Tone::None
+                    // English word guard: "data" (onset 'd' without d-stroke + 'a' + 't' + 'a')
+                    // In Vietnamese, 'ât' only combines with 'đ' (đất), never with uncrossed 'd'.
+                    if target == Some(BaseVowel::A)
+                        && coda_chars.len() == 1
+                        && coda_chars[0].0.eq_ignore_ascii_case(&'t')
+                        && self.onset.as_ref().is_some_and(|o| {
+                            !o.is_d_stroke
+                                && o.chars.len() == 1
+                                && o.chars[0].0.eq_ignore_ascii_case(&'d')
+                        })
                     {
                         return ModifierOutcome::NotApplied;
                     }

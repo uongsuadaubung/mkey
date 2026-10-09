@@ -244,7 +244,7 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
         if is_stop_coda(&syllable.coda) {
             match syllable.tone {
                 Tone::None | Tone::Acute | Tone::DotBelow => {}
-                Tone::Grave | Tone::HookAbove | Tone::Tilde => return false,
+                _ => return false,
             }
         }
     }
@@ -298,11 +298,9 @@ pub fn is_valid_onset_extension(current_onset: &[(char, bool)], next_ch: char) -
 
 /// Validates whether a consonant can legitimately begin a Vietnamese coda.
 /// Standard coda start letters: c, m, n, p, t
-/// Quick-end start letters (opt-in): g (->ng), h (->nh), k (->ch)
-pub fn is_valid_coda_start(ch: char, allow_quick_end: bool) -> bool {
+pub fn is_valid_coda_start(ch: char) -> bool {
     let ch_lower = ch.to_ascii_lowercase();
     matches!(ch_lower, 'c' | 'm' | 'n' | 'p' | 't')
-        || (allow_quick_end && matches!(ch_lower, 'g' | 'h' | 'k'))
 }
 
 /// Validates whether two consonants form a legitimate 2-letter Vietnamese coda.

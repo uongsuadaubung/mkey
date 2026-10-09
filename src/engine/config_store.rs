@@ -24,13 +24,13 @@ pub fn load_config_and_macros() -> (EngineConfig, MacroTable) {
     let path = get_config_path();
     let (config, macros) = if !path.exists() {
         let config = EngineConfig::default();
-        let macros = MacroTable::new();
+        let macros = MacroTable::with_defaults();
         let _ = save_config_and_macros(&config, &macros);
         (config, macros)
     } else {
         match fs::read_to_string(&path) {
             Ok(content) => parse_config_and_macros(&content),
-            Err(_) => (EngineConfig::default(), MacroTable::new()),
+            Err(_) => (EngineConfig::default(), MacroTable::with_defaults()),
         }
     };
     crate::language::set_current_language(config.language);
@@ -64,7 +64,12 @@ pub fn parse_config_and_macros(content: &str) -> (EngineConfig, MacroTable) {
 
         if current_section == "macro" {
             if !key.is_empty() && !val.is_empty() {
-                macros.insert(key, val);
+                let (real_val, mtype) = if let Some((v, t)) = val.split_once(':') {
+                    (v.trim(), crate::engine::macro_table::MacroType::from_str(t))
+                } else {
+                    (val, crate::engine::macro_table::MacroType::Normal)
+                };
+                macros.insert_typed(key, real_val, mtype);
             }
         } else {
             let key_l = key.to_lowercase();
@@ -88,8 +93,6 @@ pub fn parse_config_and_macros(content: &str) -> (EngineConfig, MacroTable) {
                 }
                 "use_macro" => config.use_macro = val_bool,
                 "bracket_w" => config.bracket_w = val_bool,
-                "quick_start_consonant" => config.quick_start_consonant = val_bool,
-                "quick_end_consonant" => config.quick_end_consonant = val_bool,
                 "remember_history" | "remember_history_across_space" => {
                     config.remember_history_across_space = val_bool
                 }
@@ -143,14 +146,6 @@ pub fn serialize_config_and_macros(config: &EngineConfig, macros: &MacroTable) -
     out.push_str(&format!("use_macro = {}\n", config.use_macro));
     out.push_str(&format!("bracket_w = {}\n", config.bracket_w));
     out.push_str(&format!(
-        "quick_start_consonant = {}\n",
-        config.quick_start_consonant
-    ));
-    out.push_str(&format!(
-        "quick_end_consonant = {}\n",
-        config.quick_end_consonant
-    ));
-    out.push_str(&format!(
         "remember_history = {}\n\n",
         config.remember_history_across_space
     ));
@@ -165,9 +160,18 @@ pub fn serialize_config_and_macros(config: &EngineConfig, macros: &MacroTable) -
     out.push_str(&format!("theme = {}\n\n", config.theme));
 
     out.push_str("[macro]\n");
-    out.push_str("# Danh sách từ gõ tắt: <từ viết tắt> = <cụm từ thay thế>\n");
-    for (k, v) in macros.get_sorted_entries() {
-        out.push_str(&format!("{} = {}\n", k, v));
+    out.push_str("# Danh sách từ gõ tắt: <từ viết tắt> = <cụm từ thay thế>[:loại (normal/start/end)]\n");
+    for entry in macros.get_sorted_entries() {
+        if entry.macro_type == crate::engine::macro_table::MacroType::Normal {
+            out.push_str(&format!("{} = {}\n", entry.key, entry.value));
+        } else {
+            out.push_str(&format!(
+                "{} = {}:{}\n",
+                entry.key,
+                entry.value,
+                entry.macro_type.as_str()
+            ));
+        }
     }
 
     out

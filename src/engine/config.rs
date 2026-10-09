@@ -167,10 +167,6 @@ pub struct EngineConfig {
     pub restore_on_wrong_spelling: bool,
     /// Tự động viết hoa chữ cái đầu câu sau dấu chấm / Enter
     pub auto_uppercase_first_char: bool,
-    /// Gõ phụ âm nhanh đầu từ: f->ph, j->gi, w->qu
-    pub quick_start_consonant: bool,
-    /// Gõ phụ âm nhanh cuối từ: g->ng, h->nh, k->ch
-    pub quick_end_consonant: bool,
     /// Phím gõ tắt ngoặc vuông: [ -> ư, ] -> ơ
     pub bracket_w: bool,
     /// Bật tính năng gõ tắt (Macro) - Mặc định TẮT
@@ -199,8 +195,6 @@ impl Default for EngineConfig {
             check_spelling: true,
             restore_on_wrong_spelling: true,
             auto_uppercase_first_char: false,
-            quick_start_consonant: false,
-            quick_end_consonant: false,
             bracket_w: true,
             use_macro: false,
             use_macro_in_english_mode: true,

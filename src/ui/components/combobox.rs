@@ -92,6 +92,12 @@ impl ComboBox {
         self.id
     }
 
+    pub fn set_enabled(&self, enabled: bool) {
+        unsafe {
+            super::window::EnableWindow(self.hwnd, if enabled { 1 } else { 0 });
+        }
+    }
+
     pub fn add_item(&self, text: &str) {
         let wide = to_wide(text);
         unsafe {

@@ -32,6 +32,7 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
 
     // Tab 1: Macro
     check_use_macro: "Enable macro shortcut table",
+    check_macro_in_english: "Allow shorthand in English mode",
     edit_macro_key_placeholder: "Shortcut",
     edit_macro_val_placeholder: "Replacement",
     btn_add_macro: "+ Add",
@@ -40,6 +41,10 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
     btn_del_macro: "Delete",
     col_macro_key: "Shortcut",
     col_macro_val: "Replacement",
+    col_macro_type: "Type",
+    macro_type_normal: "Whole word",
+    macro_type_start: "Start consonant",
+    macro_type_end: "End consonant",
 
     // Tab 2: System
     sys_title: "Startup & Logging",

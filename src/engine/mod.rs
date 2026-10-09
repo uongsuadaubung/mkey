@@ -83,7 +83,7 @@ impl VietnameseEngine {
         Self {
             config,
             buffer: TypingBuffer::new(),
-            macro_table: MacroTable::new(),
+            macro_table: MacroTable::with_defaults(),
             history: WordHistory::new(),
             auto_uppercase_next: false,
             debug_log: Vec::new(),
@@ -174,6 +174,16 @@ impl VietnameseEngine {
         }
 
         if !self.config.enabled {
+            if self.config.use_macro && self.config.use_macro_in_english_mode {
+                if ch.is_alphanumeric() {
+                    self.buffer.raw_keys.push(RawKey { ch, is_upper });
+                    self.buffer.emitted_len += 1;
+                } else {
+                    self.buffer.clear();
+                }
+            } else {
+                self.buffer.clear();
+            }
             return EngineAction::Passthrough;
         }
 
@@ -183,6 +193,35 @@ impl VietnameseEngine {
         if self.buffer.is_boundary(&raw_key) {
             let current_raw = self.buffer.raw_keys.clone();
             let rendered = self.buffer.state.render();
+
+            let raw_str: String = current_raw.iter().map(|k| k.ch).collect();
+            let should_restore = self.config.restore_on_wrong_spelling
+                && rendered != raw_str
+                && match self.buffer.state.to_syllable() {
+                    Some(syllable) => !is_valid_vietnamese_syllable(&syllable),
+                    None => !rendered.is_ascii(),
+                };
+
+            if should_restore {
+                let backspaces = self.buffer.emitted_len;
+                let mut output = raw_str.clone();
+                output.push(ch);
+                self.history.commit_word(current_raw, raw_str, false);
+                self.buffer.clear();
+                self.buffer.raw_keys.push(raw_key);
+                let (next_state, _) = crate::vietnamese::SyllableState::Empty.feed_key(
+                    raw_key,
+                    0,
+                    &self.config,
+                );
+                self.buffer.state = next_state;
+                self.buffer.emitted_len = ch.len_utf16();
+                return EngineAction::Replace {
+                    backspaces,
+                    output,
+                };
+            }
+
             self.history.commit_word(current_raw, rendered, false);
         }
 
@@ -216,10 +255,18 @@ impl VietnameseEngine {
         if self.config.use_macro && !self.buffer.is_empty() {
             let current_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
             let rendered = self.buffer.state.render();
+
+            let is_space = ch == ' ';
+            let allow_start = is_space;
+            let allow_end = is_space;
+
             let expanded = self
                 .macro_table
-                .lookup(&current_word)
-                .or_else(|| self.macro_table.lookup(&rendered));
+                .expand_word(&rendered, allow_start, allow_end)
+                .or_else(|| {
+                    self.macro_table
+                        .expand_word(&current_word, allow_start, allow_end)
+                });
 
             if let Some(expanded) = expanded {
                 let backspaces = self.buffer.emitted_len;
@@ -309,8 +356,15 @@ impl VietnameseEngine {
     /// Feed a backspace event
     pub fn on_backspace(&mut self) -> EngineAction {
         if !self.config.enabled {
-            self.buffer.clear();
-            self.history.clear();
+            if self.config.use_macro && self.config.use_macro_in_english_mode && !self.buffer.is_empty() {
+                self.buffer.raw_keys.pop();
+                if self.buffer.emitted_len > 0 {
+                    self.buffer.emitted_len -= 1;
+                }
+            } else {
+                self.buffer.clear();
+                self.history.clear();
+            }
             return EngineAction::Passthrough;
         }
 

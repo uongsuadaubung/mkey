@@ -28,12 +28,6 @@ fn main() {
     if args.iter().any(|a| a == "--debug") {
         config.debug = true;
     }
-    if args.iter().any(|a| a == "--quick-start") {
-        config.quick_start_consonant = true;
-    }
-    if args.iter().any(|a| a == "--quick-end") {
-        config.quick_end_consonant = true;
-    }
     if args.iter().any(|a| a == "--auto-caps") {
         config.auto_uppercase_first_char = true;
     }
@@ -80,22 +74,6 @@ fn main() {
             println!(
                 "* Tự động viết hoa đầu câu: {}",
                 if engine.config().auto_uppercase_first_char {
-                    "BẬT"
-                } else {
-                    "TẮT"
-                }
-            );
-            println!(
-                "* Phụ âm nhanh đầu từ (f->ph, j->gi, w->qu): {}",
-                if engine.config().quick_start_consonant {
-                    "BẬT"
-                } else {
-                    "TẮT"
-                }
-            );
-            println!(
-                "* Phụ âm nhanh cuối từ (g->ng, h->nh, k->ch): {}",
-                if engine.config().quick_end_consonant {
                     "BẬT"
                 } else {
                     "TẮT"

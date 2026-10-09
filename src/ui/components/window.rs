@@ -72,6 +72,7 @@ unsafe extern "system" {
     ) -> isize;
     pub fn DestroyWindow(h_wnd: isize) -> i32;
     pub fn ShowWindow(h_wnd: isize, n_cmd_show: i32) -> i32;
+    pub fn EnableWindow(h_wnd: isize, b_enable: i32) -> i32;
     pub fn SetForegroundWindow(h_wnd: isize) -> i32;
     pub fn GetFocus() -> isize;
     pub fn LoadCursorW(h_instance: isize, lp_cursor_name: usize) -> isize;

@@ -23,11 +23,10 @@ fn test_onset_extensions() {
 
 #[test]
 fn test_coda_checks() {
-    assert!(is_valid_coda_start('n', false));
-    assert!(is_valid_coda_start('c', false));
-    assert!(!is_valid_coda_start('g', false));
-    assert!(is_valid_coda_start('g', true)); // quick-end
-    assert!(!is_valid_coda_start('x', true));
+    assert!(is_valid_coda_start('n'));
+    assert!(is_valid_coda_start('c'));
+    assert!(!is_valid_coda_start('g'));
+    assert!(!is_valid_coda_start('x'));
 
     assert!(is_valid_coda_pair('n', 'g'));
     assert!(is_valid_coda_pair('n', 'h'));

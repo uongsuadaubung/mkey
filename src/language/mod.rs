@@ -93,6 +93,7 @@ pub struct LanguageStrings {
 
     // Tab 1: Macro
     pub check_use_macro: &'static str,
+    pub check_macro_in_english: &'static str,
     pub edit_macro_key_placeholder: &'static str,
     pub edit_macro_val_placeholder: &'static str,
     pub btn_add_macro: &'static str,
@@ -101,6 +102,10 @@ pub struct LanguageStrings {
     pub btn_del_macro: &'static str,
     pub col_macro_key: &'static str,
     pub col_macro_val: &'static str,
+    pub col_macro_type: &'static str,
+    pub macro_type_normal: &'static str,
+    pub macro_type_start: &'static str,
+    pub macro_type_end: &'static str,
 
     // Tab 2: System
     pub sys_title: &'static str,

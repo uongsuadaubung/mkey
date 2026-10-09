@@ -1,23 +1,112 @@
 use std::collections::HashMap;
 
+/// Macro rule type classification
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum MacroType {
+    /// Whole word replacement (e.g. "ko" -> "không")
+    #[default]
+    Normal,
+    /// Quick onset consonant replacement (e.g. "f" -> "ph", "j" -> "gi", "w" -> "qu")
+    StartConsonant,
+    /// Quick coda consonant replacement (e.g. "g" -> "ng", "h" -> "nh", "k" -> "ch")
+    EndConsonant,
+}
+
+impl MacroType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MacroType::Normal => "normal",
+            MacroType::StartConsonant => "start",
+            MacroType::EndConsonant => "end",
+        }
+    }
+
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(s: &str) -> Self {
+        Self::from(s)
+    }
+}
+
+impl From<&str> for MacroType {
+    fn from(s: &str) -> Self {
+        match s.trim().to_lowercase().as_str() {
+            "start" | "phụ âm đầu" | "phu am dau" => MacroType::StartConsonant,
+            "end" | "phụ âm cuối" | "phu am cuoi" => MacroType::EndConsonant,
+            _ => MacroType::Normal,
+        }
+    }
+}
+
+impl std::str::FromStr for MacroType {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self::from(s))
+    }
+}
+
+/// A single macro rule entry
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MacroEntry {
+    pub key: String,
+    pub value: String,
+    pub macro_type: MacroType,
+}
+
 /// Storage and resolution of Vietnamese shorthand / macros
 #[derive(Debug, Clone, Default)]
 pub struct MacroTable {
-    entries: HashMap<String, String>,
+    entries: HashMap<String, MacroEntry>,
 }
 
 impl MacroTable {
+    /// Create an empty macro table
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Insert or update a macro entry
+    /// Create a macro table pre-populated with standard default rules
+    pub fn with_defaults() -> Self {
+        let mut table = Self::new();
+        // Default Start Consonants
+        table.insert_typed("f", "ph", MacroType::StartConsonant);
+        table.insert_typed("j", "gi", MacroType::StartConsonant);
+        table.insert_typed("w", "qu", MacroType::StartConsonant);
+
+        // Default End Consonants
+        table.insert_typed("g", "ng", MacroType::EndConsonant);
+        table.insert_typed("h", "nh", MacroType::EndConsonant);
+        table.insert_typed("k", "ch", MacroType::EndConsonant);
+
+        table
+    }
+
+    /// Insert or update a macro entry with Normal type (backward-compatible)
     pub fn insert(&mut self, key: impl Into<String>, value: impl Into<String>) {
-        self.entries.insert(key.into().to_lowercase(), value.into());
+        self.insert_typed(key, value, MacroType::Normal);
+    }
+
+    /// Insert or update a macro entry with a specific type
+    pub fn insert_typed(
+        &mut self,
+        key: impl Into<String>,
+        value: impl Into<String>,
+        macro_type: MacroType,
+    ) {
+        let key_str = key.into().to_lowercase();
+        let value_str = value.into();
+        self.entries.insert(
+            key_str.clone(),
+            MacroEntry {
+                key: key_str,
+                value: value_str,
+                macro_type,
+            },
+        );
     }
 
     /// Remove a macro entry
-    pub fn remove(&mut self, key: &str) -> Option<String> {
+    pub fn remove(&mut self, key: &str) -> Option<MacroEntry> {
         self.entries.remove(&key.to_lowercase())
     }
 
@@ -42,43 +131,72 @@ impl MacroTable {
     }
 
     /// Access all entries
-    pub fn entries(&self) -> &HashMap<String, String> {
+    pub fn entries(&self) -> &HashMap<String, MacroEntry> {
         &self.entries
     }
 
+    /// Get a specific macro entry
+    pub fn get(&self, key: &str) -> Option<&MacroEntry> {
+        self.entries.get(&key.to_lowercase())
+    }
+
     /// Get all macro entries sorted by shortcut key
-    pub fn get_sorted_entries(&self) -> Vec<(String, String)> {
-        let mut list: Vec<(String, String)> = self
-            .entries
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
-        list.sort_by(|a, b| a.0.cmp(&b.0));
+    pub fn get_sorted_entries(&self) -> Vec<MacroEntry> {
+        let mut list: Vec<MacroEntry> = self.entries.values().cloned().collect();
+        list.sort_by(|a, b| a.key.cmp(&b.key));
         list
     }
 
-    /// Load macros from a multiline text configuration (e.g. "key:expansion" or "key\texpansion")
+    /// Load macros from a multiline text configuration (e.g. "key:expansion:type" or "key = expansion:type")
     pub fn load_from_str(&mut self, text: &str) {
         for line in text.lines() {
             let line = line.trim();
-            if line.is_empty() || line.starts_with('#') {
+            if line.is_empty() || line.starts_with('#') || line.starts_with(';') {
                 continue;
             }
 
-            if let Some((k, v)) = line.split_once(':') {
-                self.insert(k.trim(), v.trim());
-            } else if let Some((k, v)) = line.split_once('\t') {
-                self.insert(k.trim(), v.trim());
+            if let Some((k, rest)) = line.split_once('=') {
+                let k = k.trim();
+                let rest = rest.trim();
+                if let Some((v, t)) = rest.split_once(':') {
+                    self.insert_typed(k, v.trim(), MacroType::from_str(t));
+                } else {
+                    self.insert_typed(k, rest, MacroType::Normal);
+                }
+            } else if line.contains('\t') {
+                let parts: Vec<&str> = line
+                    .split('\t')
+                    .map(|s| s.trim())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+                if parts.len() >= 3 {
+                    self.insert_typed(parts[0], parts[1], MacroType::from_str(parts[2]));
+                } else if parts.len() == 2 {
+                    self.insert_typed(parts[0], parts[1], MacroType::Normal);
+                }
+            } else if line.contains(':') {
+                let parts: Vec<&str> = line.split(':').map(|s| s.trim()).collect();
+                if parts.len() >= 3 {
+                    self.insert_typed(parts[0], parts[1], MacroType::from_str(parts[2]));
+                } else if parts.len() == 2 {
+                    self.insert_typed(parts[0], parts[1], MacroType::Normal);
+                }
             }
         }
     }
 
     /// Serialize all macros to configuration format
     pub fn save_to_str(&self) -> String {
-        let mut s =
-            String::from("# Bảng gõ tắt MKey\n# Cú pháp: <từ viết tắt>:<cụm từ thay thế>\n");
-        for (k, v) in self.get_sorted_entries() {
-            s.push_str(&format!("{}:{}\n", k, v));
+        let mut s = String::from(
+            "# Bảng gõ tắt MKey\n# Cú pháp: <từ viết tắt>:<cụm từ thay thế>:<loại (normal/start/end)>\n",
+        );
+        for entry in self.get_sorted_entries() {
+            s.push_str(&format!(
+                "{}:{}:{}\n",
+                entry.key,
+                entry.value,
+                entry.macro_type.as_str()
+            ));
         }
         s
     }
@@ -96,18 +214,146 @@ impl MacroTable {
         std::fs::write(path, self.save_to_str())
     }
 
-    /// Lookup macro expansion, matching the case convention of the input word
+    /// Lookup macro expansion for Normal type, matching the case convention of the input word
     pub fn lookup(&self, word: &str) -> Option<String> {
         if word.is_empty() {
             return None;
         }
 
         let key = word.to_lowercase();
-        let expansion = self.entries.get(&key)?;
-
-        // Adjust case based on input word
-        Some(apply_case_style(word, expansion))
+        let entry = self.entries.get(&key)?;
+        if entry.macro_type == MacroType::Normal {
+            Some(apply_case_style(word, &entry.value))
+        } else {
+            None
+        }
     }
+
+    /// Expand word on Space: checks Normal, StartConsonant, and EndConsonant macros.
+    ///
+    /// - Normal macros: full match (e.g. "ko" -> "không")
+    /// - StartConsonant macros: onset prefix when followed by a vowel (e.g. "fong" -> "phong")
+    /// - EndConsonant macros: coda suffix when preceded by a vowel (e.g. "dag" -> "dang")
+    ///
+    /// Single-character inputs (e.g. "f", "j", "w", "g") are strictly preserved as literal characters.
+    pub fn expand_word(
+        &self,
+        word: &str,
+        allow_start_consonant: bool,
+        allow_end_consonant: bool,
+    ) -> Option<String> {
+        if word.is_empty() {
+            return None;
+        }
+
+        let lower = word.to_lowercase();
+
+        // 1. Exact Normal macro match takes highest priority
+        if let Some(entry) = self.entries.get(&lower)
+            && entry.macro_type == MacroType::Normal
+        {
+            return Some(apply_case_style(word, &entry.value));
+        }
+
+        // 2. Single-character guard: single letters like 'f', 'j', 'w' MUST NOT be modified
+        if word.chars().count() <= 1 {
+            return None;
+        }
+
+        let mut matched_start: Option<(String, String)> = None;
+        let mut matched_end: Option<(String, String)> = None;
+
+        // 3. Quick start consonant match (onset)
+        if allow_start_consonant {
+            let mut start_candidates: Vec<&MacroEntry> = self
+                .entries
+                .values()
+                .filter(|e| e.macro_type == MacroType::StartConsonant)
+                .collect();
+            start_candidates.sort_by_key(|a| std::cmp::Reverse(a.key.len()));
+
+            for entry in start_candidates {
+                if lower.starts_with(&entry.key) {
+                    let rem = &lower[entry.key.len()..];
+                    if !rem.is_empty() {
+                        let next_char = rem.chars().next().unwrap();
+                        if is_vowel(next_char) {
+                            matched_start = Some((entry.key.clone(), entry.value.clone()));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Quick end consonant match (coda)
+        if allow_end_consonant {
+            let mut end_candidates: Vec<&MacroEntry> = self
+                .entries
+                .values()
+                .filter(|e| e.macro_type == MacroType::EndConsonant)
+                .collect();
+            end_candidates.sort_by_key(|a| std::cmp::Reverse(a.key.len()));
+
+            for entry in end_candidates {
+                if lower.ends_with(&entry.key) {
+                    let prefix_len = lower.len() - entry.key.len();
+                    let prefix = &lower[..prefix_len];
+                    if !prefix.is_empty() {
+                        let prev_char = prefix.chars().last().unwrap();
+                        if is_vowel(prev_char) {
+                            matched_end = Some((entry.key.clone(), entry.value.clone()));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. Construct replaced word
+        match (matched_start, matched_end) {
+            (Some((sk, sv)), Some((ek, ev))) => {
+                if word.len() >= sk.len() + ek.len() {
+                    let middle = &word[sk.len()..word.len() - ek.len()];
+                    let res = format!("{}{}{}", sv, middle, ev);
+                    Some(apply_case_style(word, &res))
+                } else {
+                    None
+                }
+            }
+            (Some((sk, sv)), None) => {
+                let rem = &word[sk.len()..];
+                let res = format!("{}{}", sv, rem);
+                Some(apply_case_style(word, &res))
+            }
+            (None, Some((ek, ev))) => {
+                let prefix = &word[..word.len() - ek.len()];
+                let res = format!("{}{}", prefix, ev);
+                Some(apply_case_style(word, &res))
+            }
+            (None, None) => None,
+        }
+    }
+}
+
+/// Checks whether a character is a Vietnamese vowel (including all tonal/diacritic variants)
+pub fn is_vowel(c: char) -> bool {
+    let lower = c.to_lowercase().next().unwrap_or(c);
+    matches!(
+        lower,
+        'a' | 'à' | 'á' | 'ả' | 'ã' | 'ạ'
+            | 'ă' | 'ằ' | 'ắ' | 'ẳ' | 'ẵ' | 'ặ'
+            | 'â' | 'ầ' | 'ấ' | 'ẩ' | 'ẫ' | 'ậ'
+            | 'e' | 'è' | 'é' | 'ẻ' | 'ẽ' | 'ẹ'
+            | 'ê' | 'ề' | 'ế' | 'ể' | 'ễ' | 'ệ'
+            | 'i' | 'ì' | 'í' | 'ỉ' | 'ĩ' | 'ị'
+            | 'o' | 'ò' | 'ó' | 'ỏ' | 'õ' | 'ọ'
+            | 'ô' | 'ồ' | 'ố' | 'ổ' | 'ỗ' | 'ộ'
+            | 'ơ' | 'ờ' | 'ớ' | 'ở' | 'ỡ' | 'ợ'
+            | 'u' | 'ù' | 'ú' | 'ủ' | 'ũ' | 'ụ'
+            | 'ư' | 'ừ' | 'ứ' | 'ử' | 'ữ' | 'ự'
+            | 'y' | 'ỳ' | 'ý' | 'ỷ' | 'ỹ' | 'ỵ'
+    )
 }
 
 /// Applies the casing style of `source` onto `target`

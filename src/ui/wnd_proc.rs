@@ -13,11 +13,11 @@ use crate::ui::theme::{
 use crate::ui::views::{
     IDC_BTN_ADD_MACRO, IDC_BTN_CANCEL_MACRO, IDC_BTN_CLOSE, IDC_BTN_DEFAULTS, IDC_BTN_DEL_MACRO,
     IDC_BTN_EDIT_MACRO, IDC_BTN_EXIT, IDC_BTN_OPEN_LOG, IDC_CHECK_AUTO_UPPER, IDC_CHECK_AUTOSTART,
-    IDC_CHECK_CTRL_SHIFT, IDC_CHECK_DEBUG_LOG, IDC_CHECK_RESTORE_WRONG, IDC_CHECK_SHOW_DIALOG,
-    IDC_CHECK_SPELLING, IDC_CHECK_USE_MACRO, IDC_COMBO_LANG, IDC_COMBO_METHOD, IDC_COMBO_MODE,
-    IDC_COMBO_THEME, IDC_LABEL_EMAIL, IDC_LABEL_GITHUB, IDC_LIST_MACRO, IDC_TAB_MAIN,
-    IDM_CONTROL_PANEL, IDM_EXIT, IDM_SIMPLE_TELEX, IDM_TELEX, IDM_TOGGLE_VIET, IDM_VNI,
-    WM_TRAY_MESSAGE,
+    IDC_CHECK_CTRL_SHIFT, IDC_CHECK_DEBUG_LOG, IDC_CHECK_MACRO_EN,
+    IDC_CHECK_RESTORE_WRONG, IDC_CHECK_SHOW_DIALOG, IDC_CHECK_SPELLING,
+    IDC_CHECK_USE_MACRO, IDC_COMBO_LANG, IDC_COMBO_METHOD, IDC_COMBO_MODE, IDC_COMBO_THEME,
+    IDC_LABEL_EMAIL, IDC_LABEL_GITHUB, IDC_LIST_MACRO, IDC_TAB_MAIN, IDM_CONTROL_PANEL, IDM_EXIT,
+    IDM_SIMPLE_TELEX, IDM_TELEX, IDM_TOGGLE_VIET, IDM_VNI, WM_TRAY_MESSAGE,
 };
 use crate::ui::{UI_MANAGER, show_control_panel, update_tray_icon};
 
@@ -296,29 +296,38 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                     }
                 }
                 IDC_BTN_ADD_MACRO => {
-                    let pair = if let Ok(ui_guard) = UI_MANAGER.try_lock() {
+                    let item_data = if let Ok(ui_guard) = UI_MANAGER.try_lock() {
                         ui_guard.as_ref().map(|ui| {
+                            let mtype = match ui.controls.combo_macro_type.get_selected().unwrap_or(0) {
+                                1 => crate::engine::macro_table::MacroType::StartConsonant,
+                                2 => crate::engine::macro_table::MacroType::EndConsonant,
+                                _ => crate::engine::macro_table::MacroType::Normal,
+                            };
                             (
                                 ui.controls.edit_macro_key.get_text().trim().to_string(),
                                 ui.controls.edit_macro_value.get_text().trim().to_string(),
+                                mtype,
                             )
                         })
                     } else {
                         None
                     };
 
-                    if let Some((key, val)) = pair
+                    if let Some((key, val, mtype)) = item_data
                         && !key.is_empty()
                         && !val.is_empty()
                     {
                         let macros = if let Ok(mut guard) = ENGINE_INSTANCE.lock() {
                             if let Some(ref mut engine) = *guard {
-                                engine.macro_table.insert(&key, &val);
+                                engine.macro_table.insert_typed(&key, &val, mtype);
                                 let _ = config_store::save_config_and_macros(
                                     engine.config(),
                                     &engine.macro_table,
                                 );
-                                println!("[MKey] Đã thêm gõ tắt: '{}' -> '{}'", key, val);
+                                println!(
+                                    "[MKey] Đã thêm gõ tắt: '{}' -> '{}' ({:?})",
+                                    key, val, mtype
+                                );
                                 engine.macro_table.get_sorted_entries()
                             } else {
                                 Vec::new()
@@ -333,35 +342,45 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                             ui.controls.populate_macros(&macros);
                             ui.controls.edit_macro_key.clear();
                             ui.controls.edit_macro_value.clear();
+                            ui.controls.combo_macro_type.set_selected(0);
                             ui.controls.list_macro.clear_selection();
                             ui.controls.set_macro_edit_mode(false);
                         }
                     }
                 }
                 IDC_BTN_EDIT_MACRO => {
-                    let pair = if let Ok(ui_guard) = UI_MANAGER.try_lock() {
+                    let item_data = if let Ok(ui_guard) = UI_MANAGER.try_lock() {
                         ui_guard.as_ref().map(|ui| {
+                            let mtype = match ui.controls.combo_macro_type.get_selected().unwrap_or(0) {
+                                1 => crate::engine::macro_table::MacroType::StartConsonant,
+                                2 => crate::engine::macro_table::MacroType::EndConsonant,
+                                _ => crate::engine::macro_table::MacroType::Normal,
+                            };
                             (
                                 ui.controls.edit_macro_key.get_text().trim().to_string(),
                                 ui.controls.edit_macro_value.get_text().trim().to_string(),
+                                mtype,
                             )
                         })
                     } else {
                         None
                     };
 
-                    if let Some((key, val)) = pair
+                    if let Some((key, val, mtype)) = item_data
                         && !key.is_empty()
                         && !val.is_empty()
                     {
                         let macros = if let Ok(mut guard) = ENGINE_INSTANCE.lock() {
                             if let Some(ref mut engine) = *guard {
-                                engine.macro_table.insert(&key, &val);
+                                engine.macro_table.insert_typed(&key, &val, mtype);
                                 let _ = config_store::save_config_and_macros(
                                     engine.config(),
                                     &engine.macro_table,
                                 );
-                                println!("[MKey] Đã cập nhật gõ tắt: '{}' -> '{}'", key, val);
+                                println!(
+                                    "[MKey] Đã cập nhật gõ tắt: '{}' -> '{}' ({:?})",
+                                    key, val, mtype
+                                );
                                 engine.macro_table.get_sorted_entries()
                             } else {
                                 Vec::new()
@@ -376,6 +395,7 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                             ui.controls.populate_macros(&macros);
                             ui.controls.edit_macro_key.clear();
                             ui.controls.edit_macro_value.clear();
+                            ui.controls.combo_macro_type.set_selected(0);
                             ui.controls.list_macro.clear_selection();
                             ui.controls.set_macro_edit_mode(false);
                         }
@@ -426,6 +446,7 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                             ui.controls.populate_macros(&macros);
                             ui.controls.edit_macro_key.clear();
                             ui.controls.edit_macro_value.clear();
+                            ui.controls.combo_macro_type.set_selected(0);
                             ui.controls.list_macro.clear_selection();
                             ui.controls.set_macro_edit_mode(false);
                         }
@@ -437,6 +458,7 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                     {
                         ui.controls.edit_macro_key.clear();
                         ui.controls.edit_macro_value.clear();
+                        ui.controls.combo_macro_type.set_selected(0);
                         ui.controls.list_macro.clear_selection();
                         ui.controls.set_macro_edit_mode(false);
                     }
@@ -476,6 +498,7 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                         || control_id == IDC_CHECK_RESTORE_WRONG
                         || control_id == IDC_CHECK_AUTO_UPPER
                         || control_id == IDC_CHECK_USE_MACRO
+                        || control_id == IDC_CHECK_MACRO_EN
                         || control_id == IDC_CHECK_AUTOSTART
                         || control_id == IDC_CHECK_SHOW_DIALOG
                         || control_id == IDC_CHECK_DEBUG_LOG;
@@ -503,6 +526,9 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                         && let Ok(mut guard) = ENGINE_INSTANCE.lock()
                         && let Some(ref mut engine) = *guard
                     {
+                        if control_id == IDC_CHECK_USE_MACRO {
+                            ui.controls.update_macro_checkboxes_state();
+                        }
                         ui.controls.read_config(engine.config_mut());
                         let _ = config_store::save_config_and_macros(
                             engine.config(),
@@ -564,9 +590,19 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                 {
                     let k = ui.controls.list_macro.get_item_text(sel_idx, 0);
                     let v = ui.controls.list_macro.get_item_text(sel_idx, 1);
+                    let t = ui.controls.list_macro.get_item_text(sel_idx, 2);
                     if !k.is_empty() {
                         ui.controls.edit_macro_key.set_text(&k);
                         ui.controls.edit_macro_value.set_text(&v);
+                        let strings = crate::language::current();
+                        let type_idx = if t == strings.macro_type_start {
+                            1
+                        } else if t == strings.macro_type_end {
+                            2
+                        } else {
+                            0
+                        };
+                        ui.controls.combo_macro_type.set_selected(type_idx);
                         ui.controls.set_macro_edit_mode(true);
                     }
                 }

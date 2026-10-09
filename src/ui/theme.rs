@@ -85,26 +85,12 @@ unsafe extern "system" fn enum_child_theme_proc(child: isize, lparam: isize) -> 
         if class_name.eq_ignore_ascii_case("Button") {
             SetWindowTheme(child, theme_w.as_ptr(), null_mut());
             InvalidateRect(child, null_mut(), 1);
-        } else if class_name.eq_ignore_ascii_case("ComboBox") {
-            let combo_theme_str = if is_dark { "CFD" } else { "" };
-            let theme_combo_w = to_wide(combo_theme_str);
-            let res = SetWindowTheme(child, theme_combo_w.as_ptr(), null_mut());
-            if is_dark && res != 0 {
-                SetWindowTheme(child, to_wide("DarkMode_CFD").as_ptr(), null_mut());
-            }
-            SetWindowPos(
-                child,
-                0,
-                0,
-                0,
-                0,
-                0,
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED,
-            );
-        } else if class_name.eq_ignore_ascii_case("Edit") {
-            let edit_theme_str = if is_dark { "CFD" } else { "" };
-            let theme_edit_w = to_wide(edit_theme_str);
-            let res = SetWindowTheme(child, theme_edit_w.as_ptr(), null_mut());
+        } else if class_name.eq_ignore_ascii_case("ComboBox")
+            || class_name.eq_ignore_ascii_case("Edit")
+        {
+            let cfd_theme_str = if is_dark { "CFD" } else { "" };
+            let theme_cfd_w = to_wide(cfd_theme_str);
+            let res = SetWindowTheme(child, theme_cfd_w.as_ptr(), null_mut());
             if is_dark && res != 0 {
                 SetWindowTheme(child, to_wide("DarkMode_CFD").as_ptr(), null_mut());
             }

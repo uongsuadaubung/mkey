@@ -5,28 +5,29 @@ use crate::ui::colors::ThemePalette;
 use crate::ui::components::window::*;
 use crate::ui::views::ControlPanelControls;
 use std::ptr::null_mut;
+use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 
-static mut PANEL_BG_BRUSH: isize = 0;
-static mut TAB_CARD_BRUSH: isize = 0;
-static mut INPUT_BG_BRUSH: isize = 0;
-static mut BORDER_BRUSH: isize = 0;
-static mut CURRENT_IS_DARK: bool = false;
-static mut IS_APPLYING_THEME: bool = false;
+static PANEL_BG_BRUSH: AtomicIsize = AtomicIsize::new(0);
+static TAB_CARD_BRUSH: AtomicIsize = AtomicIsize::new(0);
+static INPUT_BG_BRUSH: AtomicIsize = AtomicIsize::new(0);
+static BORDER_BRUSH: AtomicIsize = AtomicIsize::new(0);
+static CURRENT_IS_DARK: AtomicBool = AtomicBool::new(false);
+static IS_APPLYING_THEME: AtomicBool = AtomicBool::new(false);
 
 pub fn is_current_dark() -> bool {
-    unsafe { CURRENT_IS_DARK }
+    CURRENT_IS_DARK.load(Ordering::Relaxed)
 }
 
 pub fn get_panel_bg_brush() -> isize {
-    unsafe { PANEL_BG_BRUSH }
+    PANEL_BG_BRUSH.load(Ordering::Relaxed)
 }
 
 pub fn get_tab_card_brush() -> isize {
-    unsafe { TAB_CARD_BRUSH }
+    TAB_CARD_BRUSH.load(Ordering::Relaxed)
 }
 
 pub fn get_input_bg_brush() -> isize {
-    unsafe { INPUT_BG_BRUSH }
+    INPUT_BG_BRUSH.load(Ordering::Relaxed)
 }
 
 /// Resolves whether dark mode should be active given the theme setting
@@ -40,27 +41,27 @@ pub fn resolve_is_dark(theme: UiTheme) -> bool {
 
 /// Recreates cached solid GDI brushes for the given theme mode
 pub fn recreate_theme_brushes(is_dark: bool) {
-    unsafe {
-        CURRENT_IS_DARK = is_dark;
-        let palette = ThemePalette::get(is_dark);
+    CURRENT_IS_DARK.store(is_dark, Ordering::Relaxed);
+    let palette = ThemePalette::get(is_dark);
 
-        if PANEL_BG_BRUSH != 0 {
-            DeleteObject(PANEL_BG_BRUSH);
-        }
-        if TAB_CARD_BRUSH != 0 {
-            DeleteObject(TAB_CARD_BRUSH);
-        }
-        if INPUT_BG_BRUSH != 0 {
-            DeleteObject(INPUT_BG_BRUSH);
-        }
-        if BORDER_BRUSH != 0 {
-            DeleteObject(BORDER_BRUSH);
-        }
+    let old_panel = PANEL_BG_BRUSH.swap(unsafe { CreateSolidBrush(palette.bg_window) }, Ordering::Relaxed);
+    if old_panel != 0 {
+        unsafe { DeleteObject(old_panel) };
+    }
 
-        PANEL_BG_BRUSH = CreateSolidBrush(palette.bg_window);
-        TAB_CARD_BRUSH = CreateSolidBrush(palette.bg_card);
-        INPUT_BG_BRUSH = CreateSolidBrush(palette.bg_input);
-        BORDER_BRUSH = CreateSolidBrush(palette.border);
+    let old_tab = TAB_CARD_BRUSH.swap(unsafe { CreateSolidBrush(palette.bg_card) }, Ordering::Relaxed);
+    if old_tab != 0 {
+        unsafe { DeleteObject(old_tab) };
+    }
+
+    let old_input = INPUT_BG_BRUSH.swap(unsafe { CreateSolidBrush(palette.bg_input) }, Ordering::Relaxed);
+    if old_input != 0 {
+        unsafe { DeleteObject(old_input) };
+    }
+
+    let old_border = BORDER_BRUSH.swap(unsafe { CreateSolidBrush(palette.border) }, Ordering::Relaxed);
+    if old_border != 0 {
+        unsafe { DeleteObject(old_border) };
     }
 }
 
@@ -113,24 +114,22 @@ unsafe extern "system" fn enum_child_theme_proc(child: isize, lparam: isize) -> 
 
 /// Applies cohesive, modern Light or Dark theme styling to all Control Panel elements
 pub fn apply_ui_theme(hwnd: isize, controls: &ControlPanelControls, is_dark: bool) {
+    if IS_APPLYING_THEME.compare_exchange(false, true, Ordering::SeqCst, Ordering::Relaxed).is_err() {
+        return;
+    }
+
+    recreate_theme_brushes(is_dark);
+
+    // Windows 11 title bar & rounded corners
+    apply_modern_window_styling(hwnd, is_dark);
+
+    // Windows 10/11 uxtheme native dark mode
+    set_preferred_app_mode(is_dark);
+    allow_window_dark_mode(hwnd, is_dark);
+
+    // Automatically enumerate and theme all child controls (Buttons, CheckBoxes, Combos, Edits, Labels)
     unsafe {
-        if IS_APPLYING_THEME {
-            return;
-        }
-        IS_APPLYING_THEME = true;
-
-        recreate_theme_brushes(is_dark);
-
-        // Windows 11 title bar & rounded corners
-        apply_modern_window_styling(hwnd, is_dark);
-
-        // Windows 10/11 uxtheme native dark mode
-        set_preferred_app_mode(is_dark);
-        allow_window_dark_mode(hwnd, is_dark);
-
-        // Automatically enumerate and theme all child controls (Buttons, CheckBoxes, Combos, Edits, Labels)
         EnumChildWindows(hwnd, Some(enum_child_theme_proc), is_dark as isize);
-
 
         // Redraw TabBar with updated colors
         InvalidateRect(controls.tab_bar.hwnd(), null_mut(), 1);
@@ -146,8 +145,7 @@ pub fn apply_ui_theme(hwnd: isize, controls: &ControlPanelControls, is_dark: boo
             0,
             RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_FRAME,
         );
-
-        IS_APPLYING_THEME = false;
     }
-}
 
+    IS_APPLYING_THEME.store(false, Ordering::SeqCst);
+}

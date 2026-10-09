@@ -16,21 +16,21 @@
 
 | Chỉ số (Metric) | Kết quả đo đạc thực tế (Benchmark) | Ý nghĩa đối với người dùng & Game thủ |
 | :--- | :--- | :--- |
-| 🚀 **Tốc độ xử lý (Throughput)** | **~3.620.000 ký tự / giây** | Xử lý hơn 3.6 triệu phím/giây, không bao giờ bị nghẽn phím khi gõ cực nhanh |
-| ⏱️ **Độ trễ phản hồi (Latency)** | **~0.28 microsecond / phím** (0.00028 ms) | Phản hồi ngay trong nano-giây, nhanh gấp **35.000 lần** ngưỡng mắt người nhận biết |
+| 🚀 **Tốc độ xử lý (Throughput)** | **~10.960.000 ký tự / giây** | Xử lý gần 11 triệu phím/giây, không bao giờ bị nghẽn phím khi gõ cực nhanh |
+| ⏱️ **Độ trễ phản hồi (Latency)** | **~0.09 microsecond / phím** (0.00009 ms / 91 ns) | Phản hồi ngay trong 91 nano-giây, nhanh gấp **150.000 lần** ngưỡng mắt người nhận biết |
 | 💾 **Bộ nhớ RAM (Tray / Chạy ngầm)** | **0.5 – 0.9 MB RAM** | Nhẹ kỷ lục; gần như vô hình trong Task Manager, không tốn tài nguyên máy |
 | 🖥️ **Bộ nhớ RAM (Control Panel mở)** | **~3.5 MB RAM** | Toàn bộ giao diện Win32 native siêu gọn nhẹ, không dùng WebView/Electron cồng kềnh |
-| 📦 **Dung lượng file thực thi (.exe)** | **~384 KB** | Siêu nhỏ gọn, nhẹ hơn cả một bức ảnh; tải và khởi chạy tức thì |
+| 📦 **Dung lượng file thực thi (.exe)** | **~479 KB** | Siêu nhỏ gọn, nhẹ hơn cả một bức ảnh; tải và khởi chạy tức thì |
 | 🛡️ **Runtime Dependencies** | **0 dependencies (Pure Rust)** | 100% Rust thuần giao tiếp trực tiếp Windows API, không rủi ro bảo mật bên thứ 3 |
 | 🎮 **Hiện tượng khựng phím (Stutter)** | **Zero Input Lag / Zero GC Pause** | Không có Garbage Collector (GC) thu gom rác gây trễ nhịp khi chơi game đỉnh cao |
 
 ### 🏆 So sánh với các bộ gõ tiếng Việt thông thường
 
 | Tiêu chí | MKey (Rust Native) | Bộ gõ C/C++ truyền thống | Bộ gõ nền tảng Web / Electron |
-| :--- | :---: | :---: | :---: |
-| **Dung lượng file thực thi (.exe)** | **~384 KB** | 3 MB – 10 MB | 80 MB – 150 MB |
+| :--- | :--- | :---: | :---: |
+| **Dung lượng file thực thi (.exe)** | **~479 KB** | 3 MB – 10 MB | 80 MB – 150 MB |
 | **Mức chiếm dụng RAM khi chạy ngầm** | **< 1 MB** (0.5 – 0.9 MB) | 15 MB – 40 MB | 100 MB – 300 MB |
-| **Độ trễ xử lý phím** | **~0.28 µs** | 1.5 – 5.0 µs | 10 – 30 ms (có độ trễ) |
+| **Độ trễ xử lý phím** | **~0.09 µs** (91 ns) | 1.5 – 5.0 µs | 10 – 30 ms (có độ trễ) |
 | **Khựng khung hình (Micro-stutter)** | **Hoàn toàn KHÔNG (Zero GC)** | Hiếm gặp | Thường xuyên do GC / Event loop |
 | **Cơ chế khôi phục từ tiếng Anh** | **Tự động theo ngữ âm** | Thoát dấu thủ công / Danh sách thô | Dễ xung đột phím |
 | **Công nghệ khôi phục Backspace** | **SSOT Replay tất định** | Phỏng đoán ký tự xóa (dễ vỡ) | Phỏng đoán |

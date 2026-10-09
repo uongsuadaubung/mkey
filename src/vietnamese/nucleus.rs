@@ -1,6 +1,7 @@
 //! Vietnamese Nucleus (Nguyên âm & Dấu thanh) State Representation
 
 use super::charset::{BaseVowel, Diacritic, Tone, compose_vowel};
+use super::inline_list::InlineList;
 use super::modifier::KeyEffect;
 use super::onset::OnsetState;
 use super::spelling::is_stop_coda;
@@ -18,14 +19,53 @@ pub enum ModifierOutcome {
 }
 
 /// Nucleus (Nguyên âm & Dấu thanh)
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct NucleusState {
     pub onset: Option<OnsetState>,
-    pub vowels: Vec<VowelLetter>,
+    pub vowels: InlineList<VowelLetter, 4>,
     pub tone: Tone,
 }
 
 impl NucleusState {
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[inline]
+    pub fn from_single(onset: Option<OnsetState>, vowel: VowelLetter, tone: Tone) -> Self {
+        Self {
+            onset,
+            vowels: InlineList::from_single(vowel),
+            tone,
+        }
+    }
+
+    #[inline]
+    pub fn render_to(&self, out: &mut String) {
+        if let Some(ref onset) = self.onset {
+            onset.render_to(out);
+        }
+
+        let tone_pos = self.find_tone_position();
+        for (i, v) in self.vowels.iter().enumerate() {
+            let tone_for_vowel = if i == tone_pos { self.tone } else { Tone::None };
+            out.push(compose_vowel(
+                v.base,
+                v.diacritic,
+                tone_for_vowel,
+                v.is_upper,
+            ));
+        }
+    }
+
+    #[inline]
+    pub fn render(&self) -> String {
+        let mut s = String::with_capacity(16);
+        self.render_to(&mut s);
+        s
+    }
+
     pub fn find_tone_position(&self) -> usize {
         let n = self.vowels.len();
         if n <= 1 {
@@ -228,13 +268,14 @@ impl NucleusState {
         config: &EngineConfig,
     ) -> ModifierOutcome {
         let make_raw = |n: &NucleusState| -> String {
-            let mut s = n.to_string();
+            let mut s = String::with_capacity(16);
+            n.render_to(&mut s);
             if let Some(coda_chars) = coda {
                 for &(c, is_upper) in coda_chars {
                     if is_upper {
-                        s.extend(c.to_uppercase());
+                        s.push(c.to_ascii_uppercase());
                     } else {
-                        s.extend(c.to_lowercase());
+                        s.push(c.to_ascii_lowercase());
                     }
                 }
             }
@@ -267,15 +308,7 @@ impl NucleusState {
                         if let Some(pos) = self.vowels.iter().rposition(|v| {
                             v.base == target_base && v.diacritic == Diacritic::Circumflex
                         }) {
-                            let prev_v = self.vowels.remove(pos);
-                            self.vowels.insert(
-                                pos,
-                                VowelLetter {
-                                    base: target_base,
-                                    diacritic: Diacritic::None,
-                                    is_upper: prev_v.is_upper,
-                                },
-                            );
+                            self.vowels[pos].diacritic = Diacritic::None;
                             ModifierOutcome::Undone(make_raw(self))
                         } else if self.toggle_circumflex(target_base) {
                             ModifierOutcome::Applied
@@ -418,20 +451,9 @@ impl NucleusState {
 
 impl fmt::Display for NucleusState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(ref onset) = self.onset {
-            write!(f, "{onset}")?;
-        }
-
-        let tone_pos = self.find_tone_position();
-        for (i, v) in self.vowels.iter().enumerate() {
-            let tone_for_vowel = if i == tone_pos { self.tone } else { Tone::None };
-            write!(
-                f,
-                "{}",
-                compose_vowel(v.base, v.diacritic, tone_for_vowel, v.is_upper)
-            )?;
-        }
-        Ok(())
+        let mut s = String::with_capacity(16);
+        self.render_to(&mut s);
+        f.write_str(&s)
     }
 }
 
@@ -441,10 +463,10 @@ impl From<&NucleusState> for Syllable {
             onset: nucleus
                 .onset
                 .as_ref()
-                .map(|o| o.chars.clone())
+                .map(|o| o.chars.to_vec())
                 .unwrap_or_default(),
             d_stroke: nucleus.onset.as_ref().is_some_and(|o| o.is_d_stroke),
-            vowels: nucleus.vowels.clone(),
+            vowels: nucleus.vowels.to_vec(),
             tone: nucleus.tone,
             coda: Vec::new(),
         }

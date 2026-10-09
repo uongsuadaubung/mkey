@@ -4,7 +4,7 @@ use super::types::{
     CloseHandle, GetClassNameW, GetForegroundWindow, GetGUIThreadInfo, GetWindowThreadProcessId,
     OpenProcess, QueryFullProcessImageNameW, GUITHREADINFO, PROCESS_QUERY_LIMITED_INFORMATION,
 };
-use std::sync::atomic::{AtomicU8, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicIsize, AtomicU8, AtomicU32, Ordering};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -37,6 +37,8 @@ impl From<u8> for AppKind {
 
 static CACHED_PID: AtomicU32 = AtomicU32::new(0);
 static CACHED_APP_KIND: AtomicU8 = AtomicU8::new(0);
+static CACHED_FOCUS_HWND: AtomicIsize = AtomicIsize::new(0);
+static CACHED_FIX_TYPE: AtomicU8 = AtomicU8::new(0);
 
 pub fn get_app_kind_for_pid(pid: u32) -> AppKind {
     let cached_pid = CACHED_PID.load(Ordering::Relaxed);
@@ -101,6 +103,15 @@ pub fn detect_autocomplete_context() -> AutocompleteFixType {
             foreground
         };
 
+        let cached_hwnd = CACHED_FOCUS_HWND.load(Ordering::Relaxed);
+        if cached_hwnd != 0 && cached_hwnd == focus_hwnd {
+            return match CACHED_FIX_TYPE.load(Ordering::Relaxed) {
+                1 => AutocompleteFixType::ChromiumOmnibox,
+                2 => AutocompleteFixType::GenericAutocomplete,
+                _ => AutocompleteFixType::None,
+            };
+        }
+
         let mut class_buf = [0u16; 128];
         let class_len = GetClassNameW(focus_hwnd, class_buf.as_mut_ptr(), 128);
         let class_slice = if class_len > 0 {
@@ -109,7 +120,7 @@ pub fn detect_autocomplete_context() -> AutocompleteFixType {
             &[]
         };
 
-        match app_kind {
+        let fix_type = match app_kind {
             AppKind::Chromium => {
                 // When focus is inside a web page (Facebook, Google Docs, ChatGPT, YouTube, etc.):
                 // Chromium uses "Chrome_RenderWidgetHostHWND".
@@ -128,7 +139,16 @@ pub fn detect_autocomplete_context() -> AutocompleteFixType {
                 }
             }
             AppKind::Other => AutocompleteFixType::None,
-        }
+        };
+
+        let fix_type_u8 = match fix_type {
+            AutocompleteFixType::None => 0,
+            AutocompleteFixType::ChromiumOmnibox => 1,
+            AutocompleteFixType::GenericAutocomplete => 2,
+        };
+        CACHED_FOCUS_HWND.store(focus_hwnd, Ordering::Relaxed);
+        CACHED_FIX_TYPE.store(fix_type_u8, Ordering::Relaxed);
+        fix_type
     }
 }
 

@@ -5,6 +5,7 @@ use super::{
 };
 
 /// Validates whether a sequence of vowels forms a legitimate Vietnamese vowel cluster
+#[inline]
 pub fn is_valid_vowel_combination(vowels: &[VowelLetter]) -> bool {
     match vowels.len() {
         0 | 1 => true,
@@ -84,6 +85,7 @@ pub fn is_valid_vowel_combination(vowels: &[VowelLetter]) -> bool {
 }
 
 /// Validates whether an onset consonant sequence is a legitimate Vietnamese onset.
+#[inline]
 pub fn is_valid_onset(onset: &[(char, bool)], is_d_stroke: bool) -> bool {
     if onset.is_empty() {
         return true;
@@ -140,22 +142,28 @@ pub fn is_valid_onset(onset: &[(char, bool)], is_d_stroke: bool) -> bool {
     }
 }
 
-/// Validates whether a syllable satisfies Vietnamese spelling / phonotactic rules.
-pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
+/// Validates whether syllable components satisfy Vietnamese spelling / phonotactic rules without heap allocation.
+pub fn is_valid_vietnamese_components(
+    onset: &[(char, bool)],
+    d_stroke: bool,
+    vowels: &[VowelLetter],
+    tone: Tone,
+    coda: &[(char, bool)],
+) -> bool {
     // 1. Validate onset
-    if !is_valid_onset(&syllable.onset, syllable.d_stroke) {
+    if !is_valid_onset(onset, d_stroke) {
         return false;
     }
 
-    if syllable.vowels.is_empty() {
+    if vowels.is_empty() {
         return true;
     }
 
     // 2. Validate onset + vowel orthography
-    if !syllable.onset.is_empty() && !syllable.d_stroke {
-        let first_vowel_base = syllable.vowels[0].base;
+    if !onset.is_empty() && !d_stroke {
+        let first_vowel_base = vowels[0].base;
 
-        match syllable.onset.as_slice() {
+        match onset {
             [(c, _)] if c.eq_ignore_ascii_case(&'q') => {
                 if first_vowel_base != BaseVowel::U {
                     return false;
@@ -210,17 +218,17 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
     // If onset is 'g' and first vowel is 'i' (e.g. "gió", "giờ", "giúp", "giường", "giếng"),
     // or onset is 'q' and first vowel is 'u' (e.g. "qua", "quê", "quốc", "quần"),
     // the 'i' or 'u' acts as the glide consonant extension, and the vowel cluster starts at index 1!
-    let last_onset = syllable.onset.last().map(|(c, _)| c.to_ascii_lowercase());
-    let vowels_to_check = if syllable.vowels.len() >= 2 {
-        if (last_onset == Some('g') && syllable.vowels[0].base == BaseVowel::I)
-            || (last_onset == Some('q') && syllable.vowels[0].base == BaseVowel::U)
+    let last_onset = onset.last().map(|(c, _)| c.to_ascii_lowercase());
+    let vowels_to_check = if vowels.len() >= 2 {
+        if (last_onset == Some('g') && vowels[0].base == BaseVowel::I)
+            || (last_onset == Some('q') && vowels[0].base == BaseVowel::U)
         {
-            &syllable.vowels[1..]
+            &vowels[1..]
         } else {
-            &syllable.vowels[..]
+            vowels
         }
     } else {
-        &syllable.vowels[..]
+        vowels
     };
 
     // 3. Valid vowel cluster
@@ -229,16 +237,16 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
     }
 
     // 4. Validate coda
-    if !syllable.coda.is_empty() {
+    if !coda.is_empty() {
         if !can_vowels_accept_coda(vowels_to_check) {
             return false;
         }
 
-        match syllable.coda.len() {
+        match coda.len() {
             1 => {
-                let c = syllable.coda[0].0.to_ascii_lowercase();
+                let c = coda[0].0.to_ascii_lowercase();
                 if c == 'k' {
-                    if !is_special_k_coda_allowed_completed(&syllable.onset, syllable.d_stroke, vowels_to_check) {
+                    if !is_special_k_coda_allowed_completed(onset, d_stroke, vowels_to_check) {
                         return false;
                     }
                 } else if !matches!(c, 'c' | 'm' | 'n' | 'p' | 't' | 'g' | 'h') {
@@ -246,7 +254,7 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
                 }
             }
             2 => {
-                if !is_valid_coda_pair(syllable.coda[0].0, syllable.coda[1].0) {
+                if !is_valid_coda_pair(coda[0].0, coda[1].0) {
                     return false;
                 }
             }
@@ -255,8 +263,8 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
 
         // Stop codas (c, ch, p, t, k) only accept Acute (Sắc) or DotBelow (Nặng).
         // Nasal coda 'nh' accepts all 6 tones.
-        if is_stop_coda(&syllable.coda) {
-            match syllable.tone {
+        if is_stop_coda(coda) {
+            match tone {
                 Tone::None | Tone::Acute | Tone::DotBelow => {}
                 _ => return false,
             }
@@ -264,6 +272,18 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
     }
 
     true
+}
+
+/// Validates whether a syllable satisfies Vietnamese spelling / phonotactic rules.
+#[inline]
+pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
+    is_valid_vietnamese_components(
+        &syllable.onset,
+        syllable.d_stroke,
+        &syllable.vowels,
+        syllable.tone,
+        &syllable.coda,
+    )
 }
 
 /// Returns true if the coda is a stop coda ('c', 'ch', 'p', 't', 'k').
@@ -282,6 +302,7 @@ pub fn is_stop_coda(coda: &[(char, bool)]) -> bool {
 /// Vietnamese multi-letter onsets:
 /// - 2 letters: ch, gh, gi, kh, nh, ng, ph, qu, th, tr
 /// - 3 letters: ngh
+#[inline]
 pub fn is_valid_onset_extension(current_onset: &[(char, bool)], next_ch: char) -> bool {
     let next_lower = next_ch.to_ascii_lowercase();
     match current_onset.len() {
@@ -353,6 +374,7 @@ pub fn is_special_k_coda_allowed_completed(
 
 /// Validates whether a consonant can legitimately begin a Vietnamese coda.
 /// Standard coda start letters: c, m, n, p, t
+#[inline]
 pub fn is_valid_coda_start(ch: char) -> bool {
     let ch_lower = ch.to_ascii_lowercase();
     matches!(ch_lower, 'c' | 'm' | 'n' | 'p' | 't')
@@ -360,6 +382,7 @@ pub fn is_valid_coda_start(ch: char) -> bool {
 
 /// Validates whether two consonants form a legitimate 2-letter Vietnamese coda.
 /// In Vietnamese, only 'ng', 'nh', and 'ch' are valid 2-letter codas.
+#[inline]
 pub fn is_valid_coda_pair(first: char, second: char) -> bool {
     let c0 = first.to_ascii_lowercase();
     let c1 = second.to_ascii_lowercase();
@@ -373,6 +396,7 @@ pub fn is_valid_coda_pair(first: char, second: char) -> bool {
 /// - Off-glide diphthongs CANNOT accept a coda: ai, oi, ôi, ơi, ui, ưi, ay, ây, ao, eo, au, âu, iu, ưu, ia, ya, ua, ưa.
 /// - Triphthongs ending in semivowels CANNOT accept a coda: iêu, yêu, oai, oay, oao, oeo, uai, uay, uôi, uơi, ươi, ươu, uya, uyu.
 /// - Only triphthong 'uyê' can accept a coda: uyên, uyết.
+#[inline]
 pub fn can_vowels_accept_coda(vowels: &[VowelLetter]) -> bool {
     match vowels.len() {
         0 => false,

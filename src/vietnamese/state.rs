@@ -1,12 +1,14 @@
 use super::{
     charset::{BaseVowel, Diacritic, Tone, decompose_vowel, is_d_stroke},
     coda::CodaState,
+    inline_list::InlineList,
     modifier::{KeyEffect, match_modifier_key},
     nucleus::{ModifierOutcome, NucleusState},
     onset::OnsetState,
     spelling::{
         can_vowels_accept_coda, is_special_k_coda_allowed_during_typing, is_valid_coda_pair,
-        is_valid_coda_start, is_valid_onset_extension,
+        is_valid_coda_start, is_valid_onset, is_valid_onset_extension,
+        is_valid_vietnamese_components,
     },
     syllable::Syllable,
     VowelLetter,
@@ -15,32 +17,47 @@ use crate::engine::{action::EngineAction, buffer::RawKey, config::EngineConfig};
 use std::fmt;
 
 /// State pattern: Representation of Vietnamese Syllable Parser State
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SyllableState {
     #[default]
     Empty,
     Onset(OnsetState),
     Nucleus(NucleusState),
     Coda(CodaState),
-    Passthrough(String),
+    Passthrough(InlineList<char, 16>),
 }
 
 impl fmt::Display for SyllableState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SyllableState::Empty => Ok(()),
-            SyllableState::Onset(onset) => write!(f, "{onset}"),
-            SyllableState::Nucleus(nucleus) => write!(f, "{nucleus}"),
-            SyllableState::Coda(coda) => write!(f, "{coda}"),
-            SyllableState::Passthrough(raw) => write!(f, "{raw}"),
-        }
+        let mut s = String::with_capacity(16);
+        self.render_to(&mut s);
+        f.write_str(&s)
     }
 }
 
 impl SyllableState {
-    /// Renders current state to a displayed string
+    /// Renders current state directly to a pre-allocated buffer with zero formatting overhead
+    #[inline]
+    pub fn render_to(&self, out: &mut String) {
+        match self {
+            SyllableState::Empty => {}
+            SyllableState::Onset(onset) => onset.render_to(out),
+            SyllableState::Nucleus(nucleus) => nucleus.render_to(out),
+            SyllableState::Coda(coda) => coda.render_to(out),
+            SyllableState::Passthrough(raw) => {
+                for &ch in raw.iter() {
+                    out.push(ch);
+                }
+            }
+        }
+    }
+
+    /// Renders current state to a displayed string with pre-allocated capacity
+    #[inline]
     pub fn render(&self) -> String {
-        self.to_string()
+        let mut s = String::with_capacity(16);
+        self.render_to(&mut s);
+        s
     }
 
     /// Returns a compact summary string of the state for debugging
@@ -50,7 +67,50 @@ impl SyllableState {
             SyllableState::Onset(onset) => format!("Onset(\"{onset}\")"),
             SyllableState::Nucleus(nucleus) => format!("Nucleus(\"{nucleus}\")"),
             SyllableState::Coda(coda) => format!("Coda(\"{coda}\")"),
-            SyllableState::Passthrough(raw) => format!("Passthrough(\"{raw}\")"),
+            SyllableState::Passthrough(raw) => {
+                let s: String = raw.iter().collect();
+                format!("Passthrough(\"{s}\")")
+            }
+        }
+    }
+
+    /// Checks whether this syllable state represents a valid Vietnamese spelling without heap allocations.
+    pub fn is_valid_spelling(&self) -> bool {
+        match self {
+            SyllableState::Empty => true,
+            SyllableState::Onset(onset) => is_valid_onset(&onset.chars, onset.is_d_stroke),
+            SyllableState::Nucleus(nucleus) => {
+                let onset_slice = nucleus
+                    .onset
+                    .as_ref()
+                    .map(|o| o.chars.as_slice())
+                    .unwrap_or(&[]);
+                let d_stroke = nucleus.onset.as_ref().is_some_and(|o| o.is_d_stroke);
+                is_valid_vietnamese_components(
+                    onset_slice,
+                    d_stroke,
+                    &nucleus.vowels,
+                    nucleus.tone,
+                    &[],
+                )
+            }
+            SyllableState::Coda(coda) => {
+                let onset_slice = coda
+                    .nucleus
+                    .onset
+                    .as_ref()
+                    .map(|o| o.chars.as_slice())
+                    .unwrap_or(&[]);
+                let d_stroke = coda.nucleus.onset.as_ref().is_some_and(|o| o.is_d_stroke);
+                is_valid_vietnamese_components(
+                    onset_slice,
+                    d_stroke,
+                    &coda.nucleus.vowels,
+                    coda.nucleus.tone,
+                    &coda.coda,
+                )
+            }
+            SyllableState::Passthrough(raw) => raw.iter().all(|c| c.is_ascii()),
         }
     }
 
@@ -59,7 +119,7 @@ impl SyllableState {
         match self {
             SyllableState::Empty => None,
             SyllableState::Onset(onset) => Some(Syllable {
-                onset: onset.chars.clone(),
+                onset: onset.chars.to_vec(),
                 d_stroke: onset.is_d_stroke,
                 vowels: Vec::new(),
                 tone: Tone::None,
@@ -71,11 +131,11 @@ impl SyllableState {
         }
     }
 
-    /// Parses a string into the appropriate SyllableState (Onset, Nucleus, Coda, or Passthrough)
-    pub fn parse_prefix(raw: &str, config: &EngineConfig) -> SyllableState {
+    /// Parses an iterator of characters into the appropriate SyllableState
+    pub fn parse_prefix_chars(raw: impl IntoIterator<Item = char>, config: &EngineConfig) -> SyllableState {
         let mut state = SyllableState::Empty;
         let mut current_len = 0;
-        for ch in raw.chars() {
+        for ch in raw {
             let key = RawKey {
                 ch,
                 is_upper: ch.is_uppercase(),
@@ -95,6 +155,11 @@ impl SyllableState {
         state
     }
 
+    /// Parses a string into the appropriate SyllableState (Onset, Nucleus, Coda, or Passthrough)
+    pub fn parse_prefix(raw: &str, config: &EngineConfig) -> SyllableState {
+        Self::parse_prefix_chars(raw.chars(), config)
+    }
+
     /// Transitions backward when Backspace is pressed:
     /// Drops the last rendered character on screen and transitions to the previous state cleanly.
     pub fn handle_backspace(self, config: &EngineConfig) -> SyllableState {
@@ -109,10 +174,10 @@ impl SyllableState {
                 }
             }
             SyllableState::Nucleus(mut nucleus) => {
-                let tone_pos_before = if nucleus.tone != Tone::None {
-                    Some(nucleus.find_tone_position())
-                } else {
+                let tone_pos_before = if nucleus.tone == Tone::None {
                     None
+                } else {
+                    Some(nucleus.find_tone_position())
                 };
 
                 nucleus.vowels.pop();
@@ -131,11 +196,11 @@ impl SyllableState {
                                     BaseVowel::U
                                 };
                                 nucleus.onset = Some(onset);
-                                nucleus.vowels = vec![VowelLetter {
+                                nucleus.vowels = InlineList::from_single(VowelLetter {
                                     base,
                                     diacritic: Diacritic::None,
                                     is_upper: glide.1,
-                                }];
+                                });
                                 return SyllableState::Nucleus(nucleus);
                             }
                         }
@@ -166,7 +231,7 @@ impl SyllableState {
                 if raw.is_empty() {
                     SyllableState::Empty
                 } else {
-                    Self::parse_prefix(&raw, config)
+                    Self::parse_prefix_chars(raw.iter().copied(), config)
                 }
             }
         }
@@ -193,63 +258,60 @@ impl SyllableState {
         }
     }
 
+    #[inline]
+    fn try_bracket_w_shortcut(
+        onset: Option<OnsetState>,
+        key: RawKey,
+        current_len: usize,
+        config: &EngineConfig,
+    ) -> Option<(Self, EngineAction)> {
+        if config.bracket_w && config.method.has_bracket_shortcuts() {
+            let base = match key.ch {
+                '[' => BaseVowel::U,
+                ']' => BaseVowel::O,
+                _ => return None,
+            };
+            let nucleus = NucleusState::from_single(
+                onset,
+                VowelLetter {
+                    base,
+                    diacritic: Diacritic::Horn,
+                    is_upper: key.is_upper,
+                },
+                Tone::None,
+            );
+            let output = nucleus.render();
+            return Some((
+                SyllableState::Nucleus(nucleus),
+                EngineAction::Replace {
+                    backspaces: current_len,
+                    output,
+                },
+            ));
+        }
+        None
+    }
+
     fn handle_empty(key: RawKey, config: &EngineConfig) -> (Self, EngineAction) {
         let ch_lower = key.ch.to_ascii_lowercase();
 
         // 1. Bracket W shortcuts: [ -> ư, ] -> ơ
-        if config.bracket_w && config.method.has_bracket_shortcuts() {
-            if key.ch == '[' {
-                let nucleus = NucleusState {
-                    onset: None,
-                    vowels: vec![VowelLetter {
-                        base: BaseVowel::U,
-                        diacritic: Diacritic::Horn,
-                        is_upper: key.is_upper,
-                    }],
-                    tone: Tone::None,
-                };
-                let output = nucleus.to_string();
-                return (
-                    SyllableState::Nucleus(nucleus),
-                    EngineAction::Replace {
-                        backspaces: 0,
-                        output,
-                    },
-                );
-            }
-            if key.ch == ']' {
-                let nucleus = NucleusState {
-                    onset: None,
-                    vowels: vec![VowelLetter {
-                        base: BaseVowel::O,
-                        diacritic: Diacritic::Horn,
-                        is_upper: key.is_upper,
-                    }],
-                    tone: Tone::None,
-                };
-                let output = nucleus.to_string();
-                return (
-                    SyllableState::Nucleus(nucleus),
-                    EngineAction::Replace {
-                        backspaces: 0,
-                        output,
-                    },
-                );
-            }
+        if let Some(res) = Self::try_bracket_w_shortcut(None, key, 0, config) {
+            return res;
         }
 
         // Standalone 'w' -> 'ư'
         if config.method.has_standalone_w() && ch_lower == 'w' {
-            let nucleus = NucleusState {
-                onset: None,
-                vowels: vec![VowelLetter {
+            let nucleus = NucleusState::from_single(
+                None,
+                VowelLetter {
                     base: BaseVowel::U,
                     diacritic: Diacritic::Horn,
                     is_upper: key.is_upper,
-                }],
-                tone: Tone::None,
-            };
-            let output = nucleus.to_string();
+                },
+                Tone::None,
+            );
+            let output = nucleus.render();
             return (
                 SyllableState::Nucleus(nucleus),
                 EngineAction::Replace {
@@ -263,32 +325,29 @@ impl SyllableState {
         if key.is_upper && key.ch.is_lowercase() && key.ch.is_alphabetic() {
             let upper_char = key.ch.to_uppercase().next().unwrap_or(key.ch);
             if let Some(base_vowel) = BaseVowel::from_char(key.ch) {
-                let nucleus = NucleusState {
-                    onset: None,
-                    vowels: vec![VowelLetter {
+                let nucleus = NucleusState::from_single(
+                    None,
+                    VowelLetter {
                         base: base_vowel,
                         diacritic: Diacritic::None,
                         is_upper: true,
-                    }],
-                    tone: Tone::None,
-                };
+                    },
+                    Tone::None,
+                );
                 return (
                     SyllableState::Nucleus(nucleus),
                     EngineAction::Replace {
                         backspaces: 0,
-                        output: upper_char.to_string(),
+                        output: String::from(upper_char),
                     },
                 );
             } else {
-                let onset = OnsetState {
-                    chars: vec![(upper_char, true)],
-                    is_d_stroke: false,
-                };
+                let onset = OnsetState::from_single(upper_char, true, false);
                 return (
                     SyllableState::Onset(onset),
                     EngineAction::Replace {
                         backspaces: 0,
-                        output: upper_char.to_string(),
+                        output: String::from(upper_char),
                     },
                 );
             }
@@ -296,38 +355,32 @@ impl SyllableState {
 
         // If vowel
         if let Some((base_vowel, diacritic, tone)) = decompose_vowel(key.ch) {
-            let nucleus = NucleusState {
-                onset: None,
-                vowels: vec![VowelLetter {
+            let nucleus = NucleusState::from_single(
+                None,
+                VowelLetter {
                     base: base_vowel,
                     diacritic,
                     is_upper: key.is_upper,
-                }],
+                },
                 tone,
-            };
+            );
             return (SyllableState::Nucleus(nucleus), EngineAction::Passthrough);
         }
 
         // 'đ' or 'Đ'
         if is_d_stroke(key.ch) {
-            let onset = OnsetState {
-                chars: vec![('d', key.is_upper)],
-                is_d_stroke: true,
-            };
+            let onset = OnsetState::from_single('d', key.is_upper, true);
             return (SyllableState::Onset(onset), EngineAction::Passthrough);
         }
 
         // If consonant
         if key.ch.is_alphabetic() {
-            let onset = OnsetState {
-                chars: vec![(key.ch, key.is_upper)],
-                is_d_stroke: false,
-            };
+            let onset = OnsetState::from_single(key.ch, key.is_upper, false);
             return (SyllableState::Onset(onset), EngineAction::Passthrough);
         }
 
         // Anything else -> Passthrough
-        let mut raw = String::new();
+        let mut raw = InlineList::new();
         raw.push(key.ch);
         (SyllableState::Passthrough(raw), EngineAction::Passthrough)
     }
@@ -341,45 +394,8 @@ impl SyllableState {
         let ch_lower = key.ch.to_ascii_lowercase();
 
         // 1. Bracket W shortcuts: [ -> ư, ] -> ơ
-        if config.bracket_w && config.method.has_bracket_shortcuts() {
-            if key.ch == '[' {
-                let nucleus = NucleusState {
-                    onset: Some(onset),
-                    vowels: vec![VowelLetter {
-                        base: BaseVowel::U,
-                        diacritic: Diacritic::Horn,
-                        is_upper: key.is_upper,
-                    }],
-                    tone: Tone::None,
-                };
-                let output = nucleus.to_string();
-                return (
-                    SyllableState::Nucleus(nucleus),
-                    EngineAction::Replace {
-                        backspaces: current_len,
-                        output,
-                    },
-                );
-            }
-            if key.ch == ']' {
-                let nucleus = NucleusState {
-                    onset: Some(onset),
-                    vowels: vec![VowelLetter {
-                        base: BaseVowel::O,
-                        diacritic: Diacritic::Horn,
-                        is_upper: key.is_upper,
-                    }],
-                    tone: Tone::None,
-                };
-                let output = nucleus.to_string();
-                return (
-                    SyllableState::Nucleus(nucleus),
-                    EngineAction::Replace {
-                        backspaces: current_len,
-                        output,
-                    },
-                );
-            }
+        if let Some(res) = Self::try_bracket_w_shortcut(Some(onset), key, current_len, config) {
+            return res;
         }
 
         // 2. D-Stroke in Onset (Telex 'dd' or VNI 'd9' -> 'đ')
@@ -390,9 +406,14 @@ impl SyllableState {
             if config.method.is_telex_family() && onset.is_d_stroke {
                 // 3rd 'd' cancels 'đ' and restores double 'dd' into Passthrough!
                 let first_d = if onset.chars[0].1 { 'D' } else { 'd' };
-                let output = format!("{}{}", first_d, key.ch);
+                let mut output = String::with_capacity(2);
+                output.push(first_d);
+                output.push(key.ch);
+                let mut raw = InlineList::new();
+                raw.push(first_d);
+                raw.push(key.ch);
                 return (
-                    SyllableState::Passthrough(output.clone()),
+                    SyllableState::Passthrough(raw),
                     EngineAction::Replace {
                         backspaces: current_len,
                         output,
@@ -400,7 +421,7 @@ impl SyllableState {
                 );
             } else {
                 onset.is_d_stroke = !onset.is_d_stroke;
-                let output = onset.to_string();
+                let output = onset.render();
                 return (
                     SyllableState::Onset(onset),
                     EngineAction::Replace {
@@ -412,18 +433,18 @@ impl SyllableState {
         }
 
         // 2. Incoming vowel -> Transition from Onset to Nucleus!
-        if config.method.is_telex_family() && ch_lower == 'w' {
-            // e.g. "tw" -> "tư"
-            let nucleus = NucleusState {
-                onset: Some(onset),
-                vowels: vec![VowelLetter {
+        if config.method.has_standalone_w() && ch_lower == 'w' {
+            // e.g. "tw" -> "tư" in Standard Telex
+            let nucleus = NucleusState::from_single(
+                Some(onset),
+                VowelLetter {
                     base: BaseVowel::U,
                     diacritic: Diacritic::Horn,
                     is_upper: key.is_upper,
-                }],
-                tone: Tone::None,
-            };
-            let output = nucleus.to_string();
+                },
+                Tone::None,
+            );
+            let output = nucleus.render();
             return (
                 SyllableState::Nucleus(nucleus),
                 EngineAction::Replace {
@@ -438,7 +459,7 @@ impl SyllableState {
             // promote entire onset to uppercase for ALL CAPS words (e.g. "QUA", "PHONG")
             let mut onset_promoted = false;
             if key.is_upper && !onset.chars.is_empty() && onset.chars[0].1 {
-                for c in onset.chars.iter_mut() {
+                for c in &mut onset.chars {
                     if !c.1 {
                         c.1 = true;
                         onset_promoted = true;
@@ -446,15 +467,15 @@ impl SyllableState {
                 }
             }
 
-            let nucleus = NucleusState {
-                onset: Some(onset),
-                vowels: vec![VowelLetter {
+            let nucleus = NucleusState::from_single(
+                Some(onset),
+                VowelLetter {
                     base: base_vowel,
                     diacritic,
                     is_upper: key.is_upper,
-                }],
+                },
                 tone,
-            };
+            );
 
             // Fast path: If onset casing was not changed and vowel is plain (no diacritic, no tone),
             // the rendered screen character is identical to simply appending key.ch!
@@ -462,7 +483,7 @@ impl SyllableState {
                 return (SyllableState::Nucleus(nucleus), EngineAction::Passthrough);
             }
 
-            let output = nucleus.to_string();
+            let output = nucleus.render();
             return (
                 SyllableState::Nucleus(nucleus),
                 EngineAction::Replace {
@@ -479,7 +500,7 @@ impl SyllableState {
         }
 
         // Invalid onset combo -> Passthrough
-        let mut raw = onset.to_string();
+        let mut raw = InlineList::from(onset.render().as_str());
         raw.push(key.ch);
         (SyllableState::Passthrough(raw), EngineAction::Passthrough)
     }
@@ -503,7 +524,7 @@ impl SyllableState {
                 && nucleus.vowels[0].diacritic == Diacritic::Horn
             {
                 return (
-                    SyllableState::Passthrough("[".to_string()),
+                    SyllableState::Passthrough(InlineList::from_single('[')),
                     EngineAction::Replace {
                         backspaces: current_len,
                         output: "[".to_string(),
@@ -515,7 +536,7 @@ impl SyllableState {
                 && nucleus.vowels[0].diacritic == Diacritic::Horn
             {
                 return (
-                    SyllableState::Passthrough("]".to_string()),
+                    SyllableState::Passthrough(InlineList::from_single(']')),
                     EngineAction::Replace {
                         backspaces: current_len,
                         output: "]".to_string(),
@@ -528,8 +549,7 @@ impl SyllableState {
         let has_onset_d = nucleus
             .onset
             .as_ref()
-            .map(|o| !o.chars.is_empty() && o.chars[0].0.eq_ignore_ascii_case(&'d'))
-            .unwrap_or(false);
+            .is_some_and(|o| !o.chars.is_empty() && o.chars[0].0.eq_ignore_ascii_case(&'d'));
         if let Some(effect) = match_modifier_key(
             config.method,
             key.ch,
@@ -538,7 +558,7 @@ impl SyllableState {
         ) {
             match nucleus.apply_modifier(effect, key, None, config) {
                 ModifierOutcome::Applied => {
-                    let output = nucleus.to_string();
+                    let output = nucleus.render();
                     return (
                         SyllableState::Nucleus(nucleus),
                         EngineAction::Replace {
@@ -549,7 +569,7 @@ impl SyllableState {
                 }
                 ModifierOutcome::Undone(raw) => {
                     return (
-                        SyllableState::Passthrough(raw.clone()),
+                        SyllableState::Passthrough(InlineList::from(raw.as_str())),
                         EngineAction::Replace {
                             backspaces: current_len,
                             output: raw,
@@ -617,7 +637,7 @@ impl SyllableState {
                     return (SyllableState::Nucleus(nucleus), EngineAction::Passthrough);
                 }
 
-                let output = nucleus.to_string();
+                let output = nucleus.render();
                 return (
                     SyllableState::Nucleus(nucleus),
                     EngineAction::Replace {
@@ -649,11 +669,7 @@ impl SyllableState {
             });
         let can_accept_coda = can_vowels_accept_coda(&nucleus.vowels);
         if can_accept_coda && (is_valid_coda_start(key.ch) || is_special_k) {
-            let coda_chars = vec![(key.ch, key.is_upper)];
-            let coda = CodaState {
-                nucleus,
-                coda: coda_chars,
-            };
+            let coda = CodaState::from_single(nucleus, key.ch, key.is_upper);
 
             // Fast path: if horn was not upgraded and there is no tone mark to shift,
             // adding a single coda consonant will never shift marks or mutate vowels.
@@ -661,7 +677,7 @@ impl SyllableState {
                 return (SyllableState::Coda(coda), EngineAction::Passthrough);
             }
 
-            let output = coda.to_string();
+            let output = coda.render();
             return (
                 SyllableState::Coda(coda),
                 EngineAction::Replace {
@@ -672,7 +688,7 @@ impl SyllableState {
         }
 
         // Non-coda consonant or non-alphabetic -> Passthrough
-        let mut raw = nucleus.to_string();
+        let mut raw = InlineList::from(nucleus.render().as_str());
         raw.push(key.ch);
         (SyllableState::Passthrough(raw), EngineAction::Passthrough)
     }
@@ -688,8 +704,7 @@ impl SyllableState {
             .nucleus
             .onset
             .as_ref()
-            .map(|o| !o.chars.is_empty() && o.chars[0].0.eq_ignore_ascii_case(&'d'))
-            .unwrap_or(false);
+            .is_some_and(|o| !o.chars.is_empty() && o.chars[0].0.eq_ignore_ascii_case(&'d'));
         if let Some(effect) = match_modifier_key(
             config.method,
             key.ch,
@@ -701,7 +716,7 @@ impl SyllableState {
                 .apply_modifier(effect, key, Some(&coda.coda), config)
             {
                 ModifierOutcome::Applied => {
-                    let output = coda.to_string();
+                    let output = coda.render();
                     return (
                         SyllableState::Coda(coda),
                         EngineAction::Replace {
@@ -712,7 +727,7 @@ impl SyllableState {
                 }
                 ModifierOutcome::Undone(raw) => {
                     return (
-                        SyllableState::Passthrough(raw.clone()),
+                        SyllableState::Passthrough(InlineList::from(raw.as_str())),
                         EngineAction::Replace {
                             backspaces: current_len,
                             output: raw,
@@ -730,7 +745,7 @@ impl SyllableState {
         }
 
         // Otherwise -> Passthrough
-        let mut raw = coda.to_string();
+        let mut raw = InlineList::from(coda.render().as_str());
         raw.push(key.ch);
         (SyllableState::Passthrough(raw), EngineAction::Passthrough)
     }

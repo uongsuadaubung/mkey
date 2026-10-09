@@ -886,6 +886,8 @@ fn test_simple_telex_vs_standard_telex() {
     assert_eq!(simulate_typing(&mut telex_engine, "["), "ư");
     telex_engine.reset();
     assert_eq!(simulate_typing(&mut telex_engine, "]"), "ơ");
+    telex_engine.reset();
+    assert_eq!(simulate_typing(&mut telex_engine, "sw"), "sư");
 
     // 2. Simple Telex
     let mut simple_engine = VietnameseEngine::new(EngineConfig {
@@ -908,6 +910,14 @@ fn test_simple_telex_vs_standard_telex() {
     assert_eq!(simulate_typing(&mut simple_engine, "["), "[");
     simple_engine.reset();
     assert_eq!(simulate_typing(&mut simple_engine, "]"), "]");
+
+    // Trong Simple Telex: 'sw' không bị biến thành 'sư' mà giữ nguyên onset tiếng Anh
+    simple_engine.reset();
+    assert_eq!(simulate_typing(&mut simple_engine, "sw"), "sw");
+    simple_engine.reset();
+    assert_eq!(simulate_typing(&mut simple_engine, "switch"), "switch");
+    simple_engine.reset();
+    assert_eq!(simulate_typing(&mut simple_engine, "two"), "two");
 
     // Tuy nhiên Simple Telex VẪN gõ tiếng Việt hoàn hảo khi 'w' đi sau nguyên âm:
     simple_engine.reset();

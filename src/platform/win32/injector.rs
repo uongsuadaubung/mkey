@@ -7,8 +7,8 @@ use super::types::{
 };
 
 #[inline]
-pub fn push_backspace(inputs: &mut Vec<INPUT>) {
-    inputs.push(INPUT {
+pub fn make_backspace_down() -> INPUT {
+    INPUT {
         r#type: INPUT_KEYBOARD,
         u: INPUT_UNION {
             ki: KEYBDINPUT {
@@ -19,8 +19,12 @@ pub fn push_backspace(inputs: &mut Vec<INPUT>) {
                 dw_extra_info: MAGIC_EXTRA_INFO,
             },
         },
-    });
-    inputs.push(INPUT {
+    }
+}
+
+#[inline]
+pub fn make_backspace_up() -> INPUT {
+    INPUT {
         r#type: INPUT_KEYBOARD,
         u: INPUT_UNION {
             ki: KEYBDINPUT {
@@ -31,12 +35,12 @@ pub fn push_backspace(inputs: &mut Vec<INPUT>) {
                 dw_extra_info: MAGIC_EXTRA_INFO,
             },
         },
-    });
+    }
 }
 
 #[inline]
-pub fn push_unicode_char(inputs: &mut Vec<INPUT>, code_unit: u16) {
-    inputs.push(INPUT {
+pub fn make_unicode_down(code_unit: u16) -> INPUT {
+    INPUT {
         r#type: INPUT_KEYBOARD,
         u: INPUT_UNION {
             ki: KEYBDINPUT {
@@ -47,8 +51,12 @@ pub fn push_unicode_char(inputs: &mut Vec<INPUT>, code_unit: u16) {
                 dw_extra_info: MAGIC_EXTRA_INFO,
             },
         },
-    });
-    inputs.push(INPUT {
+    }
+}
+
+#[inline]
+pub fn make_unicode_up(code_unit: u16) -> INPUT {
+    INPUT {
         r#type: INPUT_KEYBOARD,
         u: INPUT_UNION {
             ki: KEYBDINPUT {
@@ -59,8 +67,22 @@ pub fn push_unicode_char(inputs: &mut Vec<INPUT>, code_unit: u16) {
                 dw_extra_info: MAGIC_EXTRA_INFO,
             },
         },
-    });
+    }
 }
+
+#[inline]
+pub fn push_backspace(inputs: &mut Vec<INPUT>) {
+    inputs.push(make_backspace_down());
+    inputs.push(make_backspace_up());
+}
+
+#[inline]
+pub fn push_unicode_char(inputs: &mut Vec<INPUT>, code_unit: u16) {
+    inputs.push(make_unicode_down(code_unit));
+    inputs.push(make_unicode_up(code_unit));
+}
+
+const STACK_INPUT_LIMIT: usize = 64;
 
 /// Sends backspaces and replacement string in a SINGLE atomic SendInput batch.
 /// - In normal apps & web pages: sends pure standard Backspaces and replacement characters (no invisible chars).
@@ -71,49 +93,73 @@ pub fn send_replace(backspaces: usize, text: &str) {
         return;
     }
 
-    let mut inputs = Vec::with_capacity(4 + (backspaces + 1) * 2 + utf16_count * 2);
-
     let fix_type = detect_autocomplete_context();
-    match fix_type {
-        AutocompleteFixType::ChromiumOmnibox | AutocompleteFixType::GenericAutocomplete => {
-            // Autocomplete / Omnibox fix (Chrome, Edge, Brave, Firefox, Excel):
-            // When user types in browser address bar with an active suggestion (e.g. "truye[nqq.com.vn/]"),
-            // sending keys directly or sending Shift+Right / End causes the suggestion to be accepted,
-            // resulting in unwanted appending (e.g. "truyenqq.com.vnê").
-            //
-            // Solution:
-            // 1. Send Unicode U+202F (Narrow No-Break Space).
-            //    In any text field with selected autocomplete text, typing a character immediately
-            //    overwrites and neutralizes the active selection without moving caret to the end.
-            // 2. Send 1 backspace to erase the temporary U+202F character.
-            // 3. Send the normal `backspaces` to delete the target characters to be replaced.
-            if backspaces > 0 && utf16_count > 0 {
-                push_unicode_char(&mut inputs, 0x202F);
-                push_backspace(&mut inputs);
-            }
-            for _ in 0..backspaces {
-                push_backspace(&mut inputs);
-            }
-        }
-        AutocompleteFixType::None => {
-            // Normal desktop applications & web pages (Chrome_RenderWidgetHostHWND, Word, Notepad, VSCode, etc.)
-            for _ in 0..backspaces {
-                push_backspace(&mut inputs);
-            }
-        }
-    }
+    let is_autocomplete = matches!(
+        fix_type,
+        AutocompleteFixType::ChromiumOmnibox | AutocompleteFixType::GenericAutocomplete
+    );
 
-    // 2. Synthesize all replacement characters
-    for ch in text.encode_utf16() {
-        push_unicode_char(&mut inputs, ch);
-    }
+    let extra = if is_autocomplete && backspaces > 0 && utf16_count > 0 {
+        4
+    } else {
+        0
+    };
 
-    unsafe {
-        SendInput(
-            inputs.len() as u32,
-            inputs.as_ptr(),
-            std::mem::size_of::<INPUT>() as i32,
-        );
+    let total_needed = extra + backspaces * 2 + utf16_count * 2;
+
+    if total_needed <= STACK_INPUT_LIMIT {
+        // Fast path: Zero heap allocations on the Windows low-level hook thread.
+        // Use MaybeUninit to completely eliminate zeroing 2.5 KB on the stack every keystroke.
+        let mut inputs: [std::mem::MaybeUninit<INPUT>; STACK_INPUT_LIMIT] =
+            [std::mem::MaybeUninit::uninit(); STACK_INPUT_LIMIT];
+        let mut count = 0;
+
+        if is_autocomplete && backspaces > 0 && utf16_count > 0 {
+            inputs[count].write(make_unicode_down(0x202F)); count += 1;
+            inputs[count].write(make_unicode_up(0x202F)); count += 1;
+            inputs[count].write(make_backspace_down()); count += 1;
+            inputs[count].write(make_backspace_up()); count += 1;
+        }
+
+        for _ in 0..backspaces {
+            inputs[count].write(make_backspace_down()); count += 1;
+            inputs[count].write(make_backspace_up()); count += 1;
+        }
+
+        for ch in text.encode_utf16() {
+            inputs[count].write(make_unicode_down(ch)); count += 1;
+            inputs[count].write(make_unicode_up(ch)); count += 1;
+        }
+
+        unsafe {
+            SendInput(
+                count as u32,
+                inputs.as_ptr() as *const INPUT,
+                std::mem::size_of::<INPUT>() as i32,
+            );
+        }
+    } else {
+        // Fallback for massive macro expansion strings (>64 inputs)
+        let mut inputs = Vec::with_capacity(total_needed);
+
+        if is_autocomplete && backspaces > 0 && utf16_count > 0 {
+            push_unicode_char(&mut inputs, 0x202F);
+            push_backspace(&mut inputs);
+        }
+        for _ in 0..backspaces {
+            push_backspace(&mut inputs);
+        }
+        for ch in text.encode_utf16() {
+            push_unicode_char(&mut inputs, ch);
+        }
+
+        unsafe {
+            SendInput(
+                inputs.len() as u32,
+                inputs.as_ptr(),
+                std::mem::size_of::<INPUT>() as i32,
+            );
+        }
     }
 }
 

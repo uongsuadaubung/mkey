@@ -5,7 +5,6 @@ pub mod config_store;
 pub mod history;
 pub mod macro_table;
 
-use crate::vietnamese::spelling::is_valid_vietnamese_syllable;
 use action::EngineAction;
 use buffer::{RawKey, TypingBuffer};
 pub use config::EngineConfig;
@@ -199,21 +198,17 @@ impl VietnameseEngine {
 
         // If the incoming key begins a new CamelCase boundary, save preceding word into history
         if self.buffer.is_boundary(&raw_key) {
-            let current_raw = self.buffer.raw_keys.clone();
-            let rendered = self.buffer.state.render();
-
-            let raw_str: String = current_raw.iter().map(|k| k.ch).collect();
+            let rendered = self.buffer.rendered();
+            let is_same_as_raw = rendered.chars().eq(self.buffer.raw_keys.iter().map(|k| k.ch));
             let should_restore = self.config.restore_on_wrong_spelling
-                && rendered != raw_str
-                && match self.buffer.state.to_syllable() {
-                    Some(syllable) => !is_valid_vietnamese_syllable(&syllable),
-                    None => !rendered.is_ascii(),
-                };
+                && !is_same_as_raw
+                && !self.buffer.state.is_valid_spelling();
 
             if should_restore {
                 let backspaces = self.buffer.emitted_len;
-                let mut output = raw_str;
+                let mut output: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
                 output.push(ch);
+                let current_raw = std::mem::take(&mut self.buffer.raw_keys);
                 self.history.commit_word(current_raw, false);
                 self.buffer.clear();
                 self.buffer.raw_keys.push(raw_key);
@@ -223,6 +218,7 @@ impl VietnameseEngine {
                     &self.config,
                 );
                 self.buffer.state = next_state;
+                self.buffer.last_rendered.push(ch);
                 self.buffer.emitted_len = ch.len_utf16();
                 return EngineAction::Replace {
                     backspaces,
@@ -230,21 +226,23 @@ impl VietnameseEngine {
                 };
             }
 
+            let current_raw = std::mem::take(&mut self.buffer.raw_keys);
             self.history.commit_word(current_raw, false);
+            self.buffer.clear();
         }
 
         // If this buffer was restored from history across a space, check if the incoming key
         // is starting a new word instead of modifying the restored word.
         if self.buffer.is_restored_across_space {
+            self.buffer.is_restored_across_space = false;
             let (test_state, _) = self
                 .buffer
                 .state
-                .clone()
                 .feed_key(raw_key, self.buffer.emitted_len, &self.config);
             if matches!(test_state, crate::vietnamese::SyllableState::Passthrough(_))
                 || self.buffer.is_passthrough
             {
-                let current_raw = self.buffer.raw_keys.clone();
+                let current_raw = std::mem::take(&mut self.buffer.raw_keys);
                 self.history.commit_word(current_raw, false);
                 self.history.add_space();
                 self.buffer.clear();
@@ -281,30 +279,36 @@ impl VietnameseEngine {
 
         // Check Macro expansion before clearing buffer
         if self.config.use_macro && !self.buffer.is_empty() {
-            let current_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
-            let rendered = self.buffer.state.render();
-
+            let rendered = self.buffer.rendered();
             let is_space = ch == ' ';
             let allow_start = is_space;
             let allow_end = is_space;
 
+            let is_same = rendered.chars().eq(self.buffer.raw_keys.iter().map(|k| k.ch));
             let expanded = self
                 .macro_table
-                .expand_word(&rendered, allow_start, allow_end)
+                .expand_word(rendered, allow_start, allow_end)
                 .or_else(|| {
-                    self.macro_table
-                        .expand_word(&current_word, allow_start, allow_end)
+                    if !is_same {
+                        let current_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
+                        self.macro_table
+                            .expand_word(&current_word, allow_start, allow_end)
+                    } else {
+                        None
+                    }
                 });
 
-            if let Some(expanded) = expanded {
+            if let Some(mut output) = expanded {
                 let backspaces = self.buffer.emitted_len;
-                let mut output = expanded;
                 output.push(ch);
 
-                self.log_debug(format!(
-                    "[DBG][MACRO] Key: {:?} | Expanded {:?} -> {:?} | Replace(bs={}, output={:?})",
-                    ch, current_word, output, backspaces, output
-                ));
+                if self.config.debug {
+                    let current_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
+                    self.log_debug(format!(
+                        "[DBG][MACRO] Key: {:?} | Expanded {:?} -> {:?} | Replace(bs={}, output={:?})",
+                        ch, current_word, output, backspaces, output
+                    ));
+                }
 
                 self.buffer.clear();
                 if ch == ' ' {
@@ -320,33 +324,28 @@ impl VietnameseEngine {
 
         // Restore raw keys if the word is an invalid Vietnamese syllable
         if self.config.restore_on_wrong_spelling && !self.buffer.is_empty() {
-            let raw_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
-            let rendered = self.buffer.state.render();
-
-            let is_invalid = if rendered != raw_word {
-                match self.buffer.state.to_syllable() {
-                    Some(syllable) => !is_valid_vietnamese_syllable(&syllable),
-                    None => !rendered.is_ascii(),
-                }
+            let is_same = self.buffer.rendered().chars().eq(self.buffer.raw_keys.iter().map(|k| k.ch));
+            let is_invalid = if !is_same {
+                !self.buffer.state.is_valid_spelling()
             } else {
                 false
             };
 
             if is_invalid {
                 let backspaces = self.buffer.emitted_len;
-                let mut output = raw_word;
+                let mut output: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
                 output.push(ch);
 
                 if self.config.debug {
                     self.log_debug(format!(
                         "[DBG][RESTORE] Invalid word {:?} (screen: {:?}) -> Restoring to {:?}",
-                        self.buffer.raw_keys.iter().map(|k| k.ch).collect::<String>(), rendered, output
+                        self.buffer.raw_keys.iter().map(|k| k.ch).collect::<String>(), self.buffer.rendered(), output
                     ));
                 }
 
                 if ch == ' ' {
                     self.history
-                        .commit_word(self.buffer.raw_keys.clone(), true);
+                        .commit_word(std::mem::take(&mut self.buffer.raw_keys), true);
                     self.history.add_space();
                 } else {
                     self.history.clear();
@@ -359,17 +358,17 @@ impl VietnameseEngine {
 
         // Commit word to history
         if !self.buffer.is_empty() {
-            let current_raw = self.buffer.raw_keys.clone();
             if self.config.debug {
-                let rendered = self.buffer.state.render();
+                let current_raw: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
                 self.log_debug(format!(
                     "[DBG][BREAK] Key: {:?} | Committed word: {:?} | Screen: {:?}",
                     ch,
-                    current_raw.iter().map(|k| k.ch).collect::<String>(),
-                    rendered
+                    current_raw,
+                    self.buffer.rendered()
                 ));
             }
             if ch == ' ' {
+                let current_raw = std::mem::take(&mut self.buffer.raw_keys);
                 self.history.commit_word(current_raw, false);
                 self.history.add_space();
             } else {

@@ -1,3 +1,4 @@
+use crate::vietnamese::charset::decompose_vowel;
 use std::collections::HashMap;
 
 /// Macro rule type classification
@@ -66,6 +67,19 @@ pub struct MacroTable {
     entries: HashMap<String, MacroEntry>,
     start_consonants: Vec<MacroEntry>,
     end_consonants: Vec<MacroEntry>,
+}
+
+#[inline]
+fn with_lowercase_key<R>(key: &str, f: impl FnOnce(&str) -> R) -> R {
+    let mut buf = [0u8; 64];
+    if key.len() <= 64 && key.is_ascii() {
+        for (i, b) in key.bytes().enumerate() {
+            buf[i] = b.to_ascii_lowercase();
+        }
+        f(std::str::from_utf8(&buf[..key.len()]).unwrap())
+    } else {
+        f(&key.to_lowercase())
+    }
 }
 
 impl MacroTable {
@@ -149,7 +163,7 @@ impl MacroTable {
 
     /// Remove a macro entry
     pub fn remove(&mut self, key: &str) -> Option<MacroEntry> {
-        let res = self.entries.remove(&key.to_lowercase());
+        let res = with_lowercase_key(key, |k| self.entries.remove(k));
         if res.is_some() {
             self.rebuild_cache();
         }
@@ -158,7 +172,7 @@ impl MacroTable {
 
     /// Check if a macro shortcut key exists
     pub fn contains_key(&self, key: &str) -> bool {
-        self.entries.contains_key(&key.to_lowercase())
+        with_lowercase_key(key, |k| self.entries.contains_key(k))
     }
 
     /// Clear all macro entries
@@ -185,7 +199,7 @@ impl MacroTable {
 
     /// Get a specific macro entry
     pub fn get(&self, key: &str) -> Option<&MacroEntry> {
-        self.entries.get(&key.to_lowercase())
+        with_lowercase_key(key, |k| self.entries.get(k))
     }
 
     /// Get all macro entries sorted by shortcut key
@@ -269,13 +283,14 @@ impl MacroTable {
             return None;
         }
 
-        let key = word.to_lowercase();
-        let entry = self.entries.get(&key)?;
-        if entry.macro_type == MacroType::Normal {
-            Some(apply_case_style(word, &entry.value))
-        } else {
-            None
-        }
+        with_lowercase_key(word, |key| {
+            let entry = self.entries.get(key)?;
+            if entry.macro_type == MacroType::Normal {
+                Some(apply_case_style(word, &entry.value))
+            } else {
+                None
+            }
+        })
     }
 
     /// Expand word on Space: checks Normal, StartConsonant, and EndConsonant macros.
@@ -291,14 +306,24 @@ impl MacroTable {
         allow_start_consonant: bool,
         allow_end_consonant: bool,
     ) -> Option<String> {
-        if word.is_empty() {
+        if word.is_empty() || self.entries.is_empty() {
             return None;
         }
 
-        let lower = word.to_lowercase();
+        let mut buf = [0u8; 64];
+        let lower_cow;
+        let lower: &str = if word.len() <= 64 && word.is_ascii() {
+            for (i, b) in word.bytes().enumerate() {
+                buf[i] = b.to_ascii_lowercase();
+            }
+            std::str::from_utf8(&buf[..word.len()]).unwrap()
+        } else {
+            lower_cow = word.to_lowercase();
+            &lower_cow
+        };
 
         // 1. Exact Normal macro match takes highest priority
-        if let Some(entry) = self.entries.get(&lower)
+        if let Some(entry) = self.entries.get(lower)
             && entry.macro_type == MacroType::Normal
         {
             return Some(apply_case_style(word, &entry.value));
@@ -309,20 +334,19 @@ impl MacroTable {
             return None;
         }
 
-        let mut matched_start: Option<(String, String)> = None;
-        let mut matched_end: Option<(String, String)> = None;
+        let mut matched_start: Option<(&str, &str)> = None;
+        let mut matched_end: Option<(&str, &str)> = None;
 
         // 3. Quick start consonant match (onset)
         if allow_start_consonant {
             for entry in &self.start_consonants {
                 if lower.starts_with(&entry.key) {
                     let rem = &lower[entry.key.len()..];
-                    if !rem.is_empty() {
-                        let next_char = rem.chars().next().unwrap();
-                        if is_vowel(next_char) {
-                            matched_start = Some((entry.key.clone(), entry.value.clone()));
-                            break;
-                        }
+                    if let Some(next_char) = rem.chars().next()
+                        && is_vowel(next_char)
+                    {
+                        matched_start = Some((entry.key.as_str(), entry.value.as_str()));
+                        break;
                     }
                 }
             }
@@ -334,12 +358,11 @@ impl MacroTable {
                 if lower.ends_with(&entry.key) {
                     let prefix_len = lower.len() - entry.key.len();
                     let prefix = &lower[..prefix_len];
-                    if !prefix.is_empty() {
-                        let prev_char = prefix.chars().last().unwrap();
-                        if is_vowel(prev_char) {
-                            matched_end = Some((entry.key.clone(), entry.value.clone()));
-                            break;
-                        }
+                    if let Some(prev_char) = prefix.chars().last()
+                        && is_vowel(prev_char)
+                    {
+                        matched_end = Some((entry.key.as_str(), entry.value.as_str()));
+                        break;
                     }
                 }
             }
@@ -350,7 +373,10 @@ impl MacroTable {
             (Some((sk, sv)), Some((ek, ev))) => {
                 if word.len() >= sk.len() + ek.len() {
                     let middle = &word[sk.len()..word.len() - ek.len()];
-                    let res = format!("{}{}{}", sv, middle, ev);
+                    let mut res = String::with_capacity(sv.len() + middle.len() + ev.len());
+                    res.push_str(sv);
+                    res.push_str(middle);
+                    res.push_str(ev);
                     Some(apply_case_style(word, &res))
                 } else {
                     None
@@ -358,12 +384,16 @@ impl MacroTable {
             }
             (Some((sk, sv)), None) => {
                 let rem = &word[sk.len()..];
-                let res = format!("{}{}", sv, rem);
+                let mut res = String::with_capacity(sv.len() + rem.len());
+                res.push_str(sv);
+                res.push_str(rem);
                 Some(apply_case_style(word, &res))
             }
             (None, Some((ek, ev))) => {
                 let prefix = &word[..word.len() - ek.len()];
-                let res = format!("{}{}", prefix, ev);
+                let mut res = String::with_capacity(prefix.len() + ev.len());
+                res.push_str(prefix);
+                res.push_str(ev);
                 Some(apply_case_style(word, &res))
             }
             (None, None) => None,
@@ -372,23 +402,9 @@ impl MacroTable {
 }
 
 /// Checks whether a character is a Vietnamese vowel (including all tonal/diacritic variants)
+#[inline]
 pub fn is_vowel(c: char) -> bool {
-    let lower = c.to_lowercase().next().unwrap_or(c);
-    matches!(
-        lower,
-        'a' | 'à' | 'á' | 'ả' | 'ã' | 'ạ'
-            | 'ă' | 'ằ' | 'ắ' | 'ẳ' | 'ẵ' | 'ặ'
-            | 'â' | 'ầ' | 'ấ' | 'ẩ' | 'ẫ' | 'ậ'
-            | 'e' | 'è' | 'é' | 'ẻ' | 'ẽ' | 'ẹ'
-            | 'ê' | 'ề' | 'ế' | 'ể' | 'ễ' | 'ệ'
-            | 'i' | 'ì' | 'í' | 'ỉ' | 'ĩ' | 'ị'
-            | 'o' | 'ò' | 'ó' | 'ỏ' | 'õ' | 'ọ'
-            | 'ô' | 'ồ' | 'ố' | 'ổ' | 'ỗ' | 'ộ'
-            | 'ơ' | 'ờ' | 'ớ' | 'ở' | 'ỡ' | 'ợ'
-            | 'u' | 'ù' | 'ú' | 'ủ' | 'ũ' | 'ụ'
-            | 'ư' | 'ừ' | 'ứ' | 'ử' | 'ữ' | 'ự'
-            | 'y' | 'ỳ' | 'ý' | 'ỷ' | 'ỹ' | 'ỵ'
-    )
+    decompose_vowel(c).is_some()
 }
 
 /// Applies the casing style of `source` onto `target`

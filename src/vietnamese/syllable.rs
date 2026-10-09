@@ -2,7 +2,7 @@ use super::charset::{BaseVowel, Diacritic, Tone, compose_d, compose_vowel};
 use std::fmt;
 
 /// Represents a single character in the syllable with its case preserved.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct VowelLetter {
     pub base: BaseVowel,
     pub diacritic: Diacritic,

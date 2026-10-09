@@ -1,27 +1,41 @@
 //! Vietnamese Coda (Phụ âm cuối) State Representation
 
 use super::charset::{Diacritic, Tone, compose_vowel};
+use super::inline_list::InlineList;
 use super::nucleus::NucleusState;
 use super::syllable::Syllable;
 use std::fmt;
 
 /// Coda (Phụ âm cuối)
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CodaState {
     pub nucleus: NucleusState,
-    pub coda: Vec<(char, bool)>,
+    pub coda: InlineList<(char, bool), 4>,
 }
 
 impl CodaState {
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[inline]
+    pub fn from_single(nucleus: NucleusState, ch: char, is_upper: bool) -> Self {
+        Self {
+            nucleus,
+            coda: InlineList::from_single((ch, is_upper)),
+        }
+    }
+
+    #[inline]
     pub fn to_syllable(&self) -> Syllable {
         self.into()
     }
-}
 
-impl fmt::Display for CodaState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    #[inline]
+    pub fn render_to(&self, out: &mut String) {
         if let Some(ref onset) = self.nucleus.onset {
-            write!(f, "{onset}")?;
+            onset.render_to(out);
         }
 
         // When there is a coda, tone is placed according to coda rules:
@@ -43,26 +57,36 @@ impl fmt::Display for CodaState {
             } else {
                 Tone::None
             };
-            write!(
-                f,
-                "{}",
-                compose_vowel(v.base, v.diacritic, tone_for_vowel, v.is_upper)
-            )?;
+            out.push(compose_vowel(
+                v.base,
+                v.diacritic,
+                tone_for_vowel,
+                v.is_upper,
+            ));
         }
 
         for &(c, is_upper) in &self.coda {
             if is_upper {
-                for u in c.to_uppercase() {
-                    write!(f, "{u}")?;
-                }
+                out.push(c.to_ascii_uppercase());
             } else {
-                for l in c.to_lowercase() {
-                    write!(f, "{l}")?;
-                }
+                out.push(c.to_ascii_lowercase());
             }
         }
+    }
 
-        Ok(())
+    #[inline]
+    pub fn render(&self) -> String {
+        let mut s = String::with_capacity(20);
+        self.render_to(&mut s);
+        s
+    }
+}
+
+impl fmt::Display for CodaState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = String::with_capacity(20);
+        self.render_to(&mut s);
+        f.write_str(&s)
     }
 }
 
@@ -73,17 +97,16 @@ impl From<&CodaState> for Syllable {
                 .nucleus
                 .onset
                 .as_ref()
-                .map(|o| o.chars.clone())
+                .map(|o| o.chars.to_vec())
                 .unwrap_or_default(),
             d_stroke: coda
                 .nucleus
                 .onset
                 .as_ref()
                 .is_some_and(|o| o.is_d_stroke),
-            vowels: coda.nucleus.vowels.clone(),
+            vowels: coda.nucleus.vowels.to_vec(),
             tone: coda.nucleus.tone,
-            coda: coda.coda.clone(),
+            coda: coda.coda.to_vec(),
         }
     }
 }
-

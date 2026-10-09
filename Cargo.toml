@@ -24,7 +24,7 @@ path = "examples/combinatorial_tester.rs"
 winres = "0.1.12"
 
 [profile.release]
-opt-level = "z"
+opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"

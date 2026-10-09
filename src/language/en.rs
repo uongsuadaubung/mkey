@@ -26,7 +26,6 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
 
     // Tab 0: Typing
     typing_title: "Typing Assistance & Spell Checking",
-    check_spelling: "Enable Vietnamese spell checking",
     check_restore_wrong: "Auto-restore keys on wrong spelling",
     check_auto_upper: "Auto-capitalize first letter of sentence",
 

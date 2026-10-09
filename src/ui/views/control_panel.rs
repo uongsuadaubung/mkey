@@ -11,7 +11,6 @@ pub const IDC_CHECK_CTRL_SHIFT: u32 = 303;
 pub const IDC_TAB_MAIN: u32 = 400;
 
 // Tab 0: Bộ gõ
-pub const IDC_CHECK_SPELLING: u32 = 401;
 pub const IDC_CHECK_RESTORE_WRONG: u32 = 402;
 pub const IDC_CHECK_AUTO_UPPER: u32 = 405;
 
@@ -58,7 +57,6 @@ pub struct ControlPanelControls {
 
     // Tab 0 Controls
     pub label_typing_title: Label,
-    pub check_spelling: CheckBox,
     pub check_restore_wrong: CheckBox,
     pub check_auto_upper: CheckBox,
 
@@ -153,22 +151,12 @@ impl ControlPanelControls {
             22,
             hfont_bold,
         )?;
-        let check_spelling = CheckBox::create(
-            parent,
-            IDC_CHECK_SPELLING,
-            strings.check_spelling,
-            40,
-            185,
-            360,
-            24,
-            hfont_normal,
-        )?;
         let check_restore_wrong = CheckBox::create(
             parent,
             IDC_CHECK_RESTORE_WRONG,
             strings.check_restore_wrong,
             40,
-            225,
+            190,
             360,
             24,
             hfont_normal,
@@ -178,7 +166,7 @@ impl ControlPanelControls {
             IDC_CHECK_AUTO_UPPER,
             strings.check_auto_upper,
             40,
-            265,
+            230,
             360,
             24,
             hfont_normal,
@@ -432,7 +420,6 @@ impl ControlPanelControls {
             check_ctrl_shift,
             tab_bar,
             label_typing_title,
-            check_spelling,
             check_restore_wrong,
             check_auto_upper,
             check_use_macro,
@@ -542,7 +529,6 @@ impl ControlPanelControls {
             // Tab 0 controls
             let show_t0 = if tab_idx == 0 { SW_SHOW } else { SW_HIDE };
             ShowWindow(self.label_typing_title.hwnd(), show_t0);
-            ShowWindow(self.check_spelling.hwnd(), show_t0);
             ShowWindow(self.check_restore_wrong.hwnd(), show_t0);
             ShowWindow(self.check_auto_upper.hwnd(), show_t0);
 
@@ -639,7 +625,6 @@ impl ControlPanelControls {
         self.check_ctrl_shift
             .set_checked(config.switch_with_ctrl_shift);
 
-        self.check_spelling.set_checked(config.check_spelling);
         self.check_restore_wrong
             .set_checked(config.restore_on_wrong_spelling);
         self.check_auto_upper
@@ -686,7 +671,6 @@ impl ControlPanelControls {
         }
 
         config.switch_with_ctrl_shift = self.check_ctrl_shift.is_checked();
-        config.check_spelling = self.check_spelling.is_checked();
         config.restore_on_wrong_spelling = self.check_restore_wrong.is_checked();
         config.auto_uppercase_first_char = self.check_auto_upper.is_checked();
         config.use_macro = self.check_use_macro.is_checked();
@@ -758,7 +742,6 @@ impl ControlPanelControls {
         );
 
         self.label_typing_title.set_text(strings.typing_title);
-        self.check_spelling.set_text(strings.check_spelling);
         self.check_restore_wrong.set_text(strings.check_restore_wrong);
         self.check_auto_upper.set_text(strings.check_auto_upper);
 

@@ -84,7 +84,6 @@ pub fn parse_config_and_macros(content: &str) -> (EngineConfig, MacroTable) {
                 "switch_key" | "switch_with_ctrl_shift" => {
                     config.switch_with_ctrl_shift = val_l.contains("ctrl") || val_bool;
                 }
-                "check_spelling" => config.check_spelling = val_bool,
                 "restore_on_wrong" | "restore_on_wrong_spelling" => {
                     config.restore_on_wrong_spelling = val_bool
                 }
@@ -132,7 +131,6 @@ pub fn serialize_config_and_macros(config: &EngineConfig, macros: &MacroTable) -
     out.push_str(&format!("switch_key = {}\n\n", switch_str));
 
     out.push_str("[spelling]\n");
-    out.push_str(&format!("check_spelling = {}\n", config.check_spelling));
     out.push_str(&format!(
         "restore_on_wrong = {}\n",
         config.restore_on_wrong_spelling

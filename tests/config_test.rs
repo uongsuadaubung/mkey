@@ -54,7 +54,6 @@ vn = Việt Nam
     assert_eq!(config.method, InputMethod::Vni);
     assert!(!config.enabled);
     assert!(config.switch_with_ctrl_shift);
-    assert!(config.check_spelling);
     assert!(!config.restore_on_wrong_spelling);
     assert!(config.auto_uppercase_first_char);
     assert!(config.use_macro);

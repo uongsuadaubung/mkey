@@ -14,7 +14,7 @@ use crate::ui::views::{
     IDC_BTN_ADD_MACRO, IDC_BTN_CANCEL_MACRO, IDC_BTN_CLOSE, IDC_BTN_DEFAULTS, IDC_BTN_DEL_MACRO,
     IDC_BTN_EDIT_MACRO, IDC_BTN_EXIT, IDC_BTN_OPEN_LOG, IDC_CHECK_AUTO_UPPER, IDC_CHECK_AUTOSTART,
     IDC_CHECK_CTRL_SHIFT, IDC_CHECK_DEBUG_LOG, IDC_CHECK_MACRO_EN,
-    IDC_CHECK_RESTORE_WRONG, IDC_CHECK_SHOW_DIALOG, IDC_CHECK_SPELLING,
+    IDC_CHECK_RESTORE_WRONG, IDC_CHECK_SHOW_DIALOG,
     IDC_CHECK_USE_MACRO, IDC_COMBO_LANG, IDC_COMBO_METHOD, IDC_COMBO_MODE, IDC_COMBO_THEME,
     IDC_LABEL_EMAIL, IDC_LABEL_GITHUB, IDC_LIST_MACRO, IDC_TAB_MAIN, IDM_CONTROL_PANEL, IDM_EXIT,
     IDM_SIMPLE_TELEX, IDM_TELEX, IDM_TOGGLE_VIET, IDM_VNI, WM_TRAY_MESSAGE,
@@ -494,7 +494,6 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                         || control_id == IDC_COMBO_THEME
                         || control_id == IDC_COMBO_LANG;
                     let is_check = control_id == IDC_CHECK_CTRL_SHIFT
-                        || control_id == IDC_CHECK_SPELLING
                         || control_id == IDC_CHECK_RESTORE_WRONG
                         || control_id == IDC_CHECK_AUTO_UPPER
                         || control_id == IDC_CHECK_USE_MACRO

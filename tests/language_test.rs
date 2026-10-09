@@ -56,7 +56,6 @@ fn test_language_string_dictionaries_completeness() {
         assert!(!s.tab_about.is_empty());
 
         assert!(!s.typing_title.is_empty());
-        assert!(!s.check_spelling.is_empty());
         assert!(!s.check_restore_wrong.is_empty());
         assert!(!s.check_auto_upper.is_empty());
 

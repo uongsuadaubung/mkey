@@ -161,8 +161,6 @@ pub struct EngineConfig {
     pub language: crate::language::Language,
     /// Bật/tắt chế độ gõ tiếng Việt (true: bật gõ tiếng Việt, false: tiếng Anh)
     pub enabled: bool,
-    /// Kiểm tra chính tả tiếng Việt
-    pub check_spelling: bool,
     /// Tự động khôi phục phím nếu gõ sai chính tả
     pub restore_on_wrong_spelling: bool,
     /// Tự động viết hoa chữ cái đầu câu sau dấu chấm / Enter
@@ -192,7 +190,6 @@ impl Default for EngineConfig {
             theme: UiTheme::Auto,
             language: crate::language::Language::default(),
             enabled: true,
-            check_spelling: true,
             restore_on_wrong_spelling: true,
             auto_uppercase_first_char: false,
             bracket_w: true,

@@ -26,7 +26,6 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
 
     // Tab 0: Typing
     typing_title: "Tính năng hỗ trợ gõ & kiểm tra chính tả",
-    check_spelling: "Bật kiểm tra chính tả tiếng Việt",
     check_restore_wrong: "Tự động khôi phục phím khi gõ sai từ",
     check_auto_upper: "Tự động viết hoa chữ cái đầu câu",
 

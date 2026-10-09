@@ -87,7 +87,6 @@ pub struct LanguageStrings {
 
     // Tab 0: Typing
     pub typing_title: &'static str,
-    pub check_spelling: &'static str,
     pub check_restore_wrong: &'static str,
     pub check_auto_upper: &'static str,
 

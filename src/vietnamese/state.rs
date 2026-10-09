@@ -1,4 +1,5 @@
 use super::{
+    VowelLetter,
     charset::{BaseVowel, Diacritic, Tone, decompose_vowel, is_d_stroke},
     coda::CodaState,
     inline_list::InlineList,
@@ -11,7 +12,6 @@ use super::{
         is_valid_vietnamese_components,
     },
     syllable::Syllable,
-    VowelLetter,
 };
 use crate::engine::{action::EngineAction, buffer::RawKey, config::EngineConfig};
 use std::fmt;
@@ -132,7 +132,10 @@ impl SyllableState {
     }
 
     /// Parses an iterator of characters into the appropriate SyllableState
-    pub fn parse_prefix_chars(raw: impl IntoIterator<Item = char>, config: &EngineConfig) -> SyllableState {
+    pub fn parse_prefix_chars(
+        raw: impl IntoIterator<Item = char>,
+        config: &EngineConfig,
+    ) -> SyllableState {
         let mut state = SyllableState::Empty;
         let mut current_len = 0;
         for ch in raw {

@@ -30,11 +30,7 @@ impl WordHistory {
     }
 
     /// Record a newly completed word
-    pub fn commit_word(
-        &mut self,
-        raw_keys: Vec<RawKey>,
-        is_raw_restored: bool,
-    ) {
+    pub fn commit_word(&mut self, raw_keys: Vec<RawKey>, is_raw_restored: bool) {
         if !raw_keys.is_empty() {
             if self.committed_words.len() >= MAX_HISTORY_WORDS {
                 self.committed_words.pop_front();

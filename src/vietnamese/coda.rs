@@ -99,11 +99,7 @@ impl From<&CodaState> for Syllable {
                 .as_ref()
                 .map(|o| o.chars.to_vec())
                 .unwrap_or_default(),
-            d_stroke: coda
-                .nucleus
-                .onset
-                .as_ref()
-                .is_some_and(|o| o.is_d_stroke),
+            d_stroke: coda.nucleus.onset.as_ref().is_some_and(|o| o.is_d_stroke),
             vowels: coda.nucleus.vowels.to_vec(),
             tone: coda.nucleus.tone,
             coda: coda.coda.to_vec(),

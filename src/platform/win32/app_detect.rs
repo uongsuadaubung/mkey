@@ -1,8 +1,9 @@
 //! Active Application Context & Browser Omnibox Autocomplete Detection
 
 use super::types::{
-    CloseHandle, GetClassNameW, GetForegroundWindow, GetGUIThreadInfo, GetWindowThreadProcessId,
-    OpenProcess, QueryFullProcessImageNameW, GUITHREADINFO, PROCESS_QUERY_LIMITED_INFORMATION,
+    CloseHandle, GUITHREADINFO, GetClassNameW, GetForegroundWindow, GetGUIThreadInfo,
+    GetWindowThreadProcessId, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+    QueryFullProcessImageNameW,
 };
 use std::sync::atomic::{AtomicIsize, AtomicU8, AtomicU32, Ordering};
 
@@ -161,4 +162,3 @@ fn utf16_str_eq(slice: &[u16], ascii_str: &str) -> bool {
         .zip(ascii_str.bytes())
         .all(|(&u, b)| u == b as u16)
 }
-

@@ -115,20 +115,28 @@ pub fn send_replace(backspaces: usize, text: &str) {
         let mut count = 0;
 
         if is_autocomplete && backspaces > 0 && utf16_count > 0 {
-            inputs[count].write(make_unicode_down(0x202F)); count += 1;
-            inputs[count].write(make_unicode_up(0x202F)); count += 1;
-            inputs[count].write(make_backspace_down()); count += 1;
-            inputs[count].write(make_backspace_up()); count += 1;
+            inputs[count].write(make_unicode_down(0x202F));
+            count += 1;
+            inputs[count].write(make_unicode_up(0x202F));
+            count += 1;
+            inputs[count].write(make_backspace_down());
+            count += 1;
+            inputs[count].write(make_backspace_up());
+            count += 1;
         }
 
         for _ in 0..backspaces {
-            inputs[count].write(make_backspace_down()); count += 1;
-            inputs[count].write(make_backspace_up()); count += 1;
+            inputs[count].write(make_backspace_down());
+            count += 1;
+            inputs[count].write(make_backspace_up());
+            count += 1;
         }
 
         for ch in text.encode_utf16() {
-            inputs[count].write(make_unicode_down(ch)); count += 1;
-            inputs[count].write(make_unicode_up(ch)); count += 1;
+            inputs[count].write(make_unicode_down(ch));
+            count += 1;
+            inputs[count].write(make_unicode_up(ch));
+            count += 1;
         }
 
         unsafe {

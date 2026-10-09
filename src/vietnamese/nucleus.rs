@@ -1,12 +1,12 @@
 //! Vietnamese Nucleus (Nguyên âm & Dấu thanh) State Representation
 
+use super::VowelLetter;
 use super::charset::{BaseVowel, Diacritic, Tone, compose_vowel};
 use super::inline_list::InlineList;
 use super::modifier::KeyEffect;
 use super::onset::OnsetState;
 use super::spelling::is_stop_coda;
 use super::syllable::Syllable;
-use super::VowelLetter;
 use crate::engine::buffer::RawKey;
 use crate::engine::config::EngineConfig;
 use std::fmt;
@@ -472,4 +472,3 @@ impl From<&NucleusState> for Syllable {
         }
     }
 }
-

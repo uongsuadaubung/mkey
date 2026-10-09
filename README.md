@@ -16,21 +16,23 @@
 
 | Chỉ số (Metric) | Kết quả đo đạc thực tế (Benchmark) | Ý nghĩa đối với người dùng & Game thủ |
 | :--- | :--- | :--- |
-| 🚀 **Tốc độ xử lý (Throughput)** | **~10.960.000 ký tự / giây** | Xử lý gần 11 triệu phím/giây, không bao giờ bị nghẽn phím khi gõ cực nhanh |
-| ⏱️ **Độ trễ phản hồi (Latency)** | **~0.09 microsecond / phím** (0.00009 ms / 91 ns) | Phản hồi ngay trong 91 nano-giây, nhanh gấp **150.000 lần** ngưỡng mắt người nhận biết |
-| 💾 **Bộ nhớ RAM (Tray / Chạy ngầm)** | **0.5 – 0.9 MB RAM** | Nhẹ kỷ lục; gần như vô hình trong Task Manager, không tốn tài nguyên máy |
-| 🖥️ **Bộ nhớ RAM (Control Panel mở)** | **~3.5 MB RAM** | Toàn bộ giao diện Win32 native siêu gọn nhẹ, không dùng WebView/Electron cồng kềnh |
-| 📦 **Dung lượng file thực thi (.exe)** | **~479 KB** | Siêu nhỏ gọn, nhẹ hơn cả một bức ảnh; tải và khởi chạy tức thì |
+| 🚀 **Tốc độ xử lý (Throughput)** | **~11.000.000 – 14.000.000 ký tự / giây** | Xử lý lên tới 14 triệu phím/giây, không bao giờ bị nghẽn phím khi gõ cực nhanh |
+| ⏱️ **Độ trễ phản hồi (Latency)** | **~0.07 – 0.09 microsecond / phím** (70 – 90 ns) | Phản hồi siêu thanh trong 70 nano-giây, nhanh gấp **150.000 lần** ngưỡng mắt người nhận biết |
+| 💾 **Bộ nhớ RAM (Chạy ngầm)** | **< 1 MB** (Tắt Sound: 0.5 – 0.9 MB) / **~1.5 MB** (Bật Sound) | Nhẹ không đối thủ; Task Manager chỉ hiện ~1.5 MB khi bật âm thanh phím cơ |
+| 🖥️ **Bộ nhớ RAM (Control Panel mở)** | **~3.5 – 4.5 MB RAM** | Toàn bộ giao diện Win32 native siêu gọn nhẹ, không dùng WebView/Electron cồng kềnh |
+| 🔊 **Giả lập phím cơ (Sound Engine)** | **Tích hợp Native WASAPI (13 switches)** | Âm thanh phím cơ 48 kHz studio tích hợp sẵn, không cần cài thêm phần mềm ngoài |
+| 📦 **Dung lượng file thực thi (.exe)** | **~549 KB** | Siêu nhỏ gọn (chứa trọn bộ gõ, GUI native, WASAPI engine & switch loader) |
 | 🛡️ **Runtime Dependencies** | **0 dependencies (Pure Rust)** | 100% Rust thuần giao tiếp trực tiếp Windows API, không rủi ro bảo mật bên thứ 3 |
 | 🎮 **Hiện tượng khựng phím (Stutter)** | **Zero Input Lag / Zero GC Pause** | Không có Garbage Collector (GC) thu gom rác gây trễ nhịp khi chơi game đỉnh cao |
 
 ### 🏆 So sánh với các bộ gõ tiếng Việt thông thường
 
-| Tiêu chí | MKey (Rust Native) | Bộ gõ C/C++ truyền thống | Bộ gõ nền tảng Web / Electron |
+| Tiêu chí | MKey (Rust Native) | Bộ gõ C/C++ truyền thống (UniKey/EVKey) | Bộ gõ nền tảng Web / Electron |
 | :--- | :--- | :---: | :---: |
-| **Dung lượng file thực thi (.exe)** | **~479 KB** | 3 MB – 10 MB | 80 MB – 150 MB |
-| **Mức chiếm dụng RAM khi chạy ngầm** | **< 1 MB** (0.5 – 0.9 MB) | 15 MB – 40 MB | 100 MB – 300 MB |
-| **Độ trễ xử lý phím** | **~0.09 µs** (91 ns) | 1.5 – 5.0 µs | 10 – 30 ms (có độ trễ) |
+| **Dung lượng file thực thi (.exe)** | **~549 KB** | 1 MB – 5 MB | 80 MB – 150 MB |
+| **Mức chiếm dụng RAM khi chạy ngầm** | **< 1 MB** (hoặc **~1.5 MB** khi bật Sound) | 1.5 MB – 4 MB | 100 MB – 300 MB |
+| **Độ trễ xử lý phím** | **~0.07 µs** (70 ns) | 1.0 – 3.0 µs | 10 – 30 ms (có độ trễ) |
+| **Giả lập âm thanh phím cơ** | **Tích hợp sẵn (~1.5 MB RAM, 0ms lag)** | Không có | Phải cài Mechvibes (+150~300 MB RAM) |
 | **Khựng khung hình (Micro-stutter)** | **Hoàn toàn KHÔNG (Zero GC)** | Hiếm gặp | Thường xuyên do GC / Event loop |
 | **Cơ chế khôi phục từ tiếng Anh** | **Tự động theo ngữ âm** | Thoát dấu thủ công / Danh sách thô | Dễ xung đột phím |
 | **Công nghệ khôi phục Backspace** | **SSOT Replay tất định** | Phỏng đoán ký tự xóa (dễ vỡ) | Phỏng đoán |
@@ -85,6 +87,29 @@ Tập tin thực thi sau khi biên dịch nằm tại: `target/release/MKey.exe`
      - `Ko` $\to$ `Không`
      - `KO` $\to$ `KHÔNG`
    - Tra cứu linh hoạt cả từ thô (`ddc`) lẫn từ hiển thị (`đc`).
+
+7. **Bộ giả lập âm thanh phím cơ nguyên bản (Native WASAPI Sound Engine):**
+   - **Tích hợp phần cứng trực tiếp:** Sử dụng trực tiếp Windows Audio Session API (WASAPI Shared Mode) ở chuẩn âm thanh phòng thu **48.000 Hz, 32-bit Float**. Loại bỏ hoàn toàn sự phụ thuộc vào các phần mềm cồng kềnh như Mechvibes (vốn ngốn 150 – 300 MB RAM do chạy Electron).
+   - **13 Bộ Switch danh tiếng thế giới sẵn có:**
+     1. *Alps SKCM Blue* (Clicky vintage cổ điển)
+     2. *Cherry MX Black* (Linear nặng đầm tay)
+     3. *Cherry MX Blue* (Clicky giòn giã huyền thoại)
+     4. *Cherry MX Brown* (Tactile êm ái đa dụng)
+     5. *Cherry MX Red* (Linear mượt mà, siêu nhẹ)
+     6. *Durock Alpaca* (Linear cao cấp, siêu êm)
+     7. *Gateron Ink Black* (Linear âm trầm, thocky)
+     8. *Holy Panda* (Tactile khấc nảy đỉnh cao)
+     9. *IBM Buckling Spring* (Âm thanh bàn phím cơ Model M huyền thoại)
+     10. *Kailh Box Navy* (Thick click bar siêu đanh)
+     11. *NovelKeys Cream* (Chất âm linear ấm áp đặc trưng)
+     12. *Topre* (Phím điện dung êm ái, tĩnh lặng)
+     13. *Typewriter* (Máy đánh chữ kim loại hoài cổ)
+   - **Định tuyến âm thanh từng phím thông minh (Multi-Key Tagging $O(1)$):** Phân tách và phát đúng âm thanh đặc trưng riêng cho từng phím: `Spacebar`, `Backspace`, `Enter`, `Esc`, `Shift`, `Delete`, `Arrows`...
+   - **Bộ trộn đa âm SIMD Polyphonic Mixer:** Hỗ trợ phát đồng thời tới **16 giọng (voices)** cùng lúc bằng bộ tích lũy SIMD Float, không bao giờ bị cắt tiếng hay nuốt âm khi gõ tốc độ cao.
+   - **Tiết kiệm tài nguyên tuyệt đối (Zero-Cost on Disable):**
+     - *Khi Bật:* Chỉ tải duy nhất 1 switch đang chọn vào RAM (~0.8 MB). 12 switch còn lại nằm yên trên đĩa (0 byte RAM).
+     - *Khi Tắt:* Giải phóng 100% dữ liệu âm thanh, đóng phiên WASAPI, trả RAM vật lý cho Windows qua `trim_working_set`, luồng âm thanh ngủ sâu (0% CPU, 0 wakeups/giây).
+   - **Tùy biến không giới hạn (Custom Soundpacks):** Người dùng có thể dễ dàng thêm bất kỳ bộ switch nào bằng cách tạo thư mục chứa các file `.wav` tại `%USERPROFILE%\.config\mkey\switches\<Tên Switch>\`.
 
 ---
 

@@ -111,7 +111,11 @@ impl TrayHandler {
 
         menu.add_checked_item(IDM_TELEX, strings.tray_method_telex, is_telex);
         menu.add_checked_item(IDM_VNI, strings.tray_method_vni, is_vni);
-        menu.add_checked_item(IDM_SIMPLE_TELEX, strings.tray_method_simple_telex, is_simple);
+        menu.add_checked_item(
+            IDM_SIMPLE_TELEX,
+            strings.tray_method_simple_telex,
+            is_simple,
+        );
         menu.add_separator();
 
         // 3. Control Panel & Exit

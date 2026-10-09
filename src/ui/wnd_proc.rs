@@ -102,8 +102,7 @@ pub fn handle_menu_command(cmd: u32) {
                 && let Some(ref mut engine) = *guard
             {
                 engine.config_mut().method = InputMethod::Telex;
-                let _ =
-                    config_store::save_config_and_macros(engine.config(), &engine.macro_table);
+                let _ = config_store::save_config_and_macros(engine.config(), &engine.macro_table);
             }
         }
         IDM_VNI => {
@@ -111,8 +110,7 @@ pub fn handle_menu_command(cmd: u32) {
                 && let Some(ref mut engine) = *guard
             {
                 engine.config_mut().method = InputMethod::Vni;
-                let _ =
-                    config_store::save_config_and_macros(engine.config(), &engine.macro_table);
+                let _ = config_store::save_config_and_macros(engine.config(), &engine.macro_table);
             }
         }
         IDM_SIMPLE_TELEX => {
@@ -120,8 +118,7 @@ pub fn handle_menu_command(cmd: u32) {
                 && let Some(ref mut engine) = *guard
             {
                 engine.config_mut().method = InputMethod::SimpleTelex1;
-                let _ =
-                    config_store::save_config_and_macros(engine.config(), &engine.macro_table);
+                let _ = config_store::save_config_and_macros(engine.config(), &engine.macro_table);
             }
         }
         IDM_CONTROL_PANEL => {
@@ -265,10 +262,8 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                     && let Some(ref mut engine) = *guard
                 {
                     engine.config_mut().sound_volume = pos as u8;
-                    let _ = config_store::save_config_and_macros(
-                        engine.config(),
-                        &engine.macro_table,
-                    );
+                    let _ =
+                        config_store::save_config_and_macros(engine.config(), &engine.macro_table);
                     crate::platform::win32::sound::reconfigure_sound(
                         engine.config().sound_enabled,
                         &engine.config().sound_profile,
@@ -326,7 +321,9 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                         ui.controls.load_config(&def_config);
                         ui.controls.update_language(def_config.language);
                         unsafe {
-                            use crate::ui::components::{InvalidateRect, SetWindowTextW, UpdateWindow};
+                            use crate::ui::components::{
+                                InvalidateRect, SetWindowTextW, UpdateWindow,
+                            };
                             let strings = crate::language::get_strings(def_config.language);
                             SetWindowTextW(ui.h_panel, to_wide(strings.window_title).as_ptr());
                             InvalidateRect(ui.controls.tab_bar.hwnd(), std::ptr::null(), 1);
@@ -340,11 +337,12 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                 IDC_BTN_ADD_MACRO => {
                     let item_data = if let Ok(ui_guard) = UI_MANAGER.try_lock() {
                         ui_guard.as_ref().map(|ui| {
-                            let mtype = match ui.controls.combo_macro_type.get_selected().unwrap_or(0) {
-                                1 => crate::engine::macro_table::MacroType::StartConsonant,
-                                2 => crate::engine::macro_table::MacroType::EndConsonant,
-                                _ => crate::engine::macro_table::MacroType::Normal,
-                            };
+                            let mtype =
+                                match ui.controls.combo_macro_type.get_selected().unwrap_or(0) {
+                                    1 => crate::engine::macro_table::MacroType::StartConsonant,
+                                    2 => crate::engine::macro_table::MacroType::EndConsonant,
+                                    _ => crate::engine::macro_table::MacroType::Normal,
+                                };
                             (
                                 ui.controls.edit_macro_key.get_text().trim().to_string(),
                                 ui.controls.edit_macro_value.get_text().trim().to_string(),
@@ -393,11 +391,12 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                 IDC_BTN_EDIT_MACRO => {
                     let item_data = if let Ok(ui_guard) = UI_MANAGER.try_lock() {
                         ui_guard.as_ref().map(|ui| {
-                            let mtype = match ui.controls.combo_macro_type.get_selected().unwrap_or(0) {
-                                1 => crate::engine::macro_table::MacroType::StartConsonant,
-                                2 => crate::engine::macro_table::MacroType::EndConsonant,
-                                _ => crate::engine::macro_table::MacroType::Normal,
-                            };
+                            let mtype =
+                                match ui.controls.combo_macro_type.get_selected().unwrap_or(0) {
+                                    1 => crate::engine::macro_table::MacroType::StartConsonant,
+                                    2 => crate::engine::macro_table::MacroType::EndConsonant,
+                                    _ => crate::engine::macro_table::MacroType::Normal,
+                                };
                             (
                                 ui.controls.edit_macro_key.get_text().trim().to_string(),
                                 ui.controls.edit_macro_value.get_text().trim().to_string(),
@@ -615,9 +614,14 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                             {
                                 ui.controls.update_language(lang);
                                 unsafe {
-                                    use crate::ui::components::{InvalidateRect, SetWindowTextW, UpdateWindow};
+                                    use crate::ui::components::{
+                                        InvalidateRect, SetWindowTextW, UpdateWindow,
+                                    };
                                     let strings = crate::language::get_strings(lang);
-                                    SetWindowTextW(ui.h_panel, to_wide(strings.window_title).as_ptr());
+                                    SetWindowTextW(
+                                        ui.h_panel,
+                                        to_wide(strings.window_title).as_ptr(),
+                                    );
                                     InvalidateRect(ui.controls.tab_bar.hwnd(), std::ptr::null(), 1);
                                     UpdateWindow(ui.controls.tab_bar.hwnd());
                                 }

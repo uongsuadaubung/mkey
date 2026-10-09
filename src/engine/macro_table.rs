@@ -423,8 +423,7 @@ pub fn apply_case_style(source: &str, target: &str) -> String {
         return target.to_uppercase();
     }
 
-    if let (Some(first_source), Some(first_target)) =
-        (source.chars().next(), target.chars().next())
+    if let (Some(first_source), Some(first_target)) = (source.chars().next(), target.chars().next())
         && first_source.is_uppercase()
     {
         let mut res = String::with_capacity(target.len());

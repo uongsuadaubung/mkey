@@ -213,7 +213,9 @@ pub fn serialize_config_and_macros(config: &EngineConfig, macros: &MacroTable) -
     out.push_str(&format!("theme = {}\n\n", config.theme));
 
     out.push_str("[macro]\n");
-    out.push_str("# Danh sách từ gõ tắt: <từ viết tắt> = <cụm từ thay thế>[:loại (normal/start/end)]\n");
+    out.push_str(
+        "# Danh sách từ gõ tắt: <từ viết tắt> = <cụm từ thay thế>[:loại (normal/start/end)]\n",
+    );
     for entry in macros.get_sorted_entries() {
         if entry.macro_type == crate::engine::macro_table::MacroType::Normal {
             out.push_str(&format!("{} = {}\n", entry.key, entry.value));

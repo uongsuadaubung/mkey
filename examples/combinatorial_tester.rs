@@ -82,10 +82,7 @@ fn parse_vietnamese_word(word: &str) -> Option<SyllableComponents> {
     // Phụ âm đầu (Onset)
     let raw_onset: String = chars[..first_vowel].iter().collect();
     let has_d_stroke = raw_onset.contains('đ') || raw_onset.contains('Đ');
-    let onset = raw_onset
-        .replace('đ', "d")
-        .replace('Đ', "D")
-        .to_lowercase();
+    let onset = raw_onset.replace('đ', "d").replace('Đ', "D").to_lowercase();
 
     // Nguyên âm & Dấu thanh
     let mut vowels = Vec::new();
@@ -157,7 +154,10 @@ fn parse_vietnamese_word(word: &str) -> Option<SyllableComponents> {
 
     // Phụ âm cuối: cho phép các âm cuối tiếng Việt chuẩn + case đặc biệt 'k' cho Đắk Lắk
     if !coda.is_empty() {
-        let is_standard_coda = matches!(coda.as_str(), "c" | "ch" | "m" | "n" | "ng" | "nh" | "p" | "t");
+        let is_standard_coda = matches!(
+            coda.as_str(),
+            "c" | "ch" | "m" | "n" | "ng" | "nh" | "p" | "t"
+        );
         let is_special_k = coda == "k"
             && (has_d_stroke || final_onset == "l")
             && final_vowels.len() == 1
@@ -168,7 +168,10 @@ fn parse_vietnamese_word(word: &str) -> Option<SyllableComponents> {
     }
 
     // Loại bỏ phụ âm đầu 'k' đi với 'a', 'o', 'u' (tiếng Việt chuẩn dùng 'c' hoặc 'q')
-    if final_onset == "k" && !final_vowels.is_empty() && matches!(final_vowels[0].base, 'a' | 'o' | 'u') {
+    if final_onset == "k"
+        && !final_vowels.is_empty()
+        && matches!(final_vowels[0].base, 'a' | 'o' | 'u')
+    {
         return None;
     }
 
@@ -363,15 +366,51 @@ fn apply_casing(candidate: &str, casing: &Casing) -> String {
 /// Chuẩn hóa vị trí dấu thanh kiểu mới vs kiểu cũ (hòa <-> hoà, thủy <-> thuỷ, khỏe <-> khoẻ, v.v.)
 fn normalize_syllable(s: &str) -> String {
     let pairs = [
-        ("òa", "oà"), ("óa", "oá"), ("ỏa", "oả"), ("õa", "oã"), ("ọa", "oạ"),
-        ("Òa", "Oà"), ("Óa", "Oá"), ("Ỏa", "Oả"), ("Õa", "Oã"), ("Ọa", "Oạ"),
-        ("ÒA", "OÀ"), ("ÓA", "OÁ"), ("ỎA", "OẢ"), ("ÕA", "OÃ"), ("ỌA", "OẠ"),
-        ("òe", "oè"), ("óe", "oé"), ("ỏe", "oẻ"), ("õe", "oẽ"), ("ọe", "oẹ"),
-        ("Òe", "Oè"), ("Óe", "Oé"), ("Ỏe", "Oẻ"), ("Õe", "Oẽ"), ("Ọe", "Oẹ"),
-        ("ÒE", "OÈ"), ("ÓE", "OÉ"), ("ỎE", "OẺ"), ("ÕE", "OẼ"), ("ỌE", "OẸ"),
-        ("ùy", "uỳ"), ("úy", "uý"), ("ủy", "uỷ"), ("ũy", "uỹ"), ("ụy", "uỵ"),
-        ("Ùy", "Uỳ"), ("Úy", "Uý"), ("Ủy", "Uỷ"), ("Ũy", "Uỹ"), ("Ụy", "Uỵ"),
-        ("ÙY", "UỲ"), ("ÚY", "UÝ"), ("ỦY", "UỶ"), ("ŨY", "UỸ"), ("ỤY", "UỴ"),
+        ("òa", "oà"),
+        ("óa", "oá"),
+        ("ỏa", "oả"),
+        ("õa", "oã"),
+        ("ọa", "oạ"),
+        ("Òa", "Oà"),
+        ("Óa", "Oá"),
+        ("Ỏa", "Oả"),
+        ("Õa", "Oã"),
+        ("Ọa", "Oạ"),
+        ("ÒA", "OÀ"),
+        ("ÓA", "OÁ"),
+        ("ỎA", "OẢ"),
+        ("ÕA", "OÃ"),
+        ("ỌA", "OẠ"),
+        ("òe", "oè"),
+        ("óe", "oé"),
+        ("ỏe", "oẻ"),
+        ("õe", "oẽ"),
+        ("ọe", "oẹ"),
+        ("Òe", "Oè"),
+        ("Óe", "Oé"),
+        ("Ỏe", "Oẻ"),
+        ("Õe", "Oẽ"),
+        ("Ọe", "Oẹ"),
+        ("ÒE", "OÈ"),
+        ("ÓE", "OÉ"),
+        ("ỎE", "OẺ"),
+        ("ÕE", "OẼ"),
+        ("ỌE", "OẸ"),
+        ("ùy", "uỳ"),
+        ("úy", "uý"),
+        ("ủy", "uỷ"),
+        ("ũy", "uỹ"),
+        ("ụy", "uỵ"),
+        ("Ùy", "Uỳ"),
+        ("Úy", "Uý"),
+        ("Ủy", "Uỷ"),
+        ("Ũy", "Uỹ"),
+        ("Ụy", "Uỵ"),
+        ("ÙY", "UỲ"),
+        ("ÚY", "UÝ"),
+        ("ỦY", "UỶ"),
+        ("ŨY", "UỸ"),
+        ("ỤY", "UỴ"),
     ];
     let mut res = s.to_string();
     for (from, to) in pairs {
@@ -416,8 +455,8 @@ fn test_keystrokes(
     }
 
     let actual = screen.trim_end().to_string();
-    let ok = actual == expected_word
-        || normalize_syllable(&actual) == normalize_syllable(expected_word);
+    let ok =
+        actual == expected_word || normalize_syllable(&actual) == normalize_syllable(expected_word);
     (ok, actual)
 }
 
@@ -435,7 +474,10 @@ fn main() {
             content
         }
         Err(_) => {
-            println!("* Không tìm thấy file '{}', sử dụng tập từ tiếng Việt phong phú mặc định.", input_path);
+            println!(
+                "* Không tìm thấy file '{}', sử dụng tập từ tiếng Việt phong phú mặc định.",
+                input_path
+            );
             String::from(
                 "Sửa lỗi dấu mũ tự do qua phụ âm cuối\n\
                  Cộng hòa xã hội chủ nghĩa Việt Nam\n\
@@ -462,7 +504,10 @@ fn main() {
         }
     }
 
-    println!("* Tổng số từ tiếng Việt độc nhất tìm thấy: {}", words_set.len());
+    println!(
+        "* Tổng số từ tiếng Việt độc nhất tìm thấy: {}",
+        words_set.len()
+    );
     println!("* Chế độ gõ kiểm thử: SIMPLE TELEX (InputMethod::SimpleTelex1)");
     println!("* Đang sinh và kiểm thử tất cả các tổ hợp gõ phím Simple Telex...");
     println!("----------------------------------------------------------------------");
@@ -606,6 +651,8 @@ fn main() {
         }
         std::process::exit(1);
     } else {
-        println!("XÁC NHẬN: TOÀN BỘ TỔ HỢP SIMPLE TELEX ĐỀU VƯỢT QUA (100% PASS)! ZERO RESIDUAL BUGS.");
+        println!(
+            "XÁC NHẬN: TOÀN BỘ TỔ HỢP SIMPLE TELEX ĐỀU VƯỢT QUA (100% PASS)! ZERO RESIDUAL BUGS."
+        );
     }
 }

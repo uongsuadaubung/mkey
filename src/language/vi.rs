@@ -85,4 +85,3 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
     tray_control_panel: "Bảng điều khiển...",
     tray_exit: "Thoát",
 };
-

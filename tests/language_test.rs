@@ -1,6 +1,4 @@
-use mkey::language::{
-    Language, current, current_language, get_strings, set_current_language,
-};
+use mkey::language::{Language, current, current_language, get_strings, set_current_language};
 
 #[test]
 fn test_default_language_is_vietnamese() {
@@ -15,7 +13,10 @@ fn test_switch_language_to_english_and_back() {
     set_current_language(Language::English);
     assert_eq!(current_language(), Language::English);
     assert_eq!(current().window_title, "MKey - Control Panel");
-    assert_eq!(current().tab_titles(), ["Typing", "Macro", "System", "About"]);
+    assert_eq!(
+        current().tab_titles(),
+        ["Typing", "Macro", "System", "About"]
+    );
     assert_eq!(current().btn_exit, "Exit");
     assert_eq!(current().btn_defaults, "Defaults");
     assert_eq!(current().btn_close, "Close");
@@ -185,11 +186,18 @@ fn test_control_panel_language_switch() {
     let len = unsafe { GetWindowTextW(controls.btn_close.hwnd(), buf.as_mut_ptr(), 64) };
     assert_eq!(String::from_utf16_lossy(&buf[..len as usize]), "Close");
 
-    let len = unsafe { GetWindowTextW(controls.check_macro_in_english.hwnd(), buf.as_mut_ptr(), 64) };
-    assert_eq!(String::from_utf16_lossy(&buf[..len as usize]), "Allow shorthand in English mode");
+    let len =
+        unsafe { GetWindowTextW(controls.check_macro_in_english.hwnd(), buf.as_mut_ptr(), 64) };
+    assert_eq!(
+        String::from_utf16_lossy(&buf[..len as usize]),
+        "Allow shorthand in English mode"
+    );
 
     assert_eq!(controls.combo_macro_type.get_item_text(0), "Whole word");
-    assert_eq!(controls.combo_macro_type.get_item_text(1), "Start consonant");
+    assert_eq!(
+        controls.combo_macro_type.get_item_text(1),
+        "Start consonant"
+    );
     assert_eq!(controls.combo_macro_type.get_item_text(2), "End consonant");
 
     assert_eq!(controls.combo_mode.get_item_text(0), "Vietnamese");
@@ -207,8 +215,12 @@ fn test_control_panel_language_switch() {
     let len = unsafe { GetWindowTextW(controls.btn_close.hwnd(), buf.as_mut_ptr(), 64) };
     assert_eq!(String::from_utf16_lossy(&buf[..len as usize]), "Đóng");
 
-    let len = unsafe { GetWindowTextW(controls.check_macro_in_english.hwnd(), buf.as_mut_ptr(), 64) };
-    assert_eq!(String::from_utf16_lossy(&buf[..len as usize]), "Cho phép gõ tắt cả khi ở chế độ tiếng Anh");
+    let len =
+        unsafe { GetWindowTextW(controls.check_macro_in_english.hwnd(), buf.as_mut_ptr(), 64) };
+    assert_eq!(
+        String::from_utf16_lossy(&buf[..len as usize]),
+        "Cho phép gõ tắt cả khi ở chế độ tiếng Anh"
+    );
 
     assert_eq!(controls.combo_macro_type.get_item_text(0), "Toàn từ");
     assert_eq!(controls.combo_macro_type.get_item_text(1), "Phụ âm đầu");
@@ -216,7 +228,10 @@ fn test_control_panel_language_switch() {
 
     assert_eq!(controls.combo_mode.get_item_text(0), "Tiếng Việt");
     assert_eq!(controls.combo_mode.get_item_text(1), "Tiếng Anh");
-    assert_eq!(controls.combo_theme.get_item_text(0), "Theo hệ thống (Auto)");
+    assert_eq!(
+        controls.combo_theme.get_item_text(0),
+        "Theo hệ thống (Auto)"
+    );
     assert_eq!(controls.combo_theme.get_item_text(1), "Sáng (Light)");
     assert_eq!(controls.combo_theme.get_item_text(2), "Tối (Dark)");
     assert_eq!(controls.combo_lang.get_selected(), Some(0));
@@ -253,4 +268,3 @@ fn test_control_panel_language_switch() {
         DestroyWindow(parent);
     }
 }
-

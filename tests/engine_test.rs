@@ -1139,13 +1139,17 @@ fn test_macro_type_customization_and_single_character_guard() {
     assert_eq!(simulate_typing(&mut engine, "fong "), "phong ");
 
     // 7. Thêm quy tắc tùy biến: Thêm 'z' -> 'd' loại Phụ âm đầu (StartConsonant)
-    engine.macro_table.insert_typed("z", "d", MacroType::StartConsonant);
+    engine
+        .macro_table
+        .insert_typed("z", "d", MacroType::StartConsonant);
     assert_eq!(simulate_typing(&mut engine, "za "), "da ");
     assert_eq!(simulate_typing(&mut engine, "Za "), "Da ");
     assert_eq!(simulate_typing(&mut engine, "z "), "z "); // ký tự đơn đứng một mình vẫn giữ nguyên!
 
     // 8. Thêm quy tắc tùy biến: Thêm 'x' -> 'ch' loại Phụ âm cuối (EndConsonant)
-    engine.macro_table.insert_typed("x", "ch", MacroType::EndConsonant);
+    engine
+        .macro_table
+        .insert_typed("x", "ch", MacroType::EndConsonant);
     assert_eq!(simulate_typing(&mut engine, "tax "), "tach ");
     assert_eq!(simulate_typing(&mut engine, "x "), "x "); // ký tự đơn giữ nguyên!
 }
@@ -1270,4 +1274,3 @@ fn test_backspace_across_space_does_not_trap_new_words() {
     type_str(&mut engine, " giups ", &mut screen);
     assert_eq!(screen, "tôi giúp ");
 }
-

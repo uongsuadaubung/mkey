@@ -50,7 +50,6 @@ pub struct POINT {
 pub const GWLP_WNDPROC: i32 = -4;
 pub const GWL_STYLE: i32 = -16;
 
-
 #[link(name = "user32")]
 #[link(name = "gdi32")]
 unsafe extern "system" {
@@ -168,7 +167,6 @@ unsafe extern "system" {
     ) -> i32;
 }
 
-
 #[link(name = "comctl32")]
 unsafe extern "system" {
     pub fn SetWindowSubclass(
@@ -250,7 +248,6 @@ pub const CBS_CHECKEDPRESSED: i32 = 7;
 pub const CBS_CHECKEDDISABLED: i32 = 8;
 pub const WS_DISABLED: u32 = 0x08000000;
 pub const WM_GETFONT: u32 = 0x0031;
-
 
 /// Sets native Windows uxtheme preferred application mode (Windows 10 1903+ / Windows 11)
 pub fn set_preferred_app_mode(is_dark: bool) {

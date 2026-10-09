@@ -160,7 +160,12 @@ pub struct LanguageStrings {
 
 impl LanguageStrings {
     pub const fn tab_titles(&self) -> [&'static str; 4] {
-        [self.tab_typing, self.tab_macro, self.tab_system, self.tab_about]
+        [
+            self.tab_typing,
+            self.tab_macro,
+            self.tab_system,
+            self.tab_about,
+        ]
     }
 }
 
@@ -195,4 +200,3 @@ pub fn set_current_language(lang: Language) {
 pub fn current() -> &'static LanguageStrings {
     get_strings(current_language())
 }
-

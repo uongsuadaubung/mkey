@@ -171,7 +171,6 @@ impl From<usize> for UiTheme {
     }
 }
 
-
 /// Configuration options for the Vietnamese engine
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EngineConfig {

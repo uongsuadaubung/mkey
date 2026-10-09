@@ -197,7 +197,8 @@ fn test_group_7_macro_expansion_with_casing() {
 #[test]
 fn test_benchmark_throughput() {
     let mut engine = VietnameseEngine::new(EngineConfig::default());
-    let paragraph = "tooi gox tieengs vieetj raats nhanh vaf muwowjt maf treen heej thoongs OpenKey moqis ";
+    let paragraph =
+        "tooi gox tieengs vieetj raats nhanh vaf muwowjt maf treen heej thoongs OpenKey moqis ";
     let total_chars = paragraph.chars().count();
     let iterations = 10_000;
 

@@ -172,12 +172,7 @@ impl TextBox {
             font: hfont,
         }));
         unsafe {
-            SetWindowSubclass(
-                hwnd,
-                edit_subclass_proc,
-                EDIT_SUBCLASS_ID,
-                data as usize,
-            );
+            SetWindowSubclass(hwnd, edit_subclass_proc, EDIT_SUBCLASS_ID, data as usize);
         }
 
         Some(Self { hwnd, id })

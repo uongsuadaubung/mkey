@@ -177,23 +177,27 @@ impl TypingBuffer {
 
                 let final_action = if common > 0 {
                     let opt_backspaces = prev_chars_count - common;
-                    let byte_offset = output.char_indices().nth(common).map(|(i, _)| i).unwrap_or(output.len());
+                    let byte_offset = output
+                        .char_indices()
+                        .nth(common)
+                        .map(|(i, _)| i)
+                        .unwrap_or(output.len());
                     EngineAction::Replace {
                         backspaces: opt_backspaces,
                         output: output[byte_offset..].to_string(),
                     }
                 } else {
-                    EngineAction::Replace {
-                        backspaces,
-                        output,
-                    }
+                    EngineAction::Replace { backspaces, output }
                 };
 
                 (final_action, full_output_utf16)
             }
             EngineAction::Passthrough => {
                 self.last_rendered.push(key.ch);
-                (EngineAction::Passthrough, self.emitted_len + key.ch.len_utf16())
+                (
+                    EngineAction::Passthrough,
+                    self.emitted_len + key.ch.len_utf16(),
+                )
             }
             EngineAction::Consume => (EngineAction::Consume, self.emitted_len),
         };

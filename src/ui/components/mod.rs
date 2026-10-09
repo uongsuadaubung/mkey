@@ -30,7 +30,7 @@ pub use textbox::TextBox;
 pub use tray_icon::TrayIcon;
 pub use window::{
     CallWindowProcW, CreateSolidBrush, DefSubclassProc, DeleteObject, EnumChildWindows, FW_NORMAL,
-    FW_SEMIBOLD, FillRect, FrameRect, GWLP_WNDPROC, GWL_STYLE, GetClassNameW, GetClientRect, GetDC,
+    FW_SEMIBOLD, FillRect, FrameRect, GWL_STYLE, GWLP_WNDPROC, GetClassNameW, GetClientRect, GetDC,
     GetDlgCtrlID, GetFocus, GetWindowLongW, GetWindowRect, HBRUSH, HCURSOR, HDC, HFONT, HHOOK,
     HICON, HINSTANCE, HMENU, HMODULE, HWND, HWND_BOTTOM, HWND_TOP, ICON_BIG, ICON_SMALL,
     InvalidateRect, POINT, RDW_ALLCHILDREN, RDW_ERASE, RDW_FRAME, RDW_INVALIDATE, RDW_UPDATENOW,
@@ -40,5 +40,4 @@ pub use window::{
     SetWindowSubclass, SetWindowTextW, SetWindowTheme, TRANSPARENT, UpdateWindow, WM_SETICON,
     WS_CLIPCHILDREN, WS_EX_APPWINDOW, allow_window_dark_mode, apply_modern_window_styling,
     center_window, create_app_font, init_common_controls, set_preferred_app_mode, to_wide,
-
 };

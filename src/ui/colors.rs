@@ -111,9 +111,10 @@ impl ThemePalette {
     /// Automatically resolves text color for a control given its Win32 Control ID
     pub const fn text_color_for_ctrl(&self, ctrl_id: u32) -> u32 {
         match ctrl_id {
-            crate::ui::views::IDC_LABEL_EMAIL | crate::ui::views::IDC_LABEL_GITHUB => self.text_link,
+            crate::ui::views::IDC_LABEL_EMAIL | crate::ui::views::IDC_LABEL_GITHUB => {
+                self.text_link
+            }
             _ => self.text_primary,
         }
     }
 }
-

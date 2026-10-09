@@ -199,7 +199,9 @@ impl VietnameseEngine {
         // If the incoming key begins a new CamelCase boundary, save preceding word into history
         if self.buffer.is_boundary(&raw_key) {
             let rendered = self.buffer.rendered();
-            let is_same_as_raw = rendered.chars().eq(self.buffer.raw_keys.iter().map(|k| k.ch));
+            let is_same_as_raw = rendered
+                .chars()
+                .eq(self.buffer.raw_keys.iter().map(|k| k.ch));
             let should_restore = self.config.restore_on_wrong_spelling
                 && !is_same_as_raw
                 && !self.buffer.state.is_valid_spelling();
@@ -212,18 +214,12 @@ impl VietnameseEngine {
                 self.history.commit_word(current_raw, false);
                 self.buffer.clear();
                 self.buffer.raw_keys.push(raw_key);
-                let (next_state, _) = crate::vietnamese::SyllableState::Empty.feed_key(
-                    raw_key,
-                    0,
-                    &self.config,
-                );
+                let (next_state, _) =
+                    crate::vietnamese::SyllableState::Empty.feed_key(raw_key, 0, &self.config);
                 self.buffer.state = next_state;
                 self.buffer.last_rendered.push(ch);
                 self.buffer.emitted_len = ch.len_utf16();
-                return EngineAction::Replace {
-                    backspaces,
-                    output,
-                };
+                return EngineAction::Replace { backspaces, output };
             }
 
             let current_raw = std::mem::take(&mut self.buffer.raw_keys);
@@ -235,10 +231,10 @@ impl VietnameseEngine {
         // is starting a new word instead of modifying the restored word.
         if self.buffer.is_restored_across_space {
             self.buffer.is_restored_across_space = false;
-            let (test_state, _) = self
-                .buffer
-                .state
-                .feed_key(raw_key, self.buffer.emitted_len, &self.config);
+            let (test_state, _) =
+                self.buffer
+                    .state
+                    .feed_key(raw_key, self.buffer.emitted_len, &self.config);
             if matches!(test_state, crate::vietnamese::SyllableState::Passthrough(_))
                 || self.buffer.is_passthrough
             {
@@ -284,13 +280,16 @@ impl VietnameseEngine {
             let allow_start = is_space;
             let allow_end = is_space;
 
-            let is_same = rendered.chars().eq(self.buffer.raw_keys.iter().map(|k| k.ch));
+            let is_same = rendered
+                .chars()
+                .eq(self.buffer.raw_keys.iter().map(|k| k.ch));
             let expanded = self
                 .macro_table
                 .expand_word(rendered, allow_start, allow_end)
                 .or_else(|| {
                     if !is_same {
-                        let current_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
+                        let current_word: String =
+                            self.buffer.raw_keys.iter().map(|k| k.ch).collect();
                         self.macro_table
                             .expand_word(&current_word, allow_start, allow_end)
                     } else {
@@ -324,7 +323,11 @@ impl VietnameseEngine {
 
         // Restore raw keys if the word is an invalid Vietnamese syllable
         if self.config.restore_on_wrong_spelling && !self.buffer.is_empty() {
-            let is_same = self.buffer.rendered().chars().eq(self.buffer.raw_keys.iter().map(|k| k.ch));
+            let is_same = self.buffer.rendered().chars().eq(self
+                .buffer
+                .raw_keys
+                .iter()
+                .map(|k| k.ch));
             let is_invalid = if !is_same {
                 !self.buffer.state.is_valid_spelling()
             } else {
@@ -339,7 +342,13 @@ impl VietnameseEngine {
                 if self.config.debug {
                     self.log_debug(format!(
                         "[DBG][RESTORE] Invalid word {:?} (screen: {:?}) -> Restoring to {:?}",
-                        self.buffer.raw_keys.iter().map(|k| k.ch).collect::<String>(), self.buffer.rendered(), output
+                        self.buffer
+                            .raw_keys
+                            .iter()
+                            .map(|k| k.ch)
+                            .collect::<String>(),
+                        self.buffer.rendered(),
+                        output
                     ));
                 }
 
@@ -387,7 +396,10 @@ impl VietnameseEngine {
     /// Feed a backspace event
     pub fn on_backspace(&mut self) -> EngineAction {
         if !self.config.enabled {
-            if self.config.use_macro && self.config.use_macro_in_english_mode && !self.buffer.is_empty() {
+            if self.config.use_macro
+                && self.config.use_macro_in_english_mode
+                && !self.buffer.is_empty()
+            {
                 self.buffer.raw_keys.pop();
                 if self.buffer.emitted_len > 0 {
                     self.buffer.emitted_len -= 1;
@@ -400,7 +412,11 @@ impl VietnameseEngine {
         }
 
         let prev_word = if self.config.debug {
-            self.buffer.raw_keys.iter().map(|k| k.ch).collect::<String>()
+            self.buffer
+                .raw_keys
+                .iter()
+                .map(|k| k.ch)
+                .collect::<String>()
         } else {
             String::new()
         };

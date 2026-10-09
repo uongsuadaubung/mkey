@@ -11,7 +11,6 @@ pub mod platform;
 pub mod ui;
 pub mod vietnamese;
 
-pub use language::{Language, LanguageStrings, current as current_strings, get_strings};
 pub use engine::{
     VietnameseEngine,
     action::EngineAction,
@@ -22,3 +21,4 @@ pub use engine::{
     },
     macro_table::MacroTable,
 };
+pub use language::{Language, LanguageStrings, current as current_strings, get_strings};

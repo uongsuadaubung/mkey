@@ -128,30 +128,48 @@ fn test_inspect_sound_banks() {
         && let Ok(entries) = std::fs::read_dir(&switches_dir)
     {
         for entry in entries.flatten() {
-                if let Ok(ft) = entry.file_type() && ft.is_dir() {
-                    let switch_name = entry.file_name().to_string_lossy().to_string();
-                    let mut space_files = Vec::new();
-                    let mut backspace_files = Vec::new();
-                    let mut normal_files = Vec::new();
-                    if let Ok(sub) = std::fs::read_dir(entry.path()) {
-                        for f in sub.flatten() {
-                            let fname = f.file_name().to_string_lossy().to_string();
-                            let stem = f.path().file_stem().map(|s| s.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
-                            match mkey::platform::win32::match_file_tag(&stem) {
-                                Some(mkey::platform::win32::KeyTag::Space) => space_files.push(fname),
-                                Some(mkey::platform::win32::KeyTag::Backspace) => backspace_files.push(fname),
-                                None => normal_files.push(fname),
-                                _ => {}
+            if let Ok(ft) = entry.file_type()
+                && ft.is_dir()
+            {
+                let switch_name = entry.file_name().to_string_lossy().to_string();
+                let mut space_files = Vec::new();
+                let mut backspace_files = Vec::new();
+                let mut normal_files = Vec::new();
+                if let Ok(sub) = std::fs::read_dir(entry.path()) {
+                    for f in sub.flatten() {
+                        let fname = f.file_name().to_string_lossy().to_string();
+                        let stem = f
+                            .path()
+                            .file_stem()
+                            .map(|s| s.to_string_lossy().to_ascii_lowercase())
+                            .unwrap_or_default();
+                        match mkey::platform::win32::match_file_tag(&stem) {
+                            Some(mkey::platform::win32::KeyTag::Space) => space_files.push(fname),
+                            Some(mkey::platform::win32::KeyTag::Backspace) => {
+                                backspace_files.push(fname)
                             }
+                            None => normal_files.push(fname),
+                            _ => {}
                         }
                     }
-                    eprintln!("Switch [{}] -> Space: {:?} | Backspace: {:?} | Normal: {:?}", switch_name, space_files, backspace_files, normal_files);
-                    assert_eq!(space_files, vec!["space.wav"], "Space should only contain space.wav for {}", switch_name);
-                    assert_eq!(backspace_files, vec!["backspace.wav"], "Backspace should only contain backspace.wav for {}", switch_name);
                 }
+                eprintln!(
+                    "Switch [{}] -> Space: {:?} | Backspace: {:?} | Normal: {:?}",
+                    switch_name, space_files, backspace_files, normal_files
+                );
+                assert_eq!(
+                    space_files,
+                    vec!["space.wav"],
+                    "Space should only contain space.wav for {}",
+                    switch_name
+                );
+                assert_eq!(
+                    backspace_files,
+                    vec!["backspace.wav"],
+                    "Backspace should only contain backspace.wav for {}",
+                    switch_name
+                );
+            }
         }
     }
 }
-
-
-

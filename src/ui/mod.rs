@@ -95,7 +95,11 @@ pub fn init_ui() -> bool {
     let (cfg_theme, cfg_lang, init_config) = {
         let guard = crate::platform::win32::ENGINE_INSTANCE.lock().unwrap();
         if let Some(ref e) = *guard {
-            (e.config().theme, e.config().language, Some(e.config().clone()))
+            (
+                e.config().theme,
+                e.config().language,
+                Some(e.config().clone()),
+            )
         } else {
             (
                 crate::engine::config::UiTheme::Auto,

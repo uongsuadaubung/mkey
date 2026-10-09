@@ -85,4 +85,3 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
     tray_control_panel: "Control Panel...",
     tray_exit: "Exit",
 };
-

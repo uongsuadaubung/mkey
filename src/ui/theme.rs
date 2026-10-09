@@ -44,22 +44,34 @@ pub fn recreate_theme_brushes(is_dark: bool) {
     CURRENT_IS_DARK.store(is_dark, Ordering::Relaxed);
     let palette = ThemePalette::get(is_dark);
 
-    let old_panel = PANEL_BG_BRUSH.swap(unsafe { CreateSolidBrush(palette.bg_window) }, Ordering::Relaxed);
+    let old_panel = PANEL_BG_BRUSH.swap(
+        unsafe { CreateSolidBrush(palette.bg_window) },
+        Ordering::Relaxed,
+    );
     if old_panel != 0 {
         unsafe { DeleteObject(old_panel) };
     }
 
-    let old_tab = TAB_CARD_BRUSH.swap(unsafe { CreateSolidBrush(palette.bg_card) }, Ordering::Relaxed);
+    let old_tab = TAB_CARD_BRUSH.swap(
+        unsafe { CreateSolidBrush(palette.bg_card) },
+        Ordering::Relaxed,
+    );
     if old_tab != 0 {
         unsafe { DeleteObject(old_tab) };
     }
 
-    let old_input = INPUT_BG_BRUSH.swap(unsafe { CreateSolidBrush(palette.bg_input) }, Ordering::Relaxed);
+    let old_input = INPUT_BG_BRUSH.swap(
+        unsafe { CreateSolidBrush(palette.bg_input) },
+        Ordering::Relaxed,
+    );
     if old_input != 0 {
         unsafe { DeleteObject(old_input) };
     }
 
-    let old_border = BORDER_BRUSH.swap(unsafe { CreateSolidBrush(palette.border) }, Ordering::Relaxed);
+    let old_border = BORDER_BRUSH.swap(
+        unsafe { CreateSolidBrush(palette.border) },
+        Ordering::Relaxed,
+    );
     if old_border != 0 {
         unsafe { DeleteObject(old_border) };
     }
@@ -114,7 +126,10 @@ unsafe extern "system" fn enum_child_theme_proc(child: isize, lparam: isize) -> 
 
 /// Applies cohesive, modern Light or Dark theme styling to all Control Panel elements
 pub fn apply_ui_theme(hwnd: isize, controls: &ControlPanelControls, is_dark: bool) {
-    if IS_APPLYING_THEME.compare_exchange(false, true, Ordering::SeqCst, Ordering::Relaxed).is_err() {
+    if IS_APPLYING_THEME
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::Relaxed)
+        .is_err()
+    {
         return;
     }
 

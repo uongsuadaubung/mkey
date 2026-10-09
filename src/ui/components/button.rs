@@ -1,6 +1,6 @@
 //! Native Win32 PushButton Component
 
-use super::window::{to_wide, InvalidateRect};
+use super::window::{InvalidateRect, to_wide};
 use std::ptr::null_mut;
 
 #[link(name = "user32")]

@@ -63,4 +63,3 @@ pub fn paint_control_panel(hwnd: isize, hdc: isize, is_dark: bool) {
         DeleteObject(h_card_pen);
     }
 }
-

@@ -11,11 +11,11 @@ pub use injector::*;
 pub use sound::*;
 pub use types::*;
 
-use crate::engine::action::EngineAction;
 use crate::engine::VietnameseEngine;
+use crate::engine::action::EngineAction;
 use std::ptr::null_mut;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 static CTRL_SHIFT_ARMED: AtomicBool = AtomicBool::new(false);
 
@@ -41,9 +41,7 @@ pub unsafe extern "system" fn low_level_mouse_proc(
 ) -> isize {
     unsafe {
         if n_code >= 0
-            && (w_param == WM_LBUTTONDOWN
-                || w_param == WM_RBUTTONDOWN
-                || w_param == WM_MBUTTONDOWN)
+            && (w_param == WM_LBUTTONDOWN || w_param == WM_RBUTTONDOWN || w_param == WM_MBUTTONDOWN)
             && let Ok(mut guard) = ENGINE_INSTANCE.lock()
             && let Some(ref mut engine) = *guard
         {
@@ -348,4 +346,3 @@ pub fn trim_working_set() {
         SetProcessWorkingSetSize(GetCurrentProcess(), usize::MAX, usize::MAX);
     }
 }
-

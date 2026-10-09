@@ -164,12 +164,8 @@ unsafe extern "system" {
     pub fn SetWindowsHookExW(idHook: i32, lpfn: HOOKPROC, hmod: isize, dwThreadId: u32) -> isize;
     pub fn UnhookWindowsHookEx(hhk: isize) -> i32;
     pub fn CallNextHookEx(hhk: isize, nCode: i32, wParam: usize, lParam: isize) -> isize;
-    pub fn GetMessageW(
-        lpMsg: *mut MSG,
-        hWnd: isize,
-        wMsgFilterMin: u32,
-        wMsgFilterMax: u32,
-    ) -> i32;
+    pub fn GetMessageW(lpMsg: *mut MSG, hWnd: isize, wMsgFilterMin: u32, wMsgFilterMax: u32)
+    -> i32;
     pub fn TranslateMessage(lpMsg: *const MSG) -> i32;
     pub fn DispatchMessageW(lpMsg: *const MSG) -> isize;
     pub fn SendInput(cInputs: u32, pInputs: *const INPUT, cbSize: i32) -> u32;

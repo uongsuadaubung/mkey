@@ -130,7 +130,8 @@ impl ControlPanelControls {
         combo_mode.add_item(strings.mode_english);
         combo_mode.set_selected(0);
 
-        let label_switch = Label::create(parent, strings.label_switch, 280, 26, 95, 20, hfont_bold)?;
+        let label_switch =
+            Label::create(parent, strings.label_switch, 280, 26, 95, 20, hfont_bold)?;
         let check_ctrl_shift = CheckBox::create(
             parent,
             IDC_CHECK_CTRL_SHIFT,
@@ -156,15 +157,8 @@ impl ControlPanelControls {
         )?;
 
         // 3. Tab 0: Bộ gõ & Âm thanh Controls (Body Card y: 134..444)
-        let label_typing_title = Label::create(
-            parent,
-            strings.typing_title,
-            40,
-            146,
-            360,
-            20,
-            hfont_bold,
-        )?;
+        let label_typing_title =
+            Label::create(parent, strings.typing_title, 40, 146, 360, 20, hfont_bold)?;
         let check_restore_wrong = CheckBox::create(
             parent,
             IDC_CHECK_RESTORE_WRONG,
@@ -186,15 +180,8 @@ impl ControlPanelControls {
             hfont_normal,
         )?;
 
-        let label_sound_title = Label::create(
-            parent,
-            strings.sound_title,
-            40,
-            230,
-            360,
-            20,
-            hfont_bold,
-        )?;
+        let label_sound_title =
+            Label::create(parent, strings.sound_title, 40, 230, 360, 20, hfont_bold)?;
         let check_sound_enabled = CheckBox::create(
             parent,
             IDC_CHECK_SOUND_ENABLED,
@@ -244,25 +231,10 @@ impl ControlPanelControls {
             hfont_normal,
         )?;
 
-        let label_volume = Label::create(
-            parent,
-            strings.label_volume,
-            40,
-            324,
-            85,
-            20,
-            hfont_normal,
-        )?;
-        let slider_volume = Slider::create(
-            parent,
-            IDC_SLIDER_SOUND_VOLUME,
-            130,
-            320,
-            210,
-            26,
-            0,
-            100,
-        )?;
+        let label_volume =
+            Label::create(parent, strings.label_volume, 40, 324, 85, 20, hfont_normal)?;
+        let slider_volume =
+            Slider::create(parent, IDC_SLIDER_SOUND_VOLUME, 130, 320, 210, 26, 0, 100)?;
         slider_volume.set_pos(50);
 
         let label_volume_val = Label::create_with_id(
@@ -429,8 +401,15 @@ impl ControlPanelControls {
             26,
             hfont_normal,
         )?;
-        let label_theme_title =
-            Label::create(parent, strings.label_theme_title, 40, 275, 360, 22, hfont_bold)?;
+        let label_theme_title = Label::create(
+            parent,
+            strings.label_theme_title,
+            40,
+            275,
+            360,
+            22,
+            hfont_bold,
+        )?;
         let label_theme =
             Label::create(parent, strings.label_theme, 40, 307, 120, 20, hfont_normal)?;
         let combo_theme =
@@ -440,8 +419,15 @@ impl ControlPanelControls {
         combo_theme.add_item(strings.theme_dark);
         combo_theme.set_selected(0);
 
-        let label_lang =
-            Label::create(parent, strings.label_language, 40, 345, 120, 20, hfont_normal)?;
+        let label_lang = Label::create(
+            parent,
+            strings.label_language,
+            40,
+            345,
+            120,
+            20,
+            hfont_normal,
+        )?;
         let combo_lang =
             ComboBox::create(parent, IDC_COMBO_LANG, 165, 341, 235, 150, hfont_normal)?;
         combo_lang.add_item("Tiếng Việt");
@@ -449,15 +435,8 @@ impl ControlPanelControls {
         combo_lang.set_selected(0);
 
         // 6. Tab 3: Thông tin Controls
-        let label_about_title = Label::create(
-            parent,
-            strings.about_title,
-            40,
-            150,
-            360,
-            24,
-            hfont_bold,
-        )?;
+        let label_about_title =
+            Label::create(parent, strings.about_title, 40, 150, 360, 24, hfont_bold)?;
         let label_about_ver =
             Label::create(parent, strings.about_ver, 40, 185, 360, 20, hfont_normal)?;
         let label_about_author =
@@ -669,7 +648,9 @@ impl ControlPanelControls {
             ShowWindow(self.label_volume_val.hwnd(), show_sound);
 
             if tab_idx == 0 && self.sound_available {
-                use crate::ui::components::{HWND_TOP, SWP_NOMOVE, SWP_NOSIZE, SWP_SHOWWINDOW, SetWindowPos};
+                use crate::ui::components::{
+                    HWND_TOP, SWP_NOMOVE, SWP_NOSIZE, SWP_SHOWWINDOW, SetWindowPos,
+                };
                 SetWindowPos(
                     self.slider_volume.hwnd(),
                     HWND_TOP,
@@ -799,7 +780,8 @@ impl ControlPanelControls {
             self.combo_switch_type.set_selected(0);
         }
         self.slider_volume.set_pos(config.sound_volume as u32);
-        self.label_volume_val.set_text(&format!("{}%", config.sound_volume));
+        self.label_volume_val
+            .set_text(&format!("{}%", config.sound_volume));
         self.update_sound_controls_state();
         self.check_use_macro.set_checked(config.use_macro);
         self.check_macro_in_english
@@ -906,7 +888,8 @@ impl ControlPanelControls {
                 crate::engine::macro_table::MacroType::StartConsonant => strings.macro_type_start,
                 crate::engine::macro_table::MacroType::EndConsonant => strings.macro_type_end,
             };
-            self.list_macro.add_item(i as i32, &entry.key, &entry.value, type_str);
+            self.list_macro
+                .add_item(i as i32, &entry.key, &entry.value, type_str);
         }
     }
 
@@ -925,10 +908,12 @@ impl ControlPanelControls {
         );
 
         self.label_typing_title.set_text(strings.typing_title);
-        self.check_restore_wrong.set_text(strings.check_restore_wrong);
+        self.check_restore_wrong
+            .set_text(strings.check_restore_wrong);
         self.check_auto_upper.set_text(strings.check_auto_upper);
         self.label_sound_title.set_text(strings.sound_title);
-        self.check_sound_enabled.set_text(strings.check_sound_enabled);
+        self.check_sound_enabled
+            .set_text(strings.check_sound_enabled);
         self.label_switch_type.set_text(strings.label_switch_type);
         self.label_volume.set_text(strings.label_volume);
         self.btn_test_sound.set_text(strings.btn_test_sound);
@@ -936,7 +921,8 @@ impl ControlPanelControls {
         let profiles = crate::engine::config_store::list_switch_profiles();
         if !profiles.is_empty() {
             let profile_refs: Vec<&str> = profiles.iter().map(|s| s.as_str()).collect();
-            self.combo_switch_type.reset_items(&profile_refs, Some(cur_switch));
+            self.combo_switch_type
+                .reset_items(&profile_refs, Some(cur_switch));
         }
 
         self.check_use_macro.set_text(strings.check_use_macro);
@@ -951,8 +937,10 @@ impl ControlPanelControls {
             ],
             Some(cur_macro_type),
         );
-        self.edit_macro_key.set_cue_banner(strings.edit_macro_key_placeholder);
-        self.edit_macro_value.set_cue_banner(strings.edit_macro_val_placeholder);
+        self.edit_macro_key
+            .set_cue_banner(strings.edit_macro_key_placeholder);
+        self.edit_macro_value
+            .set_cue_banner(strings.edit_macro_val_placeholder);
         self.btn_add_macro.set_text(strings.btn_add_macro);
         self.btn_edit_macro.set_text(strings.btn_edit_macro);
         self.btn_cancel_macro.set_text(strings.btn_cancel_macro);

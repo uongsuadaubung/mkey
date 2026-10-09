@@ -162,16 +162,11 @@ const fn compute_vowel_pair(base: BaseVowel, diacritic: Diacritic, tone: Tone) -
     }
 }
 
-
 /// Builds a precomposed UTF-8 Unicode character from base vowel, diacritic, tone, and uppercase flag.
 #[inline]
 pub fn compose_vowel(base: BaseVowel, diacritic: Diacritic, tone: Tone, uppercase: bool) -> char {
     let (lower, upper) = compute_vowel_pair(base, diacritic, tone);
-    if uppercase {
-        upper
-    } else {
-        lower
-    }
+    if uppercase { upper } else { lower }
 }
 
 /// Compose the letter 'd' / 'đ'
@@ -286,4 +281,3 @@ pub fn decompose_vowel(c: char) -> Option<(BaseVowel, Diacritic, Tone)> {
 pub fn is_d_stroke(c: char) -> bool {
     matches!(c, 'đ' | 'Đ')
 }
-

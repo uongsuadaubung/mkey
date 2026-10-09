@@ -9,16 +9,20 @@
 //! 5. Authentic Physical Modeling: High-definition 48 kHz acoustics for top 5 mechanical switches.
 
 use std::ptr::null_mut;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU64, Ordering};
 use std::sync::mpsc::{self, SyncSender};
-use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 
 enum SoundCmd {
     Play(u32),
     Test,
-    Reconfigure { profile: String, volume: u8 },
+    Reconfigure {
+        enabled: bool,
+        profile: String,
+        volume: u8,
+    },
 }
 
 static SOUND_ENABLED: AtomicBool = AtomicBool::new(false);
@@ -81,6 +85,7 @@ pub fn reconfigure_sound(enabled: bool, profile: &str, volume: u8) {
         && let Some(ref sender) = *guard
     {
         let _ = sender.try_send(SoundCmd::Reconfigure {
+            enabled,
             profile: profile.to_string(),
             volume,
         });
@@ -102,7 +107,7 @@ pub fn init_sound(enabled: bool, profile: &str, volume: u8) {
     thread::Builder::new()
         .name("mkey-wasapi-audio".into())
         .spawn(move || {
-            wasapi_audio_worker(receiver, prof, volume);
+            wasapi_audio_worker(receiver, enabled, prof, volume);
         })
         .expect("Failed to spawn WASAPI audio worker thread");
 }
@@ -120,6 +125,7 @@ struct ActiveVoice {
 
 fn wasapi_audio_worker(
     receiver: mpsc::Receiver<SoundCmd>,
+    initial_enabled: bool,
     initial_profile: String,
     initial_volume: u8,
 ) {
@@ -131,13 +137,38 @@ fn wasapi_audio_worker(
         }
     }
 
+    let mut cur_enabled = initial_enabled;
     let mut cur_profile = initial_profile;
     let mut cur_volume = initial_volume;
-    let mut sound_bank = SoundBank::load_from_disk(&cur_profile);
+    let mut sound_bank = if cur_enabled {
+        SoundBank::load_from_disk(&cur_profile)
+    } else {
+        SoundBank::empty()
+    };
     let mut var_counter: usize = 0;
     let mut active_voices: Vec<ActiveVoice> = Vec::with_capacity(16);
 
     'outer: loop {
+        // When sound is disabled, do not open WASAPI audio session or spin mixer.
+        // Sleep indefinitely on receiver until enabled (0% CPU, 0 wakeups, 0 bytes audio buffer).
+        if !cur_enabled {
+            match receiver.recv() {
+                Ok(cmd) => {
+                    process_sound_cmd(
+                        cmd,
+                        &mut active_voices,
+                        &mut sound_bank,
+                        &mut cur_enabled,
+                        &mut cur_profile,
+                        &mut cur_volume,
+                        &mut var_counter,
+                    );
+                    continue 'outer;
+                }
+                Err(_) => break 'outer,
+            }
+        }
+
         // Initialize WASAPI device session
         let mut session = match WasapiSession::open() {
             Ok(s) => s,
@@ -150,6 +181,7 @@ fn wasapi_audio_worker(
                         cmd,
                         &mut active_voices,
                         &mut sound_bank,
+                        &mut cur_enabled,
                         &mut cur_profile,
                         &mut cur_volume,
                         &mut var_counter,
@@ -159,18 +191,23 @@ fn wasapi_audio_worker(
             }
         };
 
-        // Main audio mixing loop
-        loop {
+        // Main audio mixing loop while enabled
+        while cur_enabled {
             // 1. Drain incoming command queue
             while let Ok(cmd) = receiver.try_recv() {
                 process_sound_cmd(
                     cmd,
                     &mut active_voices,
                     &mut sound_bank,
+                    &mut cur_enabled,
                     &mut cur_profile,
                     &mut cur_volume,
                     &mut var_counter,
                 );
+            }
+
+            if !cur_enabled {
+                break;
             }
 
             // 2. Feed WASAPI Shared Mode buffer
@@ -193,6 +230,7 @@ fn wasapi_audio_worker(
                         cmd,
                         &mut active_voices,
                         &mut sound_bank,
+                        &mut cur_enabled,
                         &mut cur_profile,
                         &mut cur_volume,
                         &mut var_counter,
@@ -202,6 +240,8 @@ fn wasapi_audio_worker(
                 thread::sleep(Duration::from_millis(5));
             }
         }
+
+        session.close();
     }
 }
 
@@ -209,12 +249,16 @@ fn process_sound_cmd(
     cmd: SoundCmd,
     active_voices: &mut Vec<ActiveVoice>,
     sound_bank: &mut SoundBank,
+    cur_enabled: &mut bool,
     cur_profile: &mut String,
     cur_volume: &mut u8,
     var_counter: &mut usize,
 ) {
     match cmd {
         SoundCmd::Play(vk) => {
+            if !*cur_enabled {
+                return;
+            }
             let ratio = (*cur_volume as f32 / 100.0).clamp(0.0, 1.0);
             // Perceptual quadratic volume curve (approximates logarithmic human hearing)
             let vol = ratio * ratio;
@@ -230,6 +274,9 @@ fn process_sound_cmd(
             *var_counter = var_counter.wrapping_add(1);
         }
         SoundCmd::Test => {
+            if sound_bank.is_empty() {
+                *sound_bank = SoundBank::load_from_disk(cur_profile);
+            }
             let ratio = (*cur_volume as f32 / 100.0).clamp(0.0, 1.0);
             let vol = ratio * ratio;
             if active_voices.len() >= 16 {
@@ -243,12 +290,25 @@ fn process_sound_cmd(
             });
             *var_counter = var_counter.wrapping_add(1);
         }
-        SoundCmd::Reconfigure { profile, volume } => {
-            if profile != *cur_profile {
+        SoundCmd::Reconfigure {
+            enabled,
+            profile,
+            volume,
+        } => {
+            let was_enabled = *cur_enabled;
+            *cur_enabled = enabled;
+            *cur_volume = volume;
+
+            if !enabled {
+                // Free sample memory and voice queue completely
+                active_voices.clear();
+                *sound_bank = SoundBank::empty();
+                // Request OS to reclaim unmapped physical memory pages
+                super::trim_working_set();
+            } else if !was_enabled || profile != *cur_profile || sound_bank.is_empty() {
                 *cur_profile = profile;
                 *sound_bank = SoundBank::load_from_disk(cur_profile);
             }
-            *cur_volume = volume;
         }
     }
 }
@@ -370,8 +430,7 @@ struct IAudioClientVtbl {
     get_stream_latency: usize,
     get_current_padding: unsafe extern "system" fn(*mut std::ffi::c_void, *mut u32) -> i32,
     is_format_supported: usize,
-    get_mix_format:
-        unsafe extern "system" fn(*mut std::ffi::c_void, *mut *mut WAVEFORMATEX) -> i32,
+    get_mix_format: unsafe extern "system" fn(*mut std::ffi::c_void, *mut *mut WAVEFORMATEX) -> i32,
     get_device_period: usize,
     start: unsafe extern "system" fn(*mut std::ffi::c_void) -> i32,
     stop: unsafe extern "system" fn(*mut std::ffi::c_void) -> i32,
@@ -556,10 +615,8 @@ impl WasapiSession {
                 }
 
                 if self.is_float {
-                    let float_buf = std::slice::from_raw_parts_mut(
-                        p_data as *mut f32,
-                        frames * self.channels,
-                    );
+                    let float_buf =
+                        std::slice::from_raw_parts_mut(p_data as *mut f32, frames * self.channels);
                     for i in 0..frames {
                         let clamped = mix_buf[i].clamp(-1.0, 1.0);
                         for ch in 0..self.channels {
@@ -567,10 +624,8 @@ impl WasapiSession {
                         }
                     }
                 } else {
-                    let i16_buf = std::slice::from_raw_parts_mut(
-                        p_data as *mut i16,
-                        frames * self.channels,
-                    );
+                    let i16_buf =
+                        std::slice::from_raw_parts_mut(p_data as *mut i16, frames * self.channels);
                     for i in 0..frames {
                         let clamped = (mix_buf[i] * 32767.0).clamp(-32767.0, 32767.0) as i16;
                         for ch in 0..self.channels {
@@ -721,7 +776,8 @@ pub fn match_file_tag(stem: &str) -> Option<KeyTag> {
     if stem.contains("end") {
         return Some(KeyTag::End);
     }
-    if stem.contains("arrow") || stem == "up" || stem == "down" || stem == "left" || stem == "right" {
+    if stem.contains("arrow") || stem == "up" || stem == "down" || stem == "left" || stem == "right"
+    {
         return Some(KeyTag::Arrow);
     }
     if stem.contains("win") || stem.contains("super") || stem == "gui" {
@@ -738,6 +794,17 @@ struct SoundBank {
 }
 
 impl SoundBank {
+    pub const fn empty() -> Self {
+        const EMPTY_VEC: Vec<Vec<f32>> = Vec::new();
+        Self {
+            slots: [EMPTY_VEC; KEY_TAG_COUNT],
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.slots.iter().all(|slot| slot.is_empty())
+    }
+
     #[inline]
     pub fn get_samples(&self, vk: u32, variation: usize) -> &[f32] {
         let tag = vk_to_tag(vk) as usize;
@@ -844,23 +911,16 @@ pub fn parse_wav(data: &[u8]) -> Option<Vec<f32>> {
 
     while pos + 8 <= data.len() {
         let chunk_id = &data[pos..pos + 4];
-        let chunk_len = u32::from_le_bytes([
-            data[pos + 4],
-            data[pos + 5],
-            data[pos + 6],
-            data[pos + 7],
-        ]) as usize;
+        let chunk_len =
+            u32::from_le_bytes([data[pos + 4], data[pos + 5], data[pos + 6], data[pos + 7]])
+                as usize;
         pos += 8;
 
         if chunk_id == b"fmt " && pos + chunk_len <= data.len() && chunk_len >= 16 {
             format_tag = u16::from_le_bytes([data[pos], data[pos + 1]]);
             channels = u16::from_le_bytes([data[pos + 2], data[pos + 3]]);
-            sample_rate = u32::from_le_bytes([
-                data[pos + 4],
-                data[pos + 5],
-                data[pos + 6],
-                data[pos + 7],
-            ]);
+            sample_rate =
+                u32::from_le_bytes([data[pos + 4], data[pos + 5], data[pos + 6], data[pos + 7]]);
             bits_per_sample = u16::from_le_bytes([data[pos + 14], data[pos + 15]]);
         } else if chunk_id == b"data" {
             let len = chunk_len.min(data.len().saturating_sub(pos));

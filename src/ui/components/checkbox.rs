@@ -173,7 +173,15 @@ unsafe extern "system" fn checkbox_subclass_proc(
                 let op = SelectObject(hdc, pen);
 
                 // Rounded checkbox rectangle (2px smooth radius for 13x13 box)
-                RoundRect(hdc, box_rc.left, box_rc.top, box_rc.right, box_rc.bottom, 2, 2);
+                RoundRect(
+                    hdc,
+                    box_rc.left,
+                    box_rc.top,
+                    box_rc.right,
+                    box_rc.bottom,
+                    2,
+                    2,
+                );
 
                 SelectObject(hdc, ob);
                 SelectObject(hdc, op);
@@ -284,7 +292,12 @@ impl CheckBox {
             }
             let data = Box::into_raw(Box::new(CheckBoxData { is_hover: false }));
             unsafe {
-                SetWindowSubclass(hwnd, checkbox_subclass_proc, CHECKBOX_SUBCLASS_ID, data as usize);
+                SetWindowSubclass(
+                    hwnd,
+                    checkbox_subclass_proc,
+                    CHECKBOX_SUBCLASS_ID,
+                    data as usize,
+                );
             }
             Some(Self { hwnd, id })
         } else {

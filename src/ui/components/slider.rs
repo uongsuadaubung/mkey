@@ -114,4 +114,3 @@ impl Slider {
         unsafe { IsWindowEnabled(self.hwnd) != 0 }
     }
 }
-

@@ -268,7 +268,7 @@ pub unsafe extern "system" fn low_level_keyboard_proc(
 }
 
 /// Installs the Windows keyboard & mouse hooks and starts the Win32 message pump
-pub fn run_hook_loop(engine: VietnameseEngine, is_autostart: bool) {
+pub fn run_hook_loop(engine: VietnameseEngine, _is_autostart: bool) {
     let show_dialog_on_startup = engine.config().show_dialog_on_startup;
     let sound_enabled = engine.config().sound_enabled;
     let sound_profile = engine.config().sound_profile.clone();
@@ -315,7 +315,7 @@ pub fn run_hook_loop(engine: VietnameseEngine, is_autostart: bool) {
 
         // Initialize Native Win32 UI (System Tray & Control Panel)
         crate::ui::init_ui();
-        if !is_autostart || show_dialog_on_startup {
+        if show_dialog_on_startup {
             crate::ui::show_control_panel();
         } else {
             trim_working_set();

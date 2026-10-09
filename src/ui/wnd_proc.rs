@@ -27,6 +27,7 @@ const IDC_HAND: usize = 32649;
 const WM_PAINT: u32 = 0x000F;
 const WM_CLOSE: u32 = 0x0010;
 const WM_ERASEBKGND: u32 = 0x0014;
+const WM_SHOWWINDOW: u32 = 0x0018;
 const WM_SETTINGCHANGE: u32 = 0x001A;
 const WM_HSCROLL: u32 = 0x0114;
 const WM_COMMAND: u32 = 0x0111;
@@ -220,6 +221,23 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
 ) -> isize {
     match msg {
         WM_ERASEBKGND => 1,
+        WM_SHOWWINDOW => {
+            if wparam != 0 {
+                // Window is being shown -> refresh with latest engine config & ensure tab controls are visible
+                if let Ok(ui_guard) = UI_MANAGER.try_lock()
+                    && let Some(ref ui) = *ui_guard
+                {
+                    if let Ok(guard) = ENGINE_INSTANCE.lock()
+                        && let Some(ref engine) = *guard
+                    {
+                        ui.controls.load_config(engine.config());
+                    }
+                    ui.controls
+                        .update_tab_visibility(ui.controls.tab_bar.get_cur_sel());
+                }
+            }
+            0
+        }
         WM_PAINT => {
             unsafe {
                 let mut ps: PAINTSTRUCT = std::mem::zeroed();

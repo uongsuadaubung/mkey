@@ -431,7 +431,7 @@ pub fn center_window(hwnd: isize, width: i32, height: i32) {
             y,
             width,
             height,
-            0x0004 /* SWP_NOZORDER */ | 0x0040, /* SWP_SHOWWINDOW */
+            0x0004 /* SWP_NOZORDER */ | 0x0010, /* SWP_NOACTIVATE */
         );
     }
 }

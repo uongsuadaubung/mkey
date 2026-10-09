@@ -1206,3 +1206,58 @@ fn test_special_coda_dak_lak_and_english_guard() {
     assert_eq!(simulate_typing(&mut engine, "disk "), "disk ");
 }
 
+#[test]
+fn test_backspace_across_space_does_not_trap_new_words() {
+    let mut engine = VietnameseEngine::new(EngineConfig {
+        method: InputMethod::Telex,
+        remember_history_across_space: true,
+        ..Default::default()
+    });
+
+    let mut screen = String::new();
+    let type_str = |eng: &mut VietnameseEngine, s: &str, scr: &mut String| {
+        for ch in s.chars() {
+            let is_upper = ch.is_uppercase();
+            match eng.on_key(ch, is_upper, false) {
+                EngineAction::Passthrough => scr.push(ch),
+                EngineAction::Replace { backspaces, output } => {
+                    for _ in 0..backspaces {
+                        scr.pop();
+                    }
+                    scr.push_str(&output);
+                }
+                EngineAction::Consume => {}
+            }
+        }
+    };
+    let press_bs = |eng: &mut VietnameseEngine, scr: &mut String| {
+        scr.pop();
+        eng.on_backspace();
+    };
+
+    // 1. Gõ "tooi " -> "tôi "
+    type_str(&mut engine, "tooi ", &mut screen);
+    assert_eq!(screen, "tôi ");
+
+    // 2. Nhấn Backspace xóa dấu cách -> buffer phục hồi "tôi" qua dấu cách
+    press_bs(&mut engine, &mut screen);
+    assert_eq!(screen, "tôi");
+
+    // 3. Người dùng gõ dấu cách rồi gõ từ mới "giups " -> phải ra chuẩn "tôi giúp "
+    // Thay vì bị dính vào "tôi" thành Passthrough "tôigiups",
+    // engine phải tự động tách từ mới và gõ ra chuẩn "giúp "!
+    type_str(&mut engine, " giups ", &mut screen);
+    assert_eq!(screen, "tôi giúp ");
+
+    // 4. Kiểm tra kịch bản người dùng: gõ từ, xóa đi, gõ lại không bao giờ bị mất dấu
+    // Xóa từ " giúp ": 6 lần Backspace (gồm dấu cách cuối, g, i, ú, p, dấu cách đầu)
+    for _ in 0..6 {
+        press_bs(&mut engine, &mut screen);
+    }
+    assert_eq!(screen, "tôi");
+
+    // Gõ lại dấu cách và "giups " -> phải ra chuẩn "tôi giúp "
+    type_str(&mut engine, " giups ", &mut screen);
+    assert_eq!(screen, "tôi giúp ");
+}
+

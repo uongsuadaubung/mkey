@@ -39,6 +39,8 @@ pub struct TypingBuffer {
     pub emitted_len: usize,
     /// Whether this buffer is in raw passthrough mode (e.g. restored from spelling correction)
     pub is_passthrough: bool,
+    /// Whether this buffer was restored from history across a space via backspace
+    pub is_restored_across_space: bool,
 }
 
 impl TypingBuffer {
@@ -51,6 +53,7 @@ impl TypingBuffer {
         self.state = SyllableState::Empty;
         self.emitted_len = 0;
         self.is_passthrough = false;
+        self.is_restored_across_space = false;
     }
 
     pub fn restore_as_passthrough(&mut self, keys: Vec<RawKey>) {
@@ -59,6 +62,7 @@ impl TypingBuffer {
         self.emitted_len = text.encode_utf16().count();
         self.state = SyllableState::Passthrough(text);
         self.is_passthrough = true;
+        self.is_restored_across_space = true;
     }
 
     pub fn is_empty(&self) -> bool {
@@ -120,6 +124,18 @@ impl TypingBuffer {
     pub fn feed_key(&mut self, key: RawKey, config: &EngineConfig) -> EngineAction {
         if self.is_boundary(&key) {
             self.clear();
+        }
+
+        // If this word was restored across space from history, test if the incoming key
+        // is legitimately modifying / extending this word (e.g. adding tone 's' to "chao" -> "cháo").
+        // If the key would degrade the state into Passthrough (or if it's already in passthrough),
+        // the user is typing a NEW WORD! We clear the restored word so the new word can type cleanly.
+        if self.is_restored_across_space {
+            self.is_restored_across_space = false;
+            let (test_state, _) = self.state.clone().feed_key(key, self.emitted_len, config);
+            if matches!(test_state, SyllableState::Passthrough(_)) || self.is_passthrough {
+                self.clear();
+            }
         }
 
         let prev_rendered = self.state.render();

@@ -225,6 +225,25 @@ impl VietnameseEngine {
             self.history.commit_word(current_raw, rendered, false);
         }
 
+        // If this buffer was restored from history across a space, check if the incoming key
+        // is starting a new word instead of modifying the restored word.
+        if self.buffer.is_restored_across_space {
+            let (test_state, _) = self
+                .buffer
+                .state
+                .clone()
+                .feed_key(raw_key, self.buffer.emitted_len, &self.config);
+            if matches!(test_state, crate::vietnamese::SyllableState::Passthrough(_))
+                || self.buffer.is_passthrough
+            {
+                let current_raw = self.buffer.raw_keys.clone();
+                let rendered = self.buffer.state.render();
+                self.history.commit_word(current_raw, rendered, false);
+                self.history.add_space();
+                self.buffer.clear();
+            }
+        }
+
         let action = self.buffer.feed_key(raw_key, &self.config);
         let next_state_summary = self.buffer.state.summary();
         let current_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
@@ -385,6 +404,7 @@ impl VietnameseEngine {
                     for k in raw_keys {
                         self.buffer.feed_key(k, &self.config);
                     }
+                    self.buffer.is_restored_across_space = true;
                 }
             }
             self.log_debug(format!(
@@ -444,6 +464,7 @@ fn is_word_break(c: char, bracket_w: bool) -> bool {
             | '`'
             | '~'
             | '|'
+            | '-'
     )
 }
 

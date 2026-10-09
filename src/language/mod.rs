@@ -32,15 +32,26 @@ impl fmt::Display for Language {
     }
 }
 
+impl AsRef<str> for Language {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl From<&str> for Language {
+    fn from(s: &str) -> Self {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "en" | "english" => Self::English,
+            _ => Self::Vietnamese,
+        }
+    }
+}
+
 impl FromStr for Language {
     type Err = std::convert::Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let lang = match s.trim().to_ascii_lowercase().as_str() {
-            "en" | "english" => Self::English,
-            _ => Self::Vietnamese,
-        };
-        Ok(lang)
+        Ok(Self::from(s))
     }
 }
 
@@ -143,8 +154,7 @@ pub struct LanguageStrings {
 }
 
 impl LanguageStrings {
-    #[inline]
-    pub fn tab_titles(&self) -> [&'static str; 4] {
+    pub const fn tab_titles(&self) -> [&'static str; 4] {
         [self.tab_typing, self.tab_macro, self.tab_system, self.tab_about]
     }
 }
@@ -177,7 +187,6 @@ pub fn set_current_language(lang: Language) {
 }
 
 /// Convenience helper to fetch the active localized strings
-#[inline]
 pub fn current() -> &'static LanguageStrings {
     get_strings(current_language())
 }

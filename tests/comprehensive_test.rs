@@ -193,3 +193,26 @@ fn test_group_7_macro_expansion_with_casing() {
     assert_eq!(simulate(&mut engine, "KO "), "KHÔNG ");
     assert_eq!(simulate(&mut engine, "DC "), "ĐƯỢC ");
 }
+
+#[test]
+fn test_benchmark_throughput() {
+    let mut engine = VietnameseEngine::new(EngineConfig::default());
+    let paragraph = "tooi gox tieengs vieetj raats nhanh vaf muwowjt maf treen heej thoongs OpenKey moqis ";
+    let total_chars = paragraph.chars().count();
+    let iterations = 10_000;
+
+    let start = std::time::Instant::now();
+    for _ in 0..iterations {
+        simulate(&mut engine, paragraph);
+    }
+    let elapsed = start.elapsed();
+    let total_keystrokes = total_chars * iterations;
+    let keys_per_sec = (total_keystrokes as f64) / elapsed.as_secs_f64();
+    println!(
+        "\n===> BENCHMARK: {} keys typed in {:?}. Speed: {:.0} keys/sec ({:.2} microseconds/key)",
+        total_keystrokes,
+        elapsed,
+        keys_per_sec,
+        (elapsed.as_micros() as f64) / (total_keystrokes as f64)
+    );
+}

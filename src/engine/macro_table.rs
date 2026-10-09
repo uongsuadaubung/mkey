@@ -13,17 +13,24 @@ pub enum MacroType {
 }
 
 impl MacroType {
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         match self {
             MacroType::Normal => "normal",
             MacroType::StartConsonant => "start",
             MacroType::EndConsonant => "end",
         }
     }
+}
 
-    #[allow(clippy::should_implement_trait)]
-    pub fn from_str(s: &str) -> Self {
-        Self::from(s)
+impl std::fmt::Display for MacroType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for MacroType {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
 
@@ -57,6 +64,8 @@ pub struct MacroEntry {
 #[derive(Debug, Clone, Default)]
 pub struct MacroTable {
     entries: HashMap<String, MacroEntry>,
+    start_consonants: Vec<MacroEntry>,
+    end_consonants: Vec<MacroEntry>,
 }
 
 impl MacroTable {
@@ -65,19 +74,41 @@ impl MacroTable {
         Self::default()
     }
 
+    pub fn rebuild_cache(&mut self) {
+        let mut starts: Vec<MacroEntry> = self
+            .entries
+            .values()
+            .filter(|e| e.macro_type == MacroType::StartConsonant)
+            .cloned()
+            .collect();
+        starts.sort_by_key(|a| std::cmp::Reverse(a.key.len()));
+
+        let mut ends: Vec<MacroEntry> = self
+            .entries
+            .values()
+            .filter(|e| e.macro_type == MacroType::EndConsonant)
+            .cloned()
+            .collect();
+        ends.sort_by_key(|a| std::cmp::Reverse(a.key.len()));
+
+        self.start_consonants = starts;
+        self.end_consonants = ends;
+    }
+
     /// Create a macro table pre-populated with standard default rules
     pub fn with_defaults() -> Self {
         let mut table = Self::new();
         // Default Start Consonants
-        table.insert_typed("f", "ph", MacroType::StartConsonant);
-        table.insert_typed("j", "gi", MacroType::StartConsonant);
-        table.insert_typed("w", "qu", MacroType::StartConsonant);
+        table.insert_typed_no_cache("f", "ph", MacroType::StartConsonant);
+        table.insert_typed_no_cache("j", "gi", MacroType::StartConsonant);
+        table.insert_typed_no_cache("w", "qu", MacroType::StartConsonant);
 
         // Default End Consonants
-        table.insert_typed("g", "ng", MacroType::EndConsonant);
-        table.insert_typed("h", "nh", MacroType::EndConsonant);
-        table.insert_typed("k", "ch", MacroType::EndConsonant);
+        table.insert_typed_no_cache("g", "ng", MacroType::EndConsonant);
+        table.insert_typed_no_cache("h", "nh", MacroType::EndConsonant);
+        table.insert_typed_no_cache("k", "ch", MacroType::EndConsonant);
 
+        table.rebuild_cache();
         table
     }
 
@@ -86,8 +117,8 @@ impl MacroTable {
         self.insert_typed(key, value, MacroType::Normal);
     }
 
-    /// Insert or update a macro entry with a specific type
-    pub fn insert_typed(
+    /// Insert entry without immediately rebuilding search cache (for bulk insertion)
+    pub fn insert_typed_no_cache(
         &mut self,
         key: impl Into<String>,
         value: impl Into<String>,
@@ -105,9 +136,24 @@ impl MacroTable {
         );
     }
 
+    /// Insert or update a macro entry with a specific type
+    pub fn insert_typed(
+        &mut self,
+        key: impl Into<String>,
+        value: impl Into<String>,
+        macro_type: MacroType,
+    ) {
+        self.insert_typed_no_cache(key, value, macro_type);
+        self.rebuild_cache();
+    }
+
     /// Remove a macro entry
     pub fn remove(&mut self, key: &str) -> Option<MacroEntry> {
-        self.entries.remove(&key.to_lowercase())
+        let res = self.entries.remove(&key.to_lowercase());
+        if res.is_some() {
+            self.rebuild_cache();
+        }
+        res
     }
 
     /// Check if a macro shortcut key exists
@@ -118,6 +164,8 @@ impl MacroTable {
     /// Clear all macro entries
     pub fn clear(&mut self) {
         self.entries.clear();
+        self.start_consonants.clear();
+        self.end_consonants.clear();
     }
 
     /// Number of macro entries
@@ -159,9 +207,9 @@ impl MacroTable {
                 let k = k.trim();
                 let rest = rest.trim();
                 if let Some((v, t)) = rest.split_once(':') {
-                    self.insert_typed(k, v.trim(), MacroType::from_str(t));
+                    self.insert_typed_no_cache(k, v.trim(), MacroType::from(t));
                 } else {
-                    self.insert_typed(k, rest, MacroType::Normal);
+                    self.insert_typed_no_cache(k, rest, MacroType::Normal);
                 }
             } else if line.contains('\t') {
                 let parts: Vec<&str> = line
@@ -170,19 +218,20 @@ impl MacroTable {
                     .filter(|s| !s.is_empty())
                     .collect();
                 if parts.len() >= 3 {
-                    self.insert_typed(parts[0], parts[1], MacroType::from_str(parts[2]));
+                    self.insert_typed_no_cache(parts[0], parts[1], MacroType::from(parts[2]));
                 } else if parts.len() == 2 {
-                    self.insert_typed(parts[0], parts[1], MacroType::Normal);
+                    self.insert_typed_no_cache(parts[0], parts[1], MacroType::Normal);
                 }
             } else if line.contains(':') {
                 let parts: Vec<&str> = line.split(':').map(|s| s.trim()).collect();
                 if parts.len() >= 3 {
-                    self.insert_typed(parts[0], parts[1], MacroType::from_str(parts[2]));
+                    self.insert_typed_no_cache(parts[0], parts[1], MacroType::from(parts[2]));
                 } else if parts.len() == 2 {
-                    self.insert_typed(parts[0], parts[1], MacroType::Normal);
+                    self.insert_typed_no_cache(parts[0], parts[1], MacroType::Normal);
                 }
             }
         }
+        self.rebuild_cache();
     }
 
     /// Serialize all macros to configuration format
@@ -265,14 +314,7 @@ impl MacroTable {
 
         // 3. Quick start consonant match (onset)
         if allow_start_consonant {
-            let mut start_candidates: Vec<&MacroEntry> = self
-                .entries
-                .values()
-                .filter(|e| e.macro_type == MacroType::StartConsonant)
-                .collect();
-            start_candidates.sort_by_key(|a| std::cmp::Reverse(a.key.len()));
-
-            for entry in start_candidates {
+            for entry in &self.start_consonants {
                 if lower.starts_with(&entry.key) {
                     let rem = &lower[entry.key.len()..];
                     if !rem.is_empty() {
@@ -288,14 +330,7 @@ impl MacroTable {
 
         // 4. Quick end consonant match (coda)
         if allow_end_consonant {
-            let mut end_candidates: Vec<&MacroEntry> = self
-                .entries
-                .values()
-                .filter(|e| e.macro_type == MacroType::EndConsonant)
-                .collect();
-            end_candidates.sort_by_key(|a| std::cmp::Reverse(a.key.len()));
-
-            for entry in end_candidates {
+            for entry in &self.end_consonants {
                 if lower.ends_with(&entry.key) {
                     let prefix_len = lower.len() - entry.key.len();
                     let prefix = &lower[..prefix_len];

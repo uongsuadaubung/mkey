@@ -1,9 +1,9 @@
 use super::buffer::RawKey;
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone)]
 pub struct CommittedWord {
     pub raw_keys: Vec<RawKey>,
-    pub emitted_text: String,
     pub is_raw_restored: bool,
     pub spaces_after: usize,
 }
@@ -13,7 +13,7 @@ pub const MAX_HISTORY_WORDS: usize = 50;
 /// History tracker to support Backspace across spaces and word restoration
 #[derive(Debug, Clone, Default)]
 pub struct WordHistory {
-    committed_words: Vec<CommittedWord>,
+    committed_words: VecDeque<CommittedWord>,
 }
 
 impl WordHistory {
@@ -33,16 +33,14 @@ impl WordHistory {
     pub fn commit_word(
         &mut self,
         raw_keys: Vec<RawKey>,
-        emitted_text: String,
         is_raw_restored: bool,
     ) {
         if !raw_keys.is_empty() {
             if self.committed_words.len() >= MAX_HISTORY_WORDS {
-                self.committed_words.remove(0);
+                self.committed_words.pop_front();
             }
-            self.committed_words.push(CommittedWord {
+            self.committed_words.push_back(CommittedWord {
                 raw_keys,
-                emitted_text,
                 is_raw_restored,
                 spaces_after: 0,
             });
@@ -51,14 +49,14 @@ impl WordHistory {
 
     /// Record space(s) typed after words
     pub fn add_space(&mut self) {
-        if let Some(last) = self.committed_words.last_mut() {
+        if let Some(last) = self.committed_words.back_mut() {
             last.spaces_after += 1;
         }
     }
 
     pub fn has_trailing_spaces(&self) -> bool {
         self.committed_words
-            .last()
+            .back()
             .is_some_and(|w| w.spaces_after > 0)
     }
 
@@ -68,13 +66,13 @@ impl WordHistory {
     /// - `Some(Some((raw_keys, is_raw_restored)))` if the trailing space was the last one and the previous word was restored
     /// - `None` if history is completely empty or no space to backspace across
     pub fn pop_backspace(&mut self) -> Option<Option<(Vec<RawKey>, bool)>> {
-        if let Some(last) = self.committed_words.last_mut() {
+        if let Some(last) = self.committed_words.back_mut() {
             if last.spaces_after > 1 {
                 last.spaces_after -= 1;
                 return Some(None);
             }
             if last.spaces_after == 1 {
-                let word = self.committed_words.pop().unwrap();
+                let word = self.committed_words.pop_back().unwrap();
                 return Some(Some((word.raw_keys, word.is_raw_restored)));
             }
         }

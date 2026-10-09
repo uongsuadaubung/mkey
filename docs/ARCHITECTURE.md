@@ -13,26 +13,38 @@ flowchart TD
     subgraph OS_Layer ["1. Tầng Hệ điều hành (Platform Layer)"]
         KBD_Hook["Low-Level Keyboard Hook (src/platform/win32/mod.rs)"]
         MOUSE_Hook["Low-Level Mouse Hook (src/platform/win32/mod.rs)"]
-        SendInput["Win32 SendInput (src/platform/win32/injector.rs)"]
+        Injector["SendInput & Omnibox Guard (src/platform/win32/injector.rs)"]
         AppDetect["App Detection (src/platform/win32/app_detect.rs)"]
         Registry["Windows Registry Run Key (src/platform/registry.rs)"]
     end
 
-    subgraph Engine_Layer ["2. Tầng Điều phối (Engine Coordinator Layer)"]
+    subgraph UI_Layer ["2. Tầng Giao diện Native Win32 (UI Layer)"]
+        WndProc["Window Procedure Router (src/ui/wnd_proc.rs)"]
+        CtrlPanel["Control Panel Views (src/ui/views/)"]
+        ThemeEngine["Theme & GDI Renderer (src/ui/theme.rs, paint.rs, colors.rs)"]
+        Components["Native Components & Subclassing (src/ui/components/)"]
+        TrayMenu["System Tray Context Menu"]
+    end
+
+    subgraph Engine_Layer ["3. Tầng Điều phối (Engine Coordinator Layer)"]
         VE["VietnameseEngine (src/engine/mod.rs)"]
         ConfigStore["ConfigStore (src/engine/config_store.rs)"]
-        MacroTbl["MacroTable (Bảng gõ tắt bảo toàn Casing)"]
-        Hist["WordHistory (Ngăn xếp phục hồi qua phím cách)"]
-        SpellingGuard["Spelling Checker & Restore on Wrong Spelling"]
+        MacroTbl["MacroTable (Bảng gõ tắt 3 tầng & Casing)"]
+        Hist["WordHistory (Ring Buffer VecDeque phục hồi từ)"]
+        SpellingGuard["Spelling Checker & English Word Restore"]
     end
 
-    subgraph Buffer_Layer ["3. Tầng Bộ đệm (Typing Buffer Layer)"]
+    subgraph Language_Layer ["4. Phân hệ Đa ngôn ngữ (Localization)"]
+        Lang["Language & LanguageStrings (src/language/)"]
+    end
+
+    subgraph Buffer_Layer ["5. Tầng Bộ đệm (Typing Buffer Layer)"]
         TB["TypingBuffer (src/engine/buffer.rs)"]
         RawKeys["raw_keys: Vec<RawKey> (Single Source of Truth)"]
-        Eval["evaluate_keys() (Pure Projection)"]
+        Eval["evaluate_keys() & Common Prefix Diff"]
     end
 
-    subgraph Linguistic_Layer ["4. Tầng Ngữ âm học (Linguistic State Machine)"]
+    subgraph Linguistic_Layer ["6. Tầng Ngữ âm học (Linguistic State Machine)"]
         SM["SyllableState (src/vietnamese/state.rs)"]
         OnsetNode["Onset (src/vietnamese/onset.rs)"]
         NucleusNode["Nucleus & Tone (src/vietnamese/nucleus.rs)"]
@@ -51,7 +63,12 @@ flowchart TD
     VE --> Hist
     VE --> SpellingGuard
     VE --> ConfigStore
-    VE -->|"EngineAction (Replace / Passthrough)"| SendInput
+    VE -->|"EngineAction (Replace / Passthrough)"| Injector
+    AppDetect --> Injector
+    WndProc --> CtrlPanel & TrayMenu
+    CtrlPanel --> Components & ThemeEngine
+    Lang --> CtrlPanel & TrayMenu
+    ConfigStore --> VE & WndProc
 ```
 
 ---
@@ -68,9 +85,13 @@ flowchart TD
   - Không dựa vào giả định số lượng ký tự xóa của hệ điều hành.
   - Khi nhận sự kiện Backspace, buffer tính `target_len = emitted_len - 1` và thực hiện `raw_keys.pop()` kèm tái chiếu `evaluate_keys` liên tục cho đến khi độ dài hiển thị giảm chính xác 1 đơn vị.
   - Đối với từ ở chế độ thô (`is_passthrough`), Backspace giảm trực tiếp từng ký tự một ($1:1$ với màn hình).
-- **Phát hiện Biên tự động (Automatic Boundary Splitting):**
-  - **CamelCase Boundary:** Khi gặp một chữ cái viết HOA xen giữa các chữ cái viết thường (ví dụ: `userName`), buffer tự động chốt từ `user` và bắt đầu âm tiết mới với `Name`.
-  - **Closed Syllable Boundary:** Khi âm tiết hiện tại đã đạt cấu trúc đóng (ví dụ: các nguyên âm không thể nhận phụ âm cuối như `ôi`, `ay`, `eo`), nếu người dùng gõ thêm một phụ âm không phải phím dấu Telex, buffer tự động ngắt từ cũ và mở từ mới.
+- **Tối ưu hóa Tiền tố chung (Common Prefix Differential Optimization):**
+  - Khi người dùng gõ phím biến đổi dấu hoặc vần (ví dụ: `go` $\to$ `gõ`), `TypingBuffer` so khớp chuỗi ký tự hiển thị cũ và mới thông qua iterator streaming `chars().zip()`.
+  - Thay vì phát lệnh xóa toàn bộ từ cũ và gõ lại cả từ (`Backspace 2` + `gõ`), engine chỉ phát lệnh lùi phần hậu tố bị thay đổi (`Backspace 1` + `õ`), giữ nguyên tiền tố chung `g`.
+  - Thuật toán này triệt tiêu hoàn toàn lỗi kinh điển "nhân đôi ký tự" (`ggõ`, `ttoán`) trên các thanh địa chỉ trình duyệt (Chrome, Edge, Firefox).
+- **Phát hiện Biên từ CamelCase (`is_boundary`):**
+  - Khi gặp một chữ cái viết HOA xen giữa các chữ cái viết thường (ví dụ: `userName`), buffer tự động chốt từ `user` và bắt đầu phiên âm tiết mới với `Name`.
+  - Việc xử lý âm tiết đã đóng cấu trúc (ví dụ: `ôi`, `ay` không nhận thêm phụ âm) được điều phối tự nhiên thông qua chu trình chuyển dịch của máy trạng thái ngữ âm `SyllableState`.
 
 ---
 
@@ -112,21 +133,24 @@ flowchart TD
 
 ---
 
-### 2.3. `WordHistory` — Ngăn xếp Phục hồi qua Phím cách
+### 2.3. `WordHistory` — Ring Buffer Phục hồi qua Phím cách
 - **File:** `src/engine/history.rs`
 - Cung cấp tính năng **"Nhớ từ đã gõ qua phím cách"**: Khi người dùng đã gõ xong từ và bấm dấu cách, nếu bấm Backspace xóa dấu cách đó thì từ cũ được nạp lại vào buffer để tiếp tục sửa.
 - **Cấu trúc dữ liệu:**
   ```rust
   pub struct CommittedWord {
       pub raw_keys: Vec<RawKey>,
-      pub emitted_text: String,
       pub is_raw_restored: bool,
       pub spaces_after: usize,
   }
   ```
+- **Kiến trúc Ring Buffer $O(1)$ (`VecDeque`):**
+  - Hệ thống duy trì tối đa `MAX_HISTORY_WORDS = 50` từ đã gõ trong hàng đợi hai đầu `VecDeque<CommittedWord>`.
+  - Khi bộ nhớ đệm đạt giới hạn, thao tác thu hồi phần tử cũ nhất thực hiện qua `pop_front()` với độ phức tạp $O(1)$ thay vì dồn mảng $O(N)$, loại bỏ nguy cơ giật lag và rò rỉ bộ nhớ khi gõ văn bản dài.
 - **Quy tắc an toàn tuyệt đối:**
   1. Chỉ phục hồi từ khi `spaces_after == 1` (đúng một dấu cách ngăn giữa con trỏ và từ trước).
   2. Khi gặp phím xuống dòng (`Enter`: `\r`, `\n`), dấu câu (`.`, `,`, `!`, `?`...), click chuột hoặc phím điều hướng $\rightarrow$ gọi `WordHistory::clear()`. Điều này triệt tiêu hoàn toàn lỗi "lội ngược dòng" gây biến dạng từ ngữ.
+  3. **Tự động ngắt từ phục hồi (Graceful Word Boundary Detachment):** Khi một từ được nạp lại qua phím cách, nếu người dùng gõ một phím mới không thể ghép vần (làm từ rơi vào `Passthrough`), buffer tự động ngắt bỏ từ phục hồi để gõ từ mới độc lập, không bẫy người dùng vào từ cũ.
 
 ---
 
@@ -140,13 +164,23 @@ flowchart TD
 
 ---
 
-### 2.5. `MacroTable` — Bảng Gõ tắt Bảo toàn Dạng Chữ
+### 2.5. `MacroTable` — Bảng Gõ tắt 3 Tầng & Bảo toàn Dạng Chữ
 - **File:** `src/engine/macro_table.rs`
-- Tự động thay thế từ viết tắt khi nhấn phím cách.
+- Tự động thay thế từ viết tắt khi nhấn phím cách hoặc gõ vần.
+- **Hệ thống phân loại Gõ tắt 3 tầng (`MacroType`):**
+  1. `Normal`: Gõ tắt từ nguyên khối (`vn` $\to$ `việt nam`).
+  2. `StartConsonant`: Thay thế phụ âm đầu siêu tốc (`f` $\to$ `ph`, `j` $\to$ `gi`, `w` $\to$ `qu`).
+  3. `EndConsonant`: Thay thế phụ âm cuối siêu tốc (`g` $\to$ `ng`, `h` $\to$ `nh`, `k` $\to$ `ch`).
+- **Bảo vệ Phụ âm Đơn (Single Character Guard):**
+  - Khi người dùng gõ một phụ âm đơn đứng một mình rồi nhấn Space (ví dụ: `f `, `g `, `j `), engine bảo toàn ký tự gốc không kích hoạt gõ tắt (nhằm giữ an toàn cho biến trong lập trình, công thức toán `f(x)` hoặc lệnh console).
+  - Phụ âm đầu/cuối chỉ tự động biến đổi khi kết hợp với cấu trúc âm tiết hợp lệ theo sau (`fa` $\to$ `pha`, `dag` $\to$ `dang`).
+- **Cơ chế Pre-sorted Cache & Batch Loading:**
+  - Hai danh mục phụ âm đầu (`start_consonants`) và phụ âm cuối (`end_consonants`) được duy trì trong bộ đệm sắp xếp sẵn theo độ dài khóa giảm dần (`len DESC`), bảo đảm thuật toán Greedy Matching luôn ưu tiên khớp cụm ký tự dài nhất trước.
+  - Khi nạp danh mục cấu hình lớn từ file đĩa, engine sử dụng `insert_typed_no_cache()` và chỉ gọi `rebuild_cache()` một lần duy nhất sau khi nạp xong, giảm độ phức tạp từ $O(N \cdot K \log K)$ xuống $O(K \log K)$.
 - **Bảo toàn Casing thông minh:**
-  - Viết thường: `vn` $\rightarrow$ `việt nam`.
-  - Viết hoa đầu (Title Case): `Vn` $\rightarrow$ `Việt Nam`.
-  - Viết hoa toàn bộ (All Caps): `VN` $\rightarrow$ `VIỆT NAM`.
+  - Viết thường: `vn` $\to$ `việt nam`.
+  - Viết hoa đầu (Title Case): `Vn` $\to$ `Việt Nam`.
+  - Viết hoa toàn bộ (All Caps): `VN` $\to$ `VIỆT NAM`.
 
 ---
 
@@ -164,7 +198,36 @@ flowchart TD
 - **Triệt tiêu Hardcoded Text & Đảm bảo Type-Safety:**
   - Toàn bộ chuỗi văn bản giao diện (tiêu đề cửa sổ, nhãn, nút bấm, placeholder gõ tắt, tray context menu, tooltip) được tập trung tại struct `LanguageStrings` với kiểu `&'static str` (Zero Runtime Allocation).
   - Trình biên dịch Rust bảo đảm tính đầy đủ (Compile-time Completeness): Bất kỳ ngôn ngữ mới nào được bổ sung (Pháp, Nhật, v.v.) bắt buộc phải cung cấp đủ toàn bộ trường chuỗi tương ứng, loại bỏ 100% rủi ro thiếu key hoặc vỡ giao diện.
-  - Hỗ trợ chuyển đổi ngôn ngữ linh hoạt tại runtime và lưu trữ tùy chọn ngôn ngữ trong `config.ini` (`[system] language = vi / en`).
+  - Chuyển đổi ngôn ngữ an toàn đa luồng thông qua cờ nguyên tử `AtomicU8` (`CURRENT_LANG`) và lưu trữ tùy chọn vào `config.ini` (`[system] language = vi / en`).
+
+---
+
+### 2.8. `Platform & Win32 Injector` — Tầng Giao tiếp Hệ điều hành Cấp thấp
+- **Files:** `src/platform/win32/mod.rs`, `src/platform/win32/injector.rs`, `src/platform/win32/app_detect.rs`
+- **Kỹ thuật Tổng hợp Phím Nguyên tử (`SendInput`):**
+  - Chuỗi phím xóa lùi (`VK_BACK`) và ký tự Unicode mới được gom vào một mảng `Vec<INPUT>` duy nhất và gửi qua một lời gọi `SendInput` nguyên tử. Ngăn chặn hiện tượng con trỏ bị trôi hoặc xung đột luồng gõ phím.
+- **Cơ chế Autocomplete Guard bằng ký tự vô hình `U+202F` (`injector.rs` & `app_detect.rs`):**
+  - Khi người dùng gõ trên thanh địa chỉ Chromium Omnibox (Chrome, Edge, Brave), Firefox hoặc ô Excel đang có văn bản gợi ý tự động (inline autocomplete selection):
+    1. Gửi ký tự vô hình `U+202F` (Narrow No-Break Space) để xóa đè vùng chọn gợi ý mà không làm con trỏ nhảy về cuối dòng.
+    2. Gửi 1 phím Backspace xóa ký tự `U+202F`.
+    3. Thực hiện lùi `backspaces` và gõ ký tự tiếng Việt bình thường.
+- **Trạng thái Cách ly Phím tắt Chuyển Chế độ (`CTRL_SHIFT_ARMED`):**
+  - Cờ nguyên tử `CTRL_SHIFT_ARMED` kiểm soát vòng đời chuyển đổi Việt/Anh (`Ctrl + Shift`). Nếu người dùng nhấn thêm bất kỳ phím thứ 3 nào (ví dụ: `Ctrl + Shift + Esc`), cờ tự động hủy kích hoạt, ngăn cản cướp phím tắt của các phần mềm khác.
+- **Thu gọn Bộ nhớ Làm việc (`trim_working_set`):**
+  - Tích hợp `SetProcessWorkingSetSize` khi người dùng ẩn/đóng Bảng điều khiển xuống System Tray, chủ động trả lại các trang bộ nhớ vật lý không sử dụng về cho Windows kernel.
+
+---
+
+### 2.9. `Native Win32 UI & Theming` — Phân hệ Giao diện Thuần Native
+- **Files:** `src/ui/mod.rs`, `src/ui/paint.rs`, `src/ui/theme.rs`, `src/ui/colors.rs`, `src/ui/wnd_proc.rs`
+- **Kiến trúc GDI Thuần (Pure Win32 GDI):**
+  - Không sử dụng WebView, Electron hay framework giao diện cồng kềnh. Toàn bộ các thành phần hiển thị (card bo góc, tab bar, nút bấm, bảng danh sách ListView) được kết xuất trực tiếp qua Windows GDI và UxTheme.
+- **Khử chớp nháy (Double Buffering):**
+  - Mọi thao tác vẽ container và thẻ card được thực hiện trên một Memory Device Context (`CreateCompatibleDC`, `CreateCompatibleBitmap`) trước khi đẩy ra màn hình bằng `BitBlt` trong thông điệp `WM_PAINT`, mang lại trải nghiệm thị giác mượt mà 100%.
+- **Cơ chế Subclassing Điều khiển Win32 (`SetWindowSubclass`):**
+  - Can thiệp thông điệp `WM_PAINT`, `WM_MOUSEMOVE`, `WM_MOUSELEAVE` của các điều khiển Win32 chuẩn (`BUTTON`, `SysListView32`) để áp dụng phong cách thiết kế hiện đại mà vẫn bảo toàn đầy đủ tính năng trợ năng (accessibility) và điều hướng bàn phím của hệ điều hành.
+- **Hệ thống Giao diện Sáng/Tối (Light/Dark Theme Engine):**
+  - Tự động nhận diện theme hệ thống Windows qua Registry (`AppsUseLightTheme`), hỗ trợ chuyển đổi giao diện thời gian thực với bảng màu ngữ nghĩa `ThemePalette` và bộ nhớ đệm GDI brush/pen tái sử dụng.
 
 ---
 
@@ -186,8 +249,8 @@ MKey/
 │   │   ├── buffer.rs           # TypingBuffer & Thuật toán SSOT evaluate_keys
 │   │   ├── config.rs           # EngineConfig (Telex, VNI, language, show_dialog_on_startup...)
 │   │   ├── config_store.rs     # Tải/lưu cấu hình config.ini & bảng macro ra đĩa
-│   │   ├── history.rs          # WordHistory & Stack quản lý dấu cách
-│   │   └── macro_table.rs      # Bảng gõ tắt & Casing preservation
+│   │   ├── history.rs          # WordHistory Ring Buffer VecDeque quản lý từ
+│   │   └── macro_table.rs      # Bảng gõ tắt 3 tầng (Normal, Start, End) & Casing
 │   ├── ui/                     # Phân hệ Giao diện Native Win32
 │   │   ├── mod.rs              # UI Manager facade, Show/Hide control panel
 │   │   ├── theme.rs            # Dark/Light theme, Windows 11 UxTheme, GDI brush cache
@@ -216,12 +279,11 @@ MKey/
 │           ├── injector.rs     # Tổng hợp phím SendInput (Unicode & Backspace)
 │           └── app_detect.rs   # Nhận diện tiến trình active & browser Omnibox
 ├── tests/                      # Bộ kiểm thử tự động (Unit & Integration Tests)
-│   ├── comprehensive_test.rs   # 7 tests kiểm thử kịch bản gõ nâng cao
-│   ├── config_test.rs          # 4 tests kiểm thử lưu trữ config & registry autostart
-│   ├── engine_test.rs          # 34 tests kiểm thử toàn bộ hành vi Engine
-│   ├── language_test.rs        # 5 tests kiểm thử từ điển đa ngôn ngữ & i18n
-│   ├── listview_test.rs        # 4 tests kiểm thử giao diện danh sách gõ tắt
-│   └── spelling_test.rs        # 5 tests kiểm thử luật chính tả và ngữ âm
+│   ├── comprehensive_test.rs   # Kiểm thử kịch bản gõ phức hợp & benchmark thông lượng
+│   ├── config_test.rs          # Kiểm thử lưu trữ cấu hình & registry autostart
+│   ├── engine_test.rs          # Kiểm thử chuyên sâu toàn bộ hành vi Engine
+│   ├── language_test.rs        # Kiểm thử từ điển đa ngôn ngữ & i18n
+│   └── spelling_test.rs        # Kiểm thử quy tắc ngữ âm học & ghép vần tiếng Việt
 └── docs/
     └── ARCHITECTURE.md         # Tài liệu kiến trúc này
 ```
@@ -236,7 +298,7 @@ MKey/
 
 ### 4.2. Chạy toàn bộ Test Suite
 ```bash
-# Chạy tất cả 59 unit & integration tests
+# Chạy tất cả unit & integration tests
 cargo test
 
 # Chạy riêng từng test suite
@@ -244,14 +306,12 @@ cargo test --test comprehensive_test
 cargo test --test config_test
 cargo test --test engine_test
 cargo test --test language_test
-cargo test --test listview_test
 cargo test --test spelling_test
 ```
 
-### 4.3. Biên dịch bản Release tối ưu
+### 4.3. Biên dịch bản Release
 ```bash
 cargo build --release
 ```
 File thực thi độc lập sẽ được tạo tại:
 `target/release/MKey.exe`
-

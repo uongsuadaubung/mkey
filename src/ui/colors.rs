@@ -90,7 +90,6 @@ pub enum TextRole {
 }
 
 impl ThemePalette {
-    #[inline]
     pub const fn get(is_dark: bool) -> &'static ThemePalette {
         if is_dark {
             &DARK_PALETTE
@@ -100,7 +99,6 @@ impl ThemePalette {
     }
 
     /// Resolves text color based on semantic role
-    #[inline]
     pub const fn text_color(&self, role: TextRole) -> u32 {
         match role {
             TextRole::Primary => self.text_primary,
@@ -111,8 +109,7 @@ impl ThemePalette {
     }
 
     /// Automatically resolves text color for a control given its Win32 Control ID
-    #[inline]
-    pub fn text_color_for_ctrl(&self, ctrl_id: u32) -> u32 {
+    pub const fn text_color_for_ctrl(&self, ctrl_id: u32) -> u32 {
         match ctrl_id {
             crate::ui::views::IDC_LABEL_EMAIL | crate::ui::views::IDC_LABEL_GITHUB => self.text_link,
             _ => self.text_primary,

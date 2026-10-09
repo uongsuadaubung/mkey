@@ -50,7 +50,6 @@ impl TryFrom<char> for BaseVowel {
 }
 
 impl BaseVowel {
-    #[inline]
     pub fn from_char(c: char) -> Option<Self> {
         Self::try_from(c).ok()
     }

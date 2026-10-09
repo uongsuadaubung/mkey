@@ -434,12 +434,15 @@ impl SyllableState {
         }
 
         if let Some((base_vowel, diacritic, tone)) = decompose_vowel(key.ch) {
-            let prev_onset_str = onset.to_string();
             // If onset was capitalized (e.g. quick consonant "Qu", "Ph", "Gi") and this vowel is also uppercase,
             // promote entire onset to uppercase for ALL CAPS words (e.g. "QUA", "PHONG")
+            let mut onset_promoted = false;
             if key.is_upper && !onset.chars.is_empty() && onset.chars[0].1 {
                 for c in onset.chars.iter_mut() {
-                    c.1 = true;
+                    if !c.1 {
+                        c.1 = true;
+                        onset_promoted = true;
+                    }
                 }
             }
 
@@ -452,10 +455,14 @@ impl SyllableState {
                 }],
                 tone,
             };
-            let output = nucleus.to_string();
-            if output == format!("{}{}", prev_onset_str, key.ch) {
+
+            // Fast path: If onset casing was not changed and vowel is plain (no diacritic, no tone),
+            // the rendered screen character is identical to simply appending key.ch!
+            if !onset_promoted && diacritic == Diacritic::None && tone == Tone::None {
                 return (SyllableState::Nucleus(nucleus), EngineAction::Passthrough);
             }
+
+            let output = nucleus.to_string();
             return (
                 SyllableState::Nucleus(nucleus),
                 EngineAction::Replace {
@@ -584,7 +591,6 @@ impl SyllableState {
                 // Telex automatic coupling: 'ư' + 'o' -> 'ươ'
                 // In Vietnamese Telex typing, typing 'o' after 'ư' automatically couples into 'ươ'
                 // e.g. "đư" + 'o' -> "đươ", "bư" + 'o' -> "bươ", "tư" + 'o' -> "tươ"
-                let prev_rendered = nucleus.to_string();
                 if is_telex
                     && base_vowel == BaseVowel::O
                     && diacritic == Diacritic::None
@@ -595,6 +601,7 @@ impl SyllableState {
                     diacritic = Diacritic::Horn;
                 }
 
+                let prev_has_tone = nucleus.tone != Tone::None;
                 nucleus.vowels.push(VowelLetter {
                     base: base_vowel,
                     diacritic,
@@ -604,24 +611,24 @@ impl SyllableState {
                     nucleus.tone = tone;
                 }
 
-                let output = nucleus.to_string();
-                if output == format!("{}{}", prev_rendered, key.ch) {
+                // Fast path: If vowel is plain, no diacritic added, and syllable had no tone before and no tone added,
+                // appending a plain vowel never changes preceding vowels or shifts any marks!
+                if diacritic == Diacritic::None && !prev_has_tone && tone == Tone::None {
                     return (SyllableState::Nucleus(nucleus), EngineAction::Passthrough);
-                } else {
-                    return (
-                        SyllableState::Nucleus(nucleus),
-                        EngineAction::Replace {
-                            backspaces: current_len,
-                            output,
-                        },
-                    );
                 }
+
+                let output = nucleus.to_string();
+                return (
+                    SyllableState::Nucleus(nucleus),
+                    EngineAction::Replace {
+                        backspaces: current_len,
+                        output,
+                    },
+                );
             }
         }
 
         // 6. Consonant -> Transition from Nucleus to Coda!
-        let prev_rendered = nucleus.to_string();
-
         // If vowels are "uơ" (e.g. from typing 'thuow' or 'huow') and a coda arrives (e.g. 'c' in "thước" or 'n' in "thương"),
         // upgrade "uơ" to "ươ" because "uơ" cannot accept codas while "ươ" does!
         let mut upgraded_u_horn = false;
@@ -647,12 +654,14 @@ impl SyllableState {
                 nucleus,
                 coda: coda_chars,
             };
-            let output = coda.to_string();
 
-            if !upgraded_u_horn && output == format!("{}{}", prev_rendered, key.ch) {
+            // Fast path: if horn was not upgraded and there is no tone mark to shift,
+            // adding a single coda consonant will never shift marks or mutate vowels.
+            if !upgraded_u_horn && coda.nucleus.tone == Tone::None {
                 return (SyllableState::Coda(coda), EngineAction::Passthrough);
             }
 
+            let output = coda.to_string();
             return (
                 SyllableState::Coda(coda),
                 EngineAction::Replace {

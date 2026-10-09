@@ -154,44 +154,54 @@ pub fn is_valid_vietnamese_syllable(syllable: &Syllable) -> bool {
     // 2. Validate onset + vowel orthography
     if !syllable.onset.is_empty() && !syllable.d_stroke {
         let first_vowel_base = syllable.vowels[0].base;
-        let onset_str: String = syllable
-            .onset
-            .iter()
-            .map(|(c, _)| c.to_ascii_lowercase())
-            .collect();
 
-        match onset_str.as_str() {
-            "q" => {
+        match syllable.onset.as_slice() {
+            [(c, _)] if c.eq_ignore_ascii_case(&'q') => {
                 if first_vowel_base != BaseVowel::U {
                     return false;
                 }
             }
-            "k" => {
+            [(c, _)] if c.eq_ignore_ascii_case(&'k') => {
                 if !matches!(first_vowel_base, BaseVowel::I | BaseVowel::Y | BaseVowel::E) {
                     return false;
                 }
             }
-            "c" => {
+            [(c, _)] if c.eq_ignore_ascii_case(&'c') => {
                 if matches!(first_vowel_base, BaseVowel::I | BaseVowel::Y | BaseVowel::E) {
                     return false;
                 }
             }
-            "gh" | "ngh" => {
+            [(c0, _), (c1, _)]
+                if c0.eq_ignore_ascii_case(&'g') && c1.eq_ignore_ascii_case(&'h') =>
+            {
                 if !matches!(first_vowel_base, BaseVowel::I | BaseVowel::E) {
                     return false;
                 }
             }
-            "ng" => {
+            [(c0, _), (c1, _), (c2, _)]
+                if c0.eq_ignore_ascii_case(&'n')
+                    && c1.eq_ignore_ascii_case(&'g')
+                    && c2.eq_ignore_ascii_case(&'h') =>
+            {
+                if !matches!(first_vowel_base, BaseVowel::I | BaseVowel::E) {
+                    return false;
+                }
+            }
+            [(c0, _), (c1, _)]
+                if c0.eq_ignore_ascii_case(&'n') && c1.eq_ignore_ascii_case(&'g') =>
+            {
                 if matches!(first_vowel_base, BaseVowel::I | BaseVowel::E) {
                     return false;
                 }
             }
-            "g"
-                // 'g' + 'i' is the valid 'gi' glide (gió, giờ, giúp)
-                // but 'g' + 'e' / 'ê' is invalid (must use 'gh')
-                if first_vowel_base == BaseVowel::E => {
-                    return false;
-                }
+            [(c, _)]
+                if c.eq_ignore_ascii_case(&'g')
+                    // 'g' + 'i' is the valid 'gi' glide (gió, giờ, giúp)
+                    // but 'g' + 'e' / 'ê' is invalid (must use 'gh')
+                    && first_vowel_base == BaseVowel::E =>
+            {
+                return false;
+            }
             _ => {}
         }
     }

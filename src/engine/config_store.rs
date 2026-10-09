@@ -65,11 +65,11 @@ pub fn parse_config_and_macros(content: &str) -> (EngineConfig, MacroTable) {
         if current_section == "macro" {
             if !key.is_empty() && !val.is_empty() {
                 let (real_val, mtype) = if let Some((v, t)) = val.split_once(':') {
-                    (v.trim(), crate::engine::macro_table::MacroType::from_str(t))
+                    (v.trim(), crate::engine::macro_table::MacroType::from(t))
                 } else {
                     (val, crate::engine::macro_table::MacroType::Normal)
                 };
-                macros.insert_typed(key, real_val, mtype);
+                macros.insert_typed_no_cache(key, real_val, mtype);
             }
         } else {
             let key_l = key.to_lowercase();
@@ -110,6 +110,7 @@ pub fn parse_config_and_macros(content: &str) -> (EngineConfig, MacroTable) {
         }
     }
 
+    macros.rebuild_cache();
     (config, macros)
 }
 

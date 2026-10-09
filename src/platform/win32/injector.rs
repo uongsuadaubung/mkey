@@ -66,12 +66,12 @@ pub fn push_unicode_char(inputs: &mut Vec<INPUT>, code_unit: u16) {
 /// - In normal apps & web pages: sends pure standard Backspaces and replacement characters (no invisible chars).
 /// - In browser Omnibox / Excel: collapses inline autocomplete selection cleanly without polluting document text.
 pub fn send_replace(backspaces: usize, text: &str) {
-    let utf16: Vec<u16> = text.encode_utf16().collect();
-    if backspaces == 0 && utf16.is_empty() {
+    let utf16_count = text.encode_utf16().count();
+    if backspaces == 0 && utf16_count == 0 {
         return;
     }
 
-    let mut inputs = Vec::with_capacity(4 + (backspaces + 1) * 2 + utf16.len() * 2);
+    let mut inputs = Vec::with_capacity(4 + (backspaces + 1) * 2 + utf16_count * 2);
 
     let fix_type = detect_autocomplete_context();
     match fix_type {
@@ -87,7 +87,7 @@ pub fn send_replace(backspaces: usize, text: &str) {
             //    overwrites and neutralizes the active selection without moving caret to the end.
             // 2. Send 1 backspace to erase the temporary U+202F character.
             // 3. Send the normal `backspaces` to delete the target characters to be replaced.
-            if backspaces > 0 && !utf16.is_empty() {
+            if backspaces > 0 && utf16_count > 0 {
                 push_unicode_char(&mut inputs, 0x202F);
                 push_backspace(&mut inputs);
             }
@@ -104,7 +104,7 @@ pub fn send_replace(backspaces: usize, text: &str) {
     }
 
     // 2. Synthesize all replacement characters
-    for &ch in &utf16 {
+    for ch in text.encode_utf16() {
         push_unicode_char(&mut inputs, ch);
     }
 

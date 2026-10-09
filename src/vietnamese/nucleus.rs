@@ -137,13 +137,12 @@ impl NucleusState {
                         if d0 == Diacritic::None || d1 == Diacritic::None =>
                     {
                         let is_thuo_or_huo = !has_coda
-                            && self.onset.as_ref().is_some_and(|o| {
-                                let s: String = o
-                                    .chars
-                                    .iter()
-                                    .map(|(c, _)| c.to_ascii_lowercase())
-                                    .collect();
-                                s == "th" || s == "h"
+                            && self.onset.as_ref().is_some_and(|o| match o.chars.as_slice() {
+                                [(c, _)] => c.eq_ignore_ascii_case(&'h'),
+                                [(c0, _), (c1, _)] => {
+                                    c0.eq_ignore_ascii_case(&'t') && c1.eq_ignore_ascii_case(&'h')
+                                }
+                                _ => false,
                             });
                         if is_thuo_or_huo {
                             self.vowels[1].diacritic = Diacritic::Horn;

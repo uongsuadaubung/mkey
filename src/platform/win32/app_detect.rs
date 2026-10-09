@@ -103,10 +103,10 @@ pub fn detect_autocomplete_context() -> AutocompleteFixType {
 
         let mut class_buf = [0u16; 128];
         let class_len = GetClassNameW(focus_hwnd, class_buf.as_mut_ptr(), 128);
-        let class_name = if class_len > 0 {
-            String::from_utf16_lossy(&class_buf[..class_len as usize])
+        let class_slice = if class_len > 0 {
+            &class_buf[..class_len as usize]
         } else {
-            String::new()
+            &[]
         };
 
         match app_kind {
@@ -114,14 +114,14 @@ pub fn detect_autocomplete_context() -> AutocompleteFixType {
                 // When focus is inside a web page (Facebook, Google Docs, ChatGPT, YouTube, etc.):
                 // Chromium uses "Chrome_RenderWidgetHostHWND".
                 // In that case, do NOT apply autocomplete fix: type completely normally!
-                if class_name == "Chrome_RenderWidgetHostHWND" {
+                if utf16_str_eq(class_slice, "Chrome_RenderWidgetHostHWND") {
                     AutocompleteFixType::None
                 } else {
                     AutocompleteFixType::ChromiumOmnibox
                 }
             }
             AppKind::GenericAutocomplete => {
-                if class_name == "MozillaContentWindowClass" {
+                if utf16_str_eq(class_slice, "MozillaContentWindowClass") {
                     AutocompleteFixType::None
                 } else {
                     AutocompleteFixType::GenericAutocomplete
@@ -130,5 +130,15 @@ pub fn detect_autocomplete_context() -> AutocompleteFixType {
             AppKind::Other => AutocompleteFixType::None,
         }
     }
+}
+
+fn utf16_str_eq(slice: &[u16], ascii_str: &str) -> bool {
+    if slice.len() != ascii_str.len() {
+        return false;
+    }
+    slice
+        .iter()
+        .zip(ascii_str.bytes())
+        .all(|(&u, b)| u == b as u16)
 }
 

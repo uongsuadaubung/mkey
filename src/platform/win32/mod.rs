@@ -17,12 +17,10 @@ use std::sync::Mutex;
 
 static CTRL_SHIFT_ARMED: AtomicBool = AtomicBool::new(false);
 
-#[inline]
 fn is_ctrl_vk(vk: u32) -> bool {
     matches!(vk, 0x11 | 0xA2 | 0xA3) // VK_CONTROL, VK_LCONTROL, VK_RCONTROL
 }
 
-#[inline]
 fn is_shift_vk(vk: u32) -> bool {
     matches!(vk, 0x10 | 0xA0 | 0xA1) // VK_SHIFT, VK_LSHIFT, VK_RSHIFT
 }
@@ -310,6 +308,8 @@ pub fn run_hook_loop(engine: VietnameseEngine, is_autostart: bool) {
         crate::ui::init_ui();
         if !is_autostart || show_dialog_on_startup {
             crate::ui::show_control_panel();
+        } else {
+            trim_working_set();
         }
 
         let mut msg: MSG = std::mem::zeroed();
@@ -329,3 +329,12 @@ pub fn run_hook_loop(engine: VietnameseEngine, is_autostart: bool) {
         }
     }
 }
+
+/// Trims the process working set, returning unused RAM and cached pages back to Windows.
+/// Reduces resident physical RAM footprint down to ~1-2 MB.
+pub fn trim_working_set() {
+    unsafe {
+        SetProcessWorkingSetSize(GetCurrentProcess(), usize::MAX, usize::MAX);
+    }
+}
+

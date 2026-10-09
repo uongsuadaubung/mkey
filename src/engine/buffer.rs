@@ -138,7 +138,11 @@ impl TypingBuffer {
             }
         }
 
-        let prev_rendered = self.state.render();
+        let prev_rendered = if self.is_empty() {
+            String::new()
+        } else {
+            self.state.render()
+        };
         self.raw_keys.push(key);
 
         let current_state = std::mem::take(&mut self.state);
@@ -149,42 +153,43 @@ impl TypingBuffer {
         // If the unchanged prefix of the word (e.g. onset 'g' in "go" -> "gõ") remains identical,
         // do not backspace and re-emit it. Only backspace the changed suffix ("o") and emit ("õ").
         // This eliminates duplicate characters ("ggõ") on browser address bars (Firefox, Chrome).
-        let action = match action {
+        let (action, new_emitted_len) = match action {
             EngineAction::Replace { backspaces, output } => {
-                let prev_chars: Vec<char> = prev_rendered.chars().collect();
-                let new_chars: Vec<char> = output.chars().collect();
-
+                let full_output_utf16 = output.encode_utf16().count();
+                let mut prev_iter = prev_rendered.chars();
+                let mut new_iter = output.chars();
                 let mut common = 0;
-                while common < prev_chars.len()
-                    && common < new_chars.len()
-                    && prev_chars[common] == new_chars[common]
-                {
-                    common += 1;
+                while let (Some(c1), Some(c2)) = (prev_iter.next(), new_iter.next()) {
+                    if c1 == c2 {
+                        common += 1;
+                    } else {
+                        break;
+                    }
                 }
 
                 if common > 0 {
-                    let opt_backspaces = prev_chars.len() - common;
-                    let opt_output: String = new_chars[common..].iter().collect();
-                    EngineAction::Replace {
-                        backspaces: opt_backspaces,
-                        output: opt_output,
-                    }
+                    let prev_chars_count = prev_rendered.chars().count();
+                    let opt_backspaces = prev_chars_count - common;
+                    let opt_output: String = output.chars().skip(common).collect();
+                    (
+                        EngineAction::Replace {
+                            backspaces: opt_backspaces,
+                            output: opt_output,
+                        },
+                        full_output_utf16,
+                    )
                 } else {
-                    EngineAction::Replace { backspaces, output }
+                    (
+                        EngineAction::Replace { backspaces, output },
+                        full_output_utf16,
+                    )
                 }
             }
-            other => other,
+            EngineAction::Passthrough => (EngineAction::Passthrough, self.emitted_len + key.ch.len_utf16()),
+            EngineAction::Consume => (EngineAction::Consume, self.emitted_len),
         };
 
-        match &action {
-            EngineAction::Replace { .. } => {
-                self.emitted_len = self.state.render().encode_utf16().count();
-            }
-            EngineAction::Passthrough => {
-                self.emitted_len += key.ch.len_utf16();
-            }
-            EngineAction::Consume => {}
-        }
+        self.emitted_len = new_emitted_len;
 
         if matches!(&action, EngineAction::Replace { .. })
             && let SyllableState::Passthrough(ref s) = self.state

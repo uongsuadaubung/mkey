@@ -274,6 +274,7 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                     unsafe {
                         ShowWindow(hwnd, SW_HIDE);
                     }
+                    crate::platform::win32::trim_working_set();
                 }
                 IDC_BTN_DEFAULTS => {
                     let def_config = EngineConfig::default();
@@ -628,10 +629,14 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                 let palette = ThemePalette::get(is_current_dark());
                 let mut class_buf = [0u16; 32];
                 let len = GetClassNameW(hwnd_ctrl, class_buf.as_mut_ptr(), 32);
-                let class_name = String::from_utf16_lossy(&class_buf[..len.max(0) as usize]);
+                let class_slice = if len > 0 {
+                    &class_buf[..len as usize]
+                } else {
+                    &[]
+                };
 
-                if class_name.eq_ignore_ascii_case("combobox")
-                    || class_name.eq_ignore_ascii_case("edit")
+                if utf16_str_eq_ignore_case(class_slice, "combobox")
+                    || utf16_str_eq_ignore_case(class_slice, "edit")
                 {
                     SetTextColor(hdc, palette.text_input);
                     SetBkColor(hdc, palette.bg_input);
@@ -668,8 +673,12 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
             } else {
                 let mut class_buf = [0u16; 16];
                 let len = unsafe { GetClassNameW(child_hwnd, class_buf.as_mut_ptr(), 16) };
-                let class_name = String::from_utf16_lossy(&class_buf[..len.max(0) as usize]);
-                if class_name.eq_ignore_ascii_case("Edit") {
+                let class_slice = if len > 0 {
+                    &class_buf[..len as usize]
+                } else {
+                    &[]
+                };
+                if utf16_str_eq_ignore_case(class_slice, "Edit") {
                     unsafe {
                         SetCursor(LoadCursorW(0, IDC_IBEAM));
                     }
@@ -683,8 +692,19 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
             unsafe {
                 ShowWindow(hwnd, SW_HIDE);
             }
+            crate::platform::win32::trim_working_set();
             0
         }
         _ => unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) },
     }
+}
+
+fn utf16_str_eq_ignore_case(slice: &[u16], ascii_str: &str) -> bool {
+    if slice.len() != ascii_str.len() {
+        return false;
+    }
+    slice
+        .iter()
+        .zip(ascii_str.bytes())
+        .all(|(&u, b)| (u as u8).eq_ignore_ascii_case(&b))
 }

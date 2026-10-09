@@ -201,4 +201,24 @@ unsafe extern "system" {
         lpExeName: *mut u16,
         lpdwSize: *mut u32,
     ) -> i32;
+    pub fn GetCurrentProcess() -> isize;
+    pub fn SetProcessWorkingSetSize(
+        hProcess: isize,
+        dwMinimumWorkingSetSize: usize,
+        dwMaximumWorkingSetSize: usize,
+    ) -> i32;
+    pub fn GetLocalTime(lpSystemTime: *mut SystemTime);
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SystemTime {
+    pub year: u16,
+    pub month: u16,
+    pub day_of_week: u16,
+    pub day: u16,
+    pub hour: u16,
+    pub minute: u16,
+    pub second: u16,
+    pub milliseconds: u16,
 }

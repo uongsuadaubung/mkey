@@ -79,7 +79,11 @@ impl Default for VietnameseEngine {
 
 impl VietnameseEngine {
     pub fn new(config: EngineConfig) -> Self {
-        let log_writer = AsyncLogWriter::new(config.debug_file_path.clone());
+        let log_writer = if config.debug {
+            AsyncLogWriter::new(config.debug_file_path.clone())
+        } else {
+            AsyncLogWriter { sender: None }
+        };
         Self {
             config,
             buffer: TypingBuffer::new(),
@@ -155,7 +159,11 @@ impl VietnameseEngine {
 
     /// Feed a character into the engine with hardware Shift & CapsLock state.
     pub fn on_key(&mut self, ch: char, is_shift: bool, is_caps: bool) -> EngineAction {
-        let prev_state_summary = self.buffer.state.summary();
+        let prev_state_summary = if self.config.debug {
+            self.buffer.state.summary()
+        } else {
+            String::new()
+        };
         let mut is_upper = is_shift ^ is_caps;
 
         // Auto-uppercase first letter after period or newline
@@ -204,9 +212,9 @@ impl VietnameseEngine {
 
             if should_restore {
                 let backspaces = self.buffer.emitted_len;
-                let mut output = raw_str.clone();
+                let mut output = raw_str;
                 output.push(ch);
-                self.history.commit_word(current_raw, raw_str, false);
+                self.history.commit_word(current_raw, false);
                 self.buffer.clear();
                 self.buffer.raw_keys.push(raw_key);
                 let (next_state, _) = crate::vietnamese::SyllableState::Empty.feed_key(
@@ -222,7 +230,7 @@ impl VietnameseEngine {
                 };
             }
 
-            self.history.commit_word(current_raw, rendered, false);
+            self.history.commit_word(current_raw, false);
         }
 
         // If this buffer was restored from history across a space, check if the incoming key
@@ -237,29 +245,30 @@ impl VietnameseEngine {
                 || self.buffer.is_passthrough
             {
                 let current_raw = self.buffer.raw_keys.clone();
-                let rendered = self.buffer.state.render();
-                self.history.commit_word(current_raw, rendered, false);
+                self.history.commit_word(current_raw, false);
                 self.history.add_space();
                 self.buffer.clear();
             }
         }
 
         let action = self.buffer.feed_key(raw_key, &self.config);
-        let next_state_summary = self.buffer.state.summary();
-        let current_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
 
-        self.log_debug(format!(
-            "[DBG][KEY] {:?} (shift={}, caps={}, upper={}) | State: {} -> {} | Word: {:?} (screen_len={}) | Action: {:?}",
-            ch,
-            is_shift as u8,
-            is_caps as u8,
-            is_upper as u8,
-            prev_state_summary,
-            next_state_summary,
-            current_word,
-            self.buffer.emitted_len,
-            action
-        ));
+        if self.config.debug {
+            let next_state_summary = self.buffer.state.summary();
+            let current_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
+            self.log_debug(format!(
+                "[DBG][KEY] {:?} (shift={}, caps={}, upper={}) | State: {} -> {} | Word: {:?} (screen_len={}) | Action: {:?}",
+                ch,
+                is_shift as u8,
+                is_caps as u8,
+                is_upper as u8,
+                prev_state_summary,
+                next_state_summary,
+                current_word,
+                self.buffer.emitted_len,
+                action
+            ));
+        }
 
         action
     }
@@ -299,7 +308,7 @@ impl VietnameseEngine {
 
                 self.buffer.clear();
                 if ch == ' ' {
-                    self.history.commit_word(Vec::new(), output.clone(), false);
+                    self.history.commit_word(Vec::new(), false);
                     self.history.add_space();
                 } else {
                     self.history.clear();
@@ -325,17 +334,19 @@ impl VietnameseEngine {
 
             if is_invalid {
                 let backspaces = self.buffer.emitted_len;
-                let mut output = raw_word.clone();
+                let mut output = raw_word;
                 output.push(ch);
 
-                self.log_debug(format!(
-                    "[DBG][RESTORE] Invalid word {:?} (screen: {:?}) -> Restoring to {:?}",
-                    raw_word, rendered, output
-                ));
+                if self.config.debug {
+                    self.log_debug(format!(
+                        "[DBG][RESTORE] Invalid word {:?} (screen: {:?}) -> Restoring to {:?}",
+                        self.buffer.raw_keys.iter().map(|k| k.ch).collect::<String>(), rendered, output
+                    ));
+                }
 
                 if ch == ' ' {
                     self.history
-                        .commit_word(self.buffer.raw_keys.clone(), raw_word, true);
+                        .commit_word(self.buffer.raw_keys.clone(), true);
                     self.history.add_space();
                 } else {
                     self.history.clear();
@@ -349,15 +360,17 @@ impl VietnameseEngine {
         // Commit word to history
         if !self.buffer.is_empty() {
             let current_raw = self.buffer.raw_keys.clone();
-            let rendered = self.buffer.state.render();
-            self.log_debug(format!(
-                "[DBG][BREAK] Key: {:?} | Committed word: {:?} | Screen: {:?}",
-                ch,
-                current_raw.iter().map(|k| k.ch).collect::<String>(),
-                rendered
-            ));
+            if self.config.debug {
+                let rendered = self.buffer.state.render();
+                self.log_debug(format!(
+                    "[DBG][BREAK] Key: {:?} | Committed word: {:?} | Screen: {:?}",
+                    ch,
+                    current_raw.iter().map(|k| k.ch).collect::<String>(),
+                    rendered
+                ));
+            }
             if ch == ' ' {
-                self.history.commit_word(current_raw, rendered, false);
+                self.history.commit_word(current_raw, false);
                 self.history.add_space();
             } else {
                 self.history.clear();
@@ -387,8 +400,11 @@ impl VietnameseEngine {
             return EngineAction::Passthrough;
         }
 
-        let _prev_empty = self.buffer.is_empty();
-        let prev_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
+        let prev_word = if self.config.debug {
+            self.buffer.raw_keys.iter().map(|k| k.ch).collect::<String>()
+        } else {
+            String::new()
+        };
 
         if self.buffer.is_empty() {
             let mut restored_word = None;
@@ -396,7 +412,9 @@ impl VietnameseEngine {
                 && let Some(restored) = self.history.pop_backspace()
                 && let Some((raw_keys, is_raw_restored)) = restored
             {
-                restored_word = Some(raw_keys.iter().map(|k| k.ch).collect::<String>());
+                if self.config.debug {
+                    restored_word = Some(raw_keys.iter().map(|k| k.ch).collect::<String>());
+                }
                 if is_raw_restored {
                     self.buffer.restore_as_passthrough(raw_keys);
                 } else {
@@ -407,22 +425,26 @@ impl VietnameseEngine {
                     self.buffer.is_restored_across_space = true;
                 }
             }
-            self.log_debug(format!(
-                "[DBG][BS] Buffer was empty. History restored across space: {:?}",
-                restored_word
-            ));
+            if self.config.debug {
+                self.log_debug(format!(
+                    "[DBG][BS] Buffer was empty. History restored across space: {:?}",
+                    restored_word
+                ));
+            }
             return EngineAction::Passthrough;
         }
 
         self.buffer.handle_backspace(&self.config);
-        let now_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
-        self.log_debug(format!(
-            "[DBG][BS] Backspaced. Word: {:?} -> {:?} | State: {} (screen_len={})",
-            prev_word,
-            now_word,
-            self.buffer.state.summary(),
-            self.buffer.emitted_len
-        ));
+        if self.config.debug {
+            let now_word: String = self.buffer.raw_keys.iter().map(|k| k.ch).collect();
+            self.log_debug(format!(
+                "[DBG][BS] Backspaced. Word: {:?} -> {:?} | State: {} (screen_len={})",
+                prev_word,
+                now_word,
+                self.buffer.state.summary(),
+                self.buffer.emitted_len
+            ));
+        }
 
         EngineAction::Passthrough
     }
@@ -472,31 +494,15 @@ fn is_word_break(c: char, bracket_w: bool) -> bool {
 pub fn current_timestamp_str() -> String {
     #[cfg(target_os = "windows")]
     {
-        #[repr(C)]
-        #[allow(non_snake_case, non_camel_case_types, clippy::upper_case_acronyms)]
-        struct SYSTEMTIME {
-            wYear: u16,
-            wMonth: u16,
-            wDayOfWeek: u16,
-            wDay: u16,
-            wHour: u16,
-            wMinute: u16,
-            wSecond: u16,
-            wMilliseconds: u16,
-        }
+        use crate::platform::win32::types::{GetLocalTime, SystemTime};
 
-        #[link(name = "kernel32")]
-        unsafe extern "system" {
-            fn GetLocalTime(lpSystemTime: *mut SYSTEMTIME);
-        }
-
-        let mut st = std::mem::MaybeUninit::<SYSTEMTIME>::zeroed();
+        let mut st = std::mem::MaybeUninit::<SystemTime>::zeroed();
         unsafe {
             GetLocalTime(st.as_mut_ptr());
             let st = st.assume_init();
             format!(
                 "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
-                st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds
+                st.year, st.month, st.day, st.hour, st.minute, st.second, st.milliseconds
             )
         }
     }

@@ -37,6 +37,11 @@ quick_start_consonant = true
 quick_end_consonant = true
 remember_history = true
 
+[sound]
+enabled = true
+switch = NovelKeys Cream
+volume = 85
+
 [system]
 language = en
 show_dialog_on_startup = false
@@ -59,6 +64,9 @@ vn = Việt Nam
     assert!(config.use_macro);
     assert!(!config.bracket_w);
     assert!(config.remember_history_across_space);
+    assert!(config.sound_enabled);
+    assert_eq!(config.sound_profile, "NovelKeys Cream");
+    assert_eq!(config.sound_volume, 85);
     assert_eq!(config.language, mkey::Language::English);
     assert!(!config.show_dialog_on_startup);
     assert!(config.debug);
@@ -78,6 +86,9 @@ fn test_config_store_roundtrip() {
         use_macro: false,
         show_dialog_on_startup: false,
         theme: UiTheme::Dark,
+        sound_enabled: true,
+        sound_profile: "Topre".to_string(),
+        sound_volume: 80,
         ..Default::default()
     };
 
@@ -94,6 +105,9 @@ fn test_config_store_roundtrip() {
     assert!(!loaded_config.use_macro);
     assert!(!loaded_config.show_dialog_on_startup);
     assert_eq!(loaded_config.theme, UiTheme::Dark);
+    assert!(loaded_config.sound_enabled);
+    assert_eq!(loaded_config.sound_profile, "Topre");
+    assert_eq!(loaded_config.sound_volume, 80);
     assert_eq!(loaded_macros.lookup("test"), Some("thử nghiệm".to_string()));
     assert_eq!(
         loaded_macros.lookup("rust"),
@@ -107,4 +121,37 @@ fn test_config_store_roundtrip() {
         "Config path should be in .config"
     );
 }
+
+#[test]
+fn test_inspect_sound_banks() {
+    if let Some(switches_dir) = mkey::engine::config_store::get_switches_dir()
+        && let Ok(entries) = std::fs::read_dir(&switches_dir)
+    {
+        for entry in entries.flatten() {
+                if let Ok(ft) = entry.file_type() && ft.is_dir() {
+                    let switch_name = entry.file_name().to_string_lossy().to_string();
+                    let mut space_files = Vec::new();
+                    let mut backspace_files = Vec::new();
+                    let mut normal_files = Vec::new();
+                    if let Ok(sub) = std::fs::read_dir(entry.path()) {
+                        for f in sub.flatten() {
+                            let fname = f.file_name().to_string_lossy().to_string();
+                            let stem = f.path().file_stem().map(|s| s.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
+                            match mkey::platform::win32::match_file_tag(&stem) {
+                                Some(mkey::platform::win32::KeyTag::Space) => space_files.push(fname),
+                                Some(mkey::platform::win32::KeyTag::Backspace) => backspace_files.push(fname),
+                                None => normal_files.push(fname),
+                                _ => {}
+                            }
+                        }
+                    }
+                    eprintln!("Switch [{}] -> Space: {:?} | Backspace: {:?} | Normal: {:?}", switch_name, space_files, backspace_files, normal_files);
+                    assert_eq!(space_files, vec!["space.wav"], "Space should only contain space.wav for {}", switch_name);
+                    assert_eq!(backspace_files, vec!["backspace.wav"], "Backspace should only contain backspace.wav for {}", switch_name);
+                }
+        }
+    }
+}
+
+
 

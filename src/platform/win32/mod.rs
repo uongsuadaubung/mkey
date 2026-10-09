@@ -3,10 +3,12 @@
 
 pub mod app_detect;
 pub mod injector;
+pub mod sound;
 pub mod types;
 
 pub use app_detect::*;
 pub use injector::*;
+pub use sound::*;
 pub use types::*;
 
 use crate::engine::action::EngineAction;
@@ -77,6 +79,7 @@ pub unsafe extern "system" fn low_level_keyboard_proc(
 
             // Handle key-up events for hotkey triggers (e.g. Ctrl + Shift toggle)
             if w_param == WM_KEYUP || w_param == WM_SYSKEYUP {
+                release_key_sound(vk);
                 if (is_ctrl_vk(vk) || is_shift_vk(vk))
                     && CTRL_SHIFT_ARMED.swap(false, Ordering::SeqCst)
                     && let Ok(mut guard) = ENGINE_INSTANCE.lock()
@@ -104,6 +107,8 @@ pub unsafe extern "system" fn low_level_keyboard_proc(
 
             // Only process key-down events
             if w_param == WM_KEYDOWN || w_param == WM_SYSKEYDOWN {
+                trigger_key_sound(vk);
+
                 // 2. Query hardware modifier states cleanly and reliably
                 let is_caps = (GetKeyState(VK_CAPITAL) & 1) != 0;
                 let is_shift = (GetAsyncKeyState(VK_SHIFT) as u16 & 0x8000) != 0;
@@ -267,10 +272,16 @@ pub unsafe extern "system" fn low_level_keyboard_proc(
 /// Installs the Windows keyboard & mouse hooks and starts the Win32 message pump
 pub fn run_hook_loop(engine: VietnameseEngine, is_autostart: bool) {
     let show_dialog_on_startup = engine.config().show_dialog_on_startup;
+    let sound_enabled = engine.config().sound_enabled;
+    let sound_profile = engine.config().sound_profile.clone();
+    let sound_volume = engine.config().sound_volume;
     {
         let mut guard = ENGINE_INSTANCE.lock().unwrap();
         *guard = Some(engine);
     }
+
+    // Initialize mechanical keyboard sound engine
+    sound::init_sound(sound_enabled, &sound_profile, sound_volume);
 
     unsafe {
         let kbd_hook = SetWindowsHookExW(

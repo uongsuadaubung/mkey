@@ -96,10 +96,15 @@ pub struct LanguageStrings {
     pub tab_system: &'static str,
     pub tab_about: &'static str,
 
-    // Tab 0: Typing
+    // Tab 0: Typing & Sound
     pub typing_title: &'static str,
     pub check_restore_wrong: &'static str,
     pub check_auto_upper: &'static str,
+    pub sound_title: &'static str,
+    pub check_sound_enabled: &'static str,
+    pub label_switch_type: &'static str,
+    pub label_volume: &'static str,
+    pub btn_test_sound: &'static str,
 
     // Tab 1: Macro
     pub check_use_macro: &'static str,

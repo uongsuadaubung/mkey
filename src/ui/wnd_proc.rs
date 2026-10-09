@@ -12,10 +12,10 @@ use crate::ui::theme::{
 };
 use crate::ui::views::{
     IDC_BTN_ADD_MACRO, IDC_BTN_CANCEL_MACRO, IDC_BTN_CLOSE, IDC_BTN_DEFAULTS, IDC_BTN_DEL_MACRO,
-    IDC_BTN_EDIT_MACRO, IDC_BTN_EXIT, IDC_BTN_OPEN_LOG, IDC_CHECK_AUTO_UPPER, IDC_CHECK_AUTOSTART,
-    IDC_CHECK_CTRL_SHIFT, IDC_CHECK_DEBUG_LOG, IDC_CHECK_MACRO_EN,
-    IDC_CHECK_RESTORE_WRONG, IDC_CHECK_SHOW_DIALOG,
-    IDC_CHECK_USE_MACRO, IDC_COMBO_LANG, IDC_COMBO_METHOD, IDC_COMBO_MODE, IDC_COMBO_THEME,
+    IDC_BTN_EDIT_MACRO, IDC_BTN_EXIT, IDC_BTN_OPEN_LOG, IDC_BTN_TEST_SOUND, IDC_CHECK_AUTO_UPPER,
+    IDC_CHECK_AUTOSTART, IDC_CHECK_CTRL_SHIFT, IDC_CHECK_DEBUG_LOG, IDC_CHECK_MACRO_EN,
+    IDC_CHECK_RESTORE_WRONG, IDC_CHECK_SHOW_DIALOG, IDC_CHECK_SOUND_ENABLED, IDC_CHECK_USE_MACRO,
+    IDC_COMBO_LANG, IDC_COMBO_METHOD, IDC_COMBO_MODE, IDC_COMBO_SWITCH_TYPE, IDC_COMBO_THEME,
     IDC_LABEL_EMAIL, IDC_LABEL_GITHUB, IDC_LIST_MACRO, IDC_TAB_MAIN, IDM_CONTROL_PANEL, IDM_EXIT,
     IDM_SIMPLE_TELEX, IDM_TELEX, IDM_TOGGLE_VIET, IDM_VNI, WM_TRAY_MESSAGE,
 };
@@ -28,6 +28,7 @@ const WM_PAINT: u32 = 0x000F;
 const WM_CLOSE: u32 = 0x0010;
 const WM_ERASEBKGND: u32 = 0x0014;
 const WM_SETTINGCHANGE: u32 = 0x001A;
+const WM_HSCROLL: u32 = 0x0114;
 const WM_COMMAND: u32 = 0x0111;
 const WM_NOTIFY: u32 = 0x004E;
 
@@ -251,6 +252,32 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
             }
             0
         }
+        WM_HSCROLL => {
+            let slider_hwnd = lparam;
+            if let Ok(ui_guard) = UI_MANAGER.try_lock()
+                && let Some(ref ui) = *ui_guard
+                && slider_hwnd == ui.controls.slider_volume.hwnd()
+            {
+                let pos = ui.controls.slider_volume.get_pos();
+                ui.controls.label_volume_val.set_text(&format!("{pos}%"));
+
+                if let Ok(mut guard) = ENGINE_INSTANCE.lock()
+                    && let Some(ref mut engine) = *guard
+                {
+                    engine.config_mut().sound_volume = pos as u8;
+                    let _ = config_store::save_config_and_macros(
+                        engine.config(),
+                        &engine.macro_table,
+                    );
+                    crate::platform::win32::sound::reconfigure_sound(
+                        engine.config().sound_enabled,
+                        &engine.config().sound_profile,
+                        engine.config().sound_volume,
+                    );
+                }
+            }
+            0
+        }
         WM_COMMAND => {
             let control_id = (wparam & 0xFFFF) as u32;
             match control_id {
@@ -278,6 +305,20 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                 }
                 IDC_BTN_DEFAULTS => {
                     let def_config = EngineConfig::default();
+                    if let Ok(mut guard) = ENGINE_INSTANCE.lock()
+                        && let Some(ref mut engine) = *guard
+                    {
+                        *engine.config_mut() = def_config.clone();
+                        let _ = config_store::save_config_and_macros(
+                            engine.config(),
+                            &engine.macro_table,
+                        );
+                    }
+                    crate::platform::win32::sound::reconfigure_sound(
+                        def_config.sound_enabled,
+                        &def_config.sound_profile,
+                        def_config.sound_volume,
+                    );
                     if let Ok(mut ui_guard) = UI_MANAGER.lock()
                         && let Some(ref mut ui) = *ui_guard
                     {
@@ -485,6 +526,9 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                 IDC_LABEL_GITHUB => {
                     open_url("https://github.com/uongsuadaubung/mkey");
                 }
+                IDC_BTN_TEST_SOUND => {
+                    crate::platform::win32::sound::play_test_sound();
+                }
                 _ => {
                     let notif_code = (wparam >> 16) as u16;
                     const CBN_SELCHANGE: u16 = 1;
@@ -493,10 +537,12 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                     let is_combo = control_id == IDC_COMBO_METHOD
                         || control_id == IDC_COMBO_MODE
                         || control_id == IDC_COMBO_THEME
-                        || control_id == IDC_COMBO_LANG;
+                        || control_id == IDC_COMBO_LANG
+                        || control_id == IDC_COMBO_SWITCH_TYPE;
                     let is_check = control_id == IDC_CHECK_CTRL_SHIFT
                         || control_id == IDC_CHECK_RESTORE_WRONG
                         || control_id == IDC_CHECK_AUTO_UPPER
+                        || control_id == IDC_CHECK_SOUND_ENABLED
                         || control_id == IDC_CHECK_USE_MACRO
                         || control_id == IDC_CHECK_MACRO_EN
                         || control_id == IDC_CHECK_AUTOSTART
@@ -528,12 +574,23 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                     {
                         if control_id == IDC_CHECK_USE_MACRO {
                             ui.controls.update_macro_checkboxes_state();
+                        } else if control_id == IDC_CHECK_SOUND_ENABLED {
+                            ui.controls.update_sound_controls_state();
                         }
                         ui.controls.read_config(engine.config_mut());
                         let _ = config_store::save_config_and_macros(
                             engine.config(),
                             &engine.macro_table,
                         );
+                        if control_id == IDC_CHECK_SOUND_ENABLED
+                            || control_id == IDC_COMBO_SWITCH_TYPE
+                        {
+                            crate::platform::win32::sound::reconfigure_sound(
+                                engine.config().sound_enabled,
+                                &engine.config().sound_profile,
+                                engine.config().sound_volume,
+                            );
+                        }
                         is_viet = engine.config().enabled;
                         theme_opt = Some(engine.config().theme);
                         lang_opt = Some(engine.config().language);

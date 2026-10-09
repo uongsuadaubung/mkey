@@ -1,6 +1,6 @@
 //! Native Win32 PushButton Component
 
-use super::window::to_wide;
+use super::window::{to_wide, InvalidateRect};
 use std::ptr::null_mut;
 
 #[link(name = "user32")]
@@ -21,13 +21,17 @@ unsafe extern "system" {
     ) -> isize;
     fn SendMessageW(h_wnd: isize, msg: u32, w_param: usize, l_param: isize) -> isize;
     fn SetWindowTextW(h_wnd: isize, lp_string: *const u16) -> i32;
+    fn EnableWindow(h_wnd: isize, b_enable: i32) -> i32;
+    fn GetWindowLongW(h_wnd: isize, n_index: i32) -> i32;
 }
 
 const WS_CHILD: u32 = 0x40000000;
 const WS_VISIBLE: u32 = 0x10000000;
 const WS_TABSTOP: u32 = 0x00010000;
+const WS_DISABLED: u32 = 0x08000000;
 const BS_PUSHBUTTON: u32 = 0x00000000;
 const WM_SETFONT: u32 = 0x0030;
+const GWL_STYLE: i32 = -16;
 
 pub struct PushButton {
     hwnd: isize,
@@ -90,6 +94,18 @@ impl PushButton {
         let wide = to_wide(text);
         unsafe {
             SetWindowTextW(self.hwnd, wide.as_ptr());
+        }
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        let style = unsafe { GetWindowLongW(self.hwnd, GWL_STYLE) } as u32;
+        (style & WS_DISABLED) == 0
+    }
+
+    pub fn set_enabled(&self, enabled: bool) {
+        unsafe {
+            EnableWindow(self.hwnd, if enabled { 1 } else { 0 });
+            InvalidateRect(self.hwnd, std::ptr::null(), 1);
         }
     }
 }

@@ -171,6 +171,7 @@ impl From<usize> for UiTheme {
     }
 }
 
+
 /// Configuration options for the Vietnamese engine
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EngineConfig {
@@ -193,6 +194,12 @@ pub struct EngineConfig {
     pub remember_history_across_space: bool,
     /// Phím chuyển chế độ (true: Ctrl + Shift, false: Alt + Z)
     pub switch_with_ctrl_shift: bool,
+    /// Bật/tắt âm thanh phím cơ
+    pub sound_enabled: bool,
+    /// Tên profile switch phím cơ (tương ứng với tên thư mục trong ~/.config/mkey/switches/)
+    pub sound_profile: String,
+    /// Âm lượng phím cơ (0% - 100%)
+    pub sound_volume: u8,
     /// Bật hội thoại này khi khởi động cùng Windows
     pub show_dialog_on_startup: bool,
     /// Bật chế độ debug log (ghi nhận vết từng phím, trạng thái state machine và output để chẩn đoán lỗi)
@@ -215,6 +222,9 @@ impl Default for EngineConfig {
             use_macro_in_english_mode: true,
             remember_history_across_space: true,
             switch_with_ctrl_shift: true,
+            sound_enabled: false,
+            sound_profile: "Holy Panda".to_string(),
+            sound_volume: 50,
             show_dialog_on_startup: true,
             debug: false,
             debug_file_path: Some("mkey_debug.log".to_string()),

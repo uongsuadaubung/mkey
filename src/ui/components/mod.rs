@@ -7,6 +7,7 @@ pub mod group_box;
 pub mod icon_loader;
 pub mod listview;
 pub mod menu;
+pub mod slider;
 pub mod tab_bar;
 pub mod tab_control;
 pub mod textbox;
@@ -22,6 +23,7 @@ pub use icon_loader::{
 };
 pub use listview::ListView;
 pub use menu::PopupMenu;
+pub use slider::Slider;
 pub use tab_bar::TabBar;
 pub use tab_control::TabControl;
 pub use textbox::TextBox;

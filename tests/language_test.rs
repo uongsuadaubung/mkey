@@ -58,6 +58,11 @@ fn test_language_string_dictionaries_completeness() {
         assert!(!s.typing_title.is_empty());
         assert!(!s.check_restore_wrong.is_empty());
         assert!(!s.check_auto_upper.is_empty());
+        assert!(!s.sound_title.is_empty());
+        assert!(!s.check_sound_enabled.is_empty());
+        assert!(!s.label_switch_type.is_empty());
+        assert!(!s.label_volume.is_empty());
+        assert!(!s.btn_test_sound.is_empty());
 
         assert!(!s.check_use_macro.is_empty());
         assert!(!s.edit_macro_key_placeholder.is_empty());
@@ -224,6 +229,25 @@ fn test_control_panel_language_switch() {
     controls.check_use_macro.set_checked(true);
     controls.update_macro_checkboxes_state();
     assert!(controls.check_macro_in_english.is_enabled());
+
+    // Dynamic enable/disable of sound controls based on check_sound_enabled
+    controls.check_sound_enabled.set_checked(false);
+    controls.update_sound_controls_state();
+    assert!(!controls.combo_switch_type.is_enabled());
+    assert!(!controls.slider_volume.is_enabled());
+    assert!(!controls.btn_test_sound.is_enabled());
+
+    controls.check_sound_enabled.set_checked(true);
+    controls.update_sound_controls_state();
+    if controls.sound_available {
+        assert!(controls.combo_switch_type.is_enabled());
+        assert!(controls.slider_volume.is_enabled());
+        assert!(controls.btn_test_sound.is_enabled());
+    } else {
+        assert!(!controls.combo_switch_type.is_enabled());
+        assert!(!controls.slider_volume.is_enabled());
+        assert!(!controls.btn_test_sound.is_enabled());
+    }
 
     unsafe {
         DestroyWindow(parent);

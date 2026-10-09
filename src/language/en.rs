@@ -24,10 +24,15 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
     tab_system: "System",
     tab_about: "About",
 
-    // Tab 0: Typing
+    // Tab 0: Typing & Sound
     typing_title: "Typing Assistance & Spell Checking",
     check_restore_wrong: "Auto-restore keys on wrong spelling",
     check_auto_upper: "Auto-capitalize first letter of sentence",
+    sound_title: "Mechanical Keyboard Sound Simulation",
+    check_sound_enabled: "Enable mechanical keyboard sound",
+    label_switch_type: "Switch type:",
+    label_volume: "Volume:",
+    btn_test_sound: "Test",
 
     // Tab 1: Macro
     check_use_macro: "Enable macro shortcut table",

@@ -98,6 +98,11 @@ impl ComboBox {
         }
     }
 
+    pub fn is_enabled(&self) -> bool {
+        let style = unsafe { super::window::GetWindowLongW(self.hwnd, super::window::GWL_STYLE) } as u32;
+        (style & super::window::WS_DISABLED) == 0
+    }
+
     pub fn add_item(&self, text: &str) {
         let wide = to_wide(text);
         unsafe {
@@ -149,6 +154,16 @@ impl ComboBox {
             } else {
                 String::new()
             }
+        }
+    }
+
+    pub fn get_selected_text(&self) -> Option<String> {
+        let sel = self.get_selected()?;
+        let text = self.get_item_text(sel);
+        if text.is_empty() {
+            None
+        } else {
+            Some(text)
         }
     }
 }

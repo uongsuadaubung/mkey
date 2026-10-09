@@ -24,10 +24,15 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
     tab_system: "Hệ thống",
     tab_about: "Thông tin",
 
-    // Tab 0: Typing
+    // Tab 0: Typing & Sound
     typing_title: "Tính năng hỗ trợ gõ & kiểm tra chính tả",
     check_restore_wrong: "Tự động khôi phục phím khi gõ sai từ",
     check_auto_upper: "Tự động viết hoa chữ cái đầu câu",
+    sound_title: "Giả lập âm thanh phím cơ",
+    check_sound_enabled: "Bật âm thanh gõ phím cơ",
+    label_switch_type: "Loại switch:",
+    label_volume: "Âm lượng:",
+    btn_test_sound: "Nghe thử",
 
     // Tab 1: Macro
     check_use_macro: "Cho phép sử dụng bảng gõ tắt (Macro)",

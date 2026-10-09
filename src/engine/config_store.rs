@@ -17,6 +17,46 @@ pub fn get_config_path() -> PathBuf {
         .join("config.ini")
 }
 
+/// Returns the path to the directory containing switch soundpacks if it exists.
+/// Checks ~/.config/mkey/switches, ~/.config/mkey/switchs, ./switches, ./switchs.
+pub fn get_switches_dir() -> Option<PathBuf> {
+    let home = std::env::var("USERPROFILE")
+        .or_else(|_| std::env::var("HOME"))
+        .unwrap_or_else(|_| ".".to_string());
+    let config_dir = PathBuf::from(home).join(".config").join("mkey");
+    let candidates = [
+        config_dir.join("switches"),
+        config_dir.join("switchs"),
+        PathBuf::from("switches"),
+        PathBuf::from("switchs"),
+    ];
+    candidates.into_iter().find(|p| p.is_dir())
+}
+
+/// Lists all available switch profiles (subdirectories in the switches directory)
+pub fn list_switch_profiles() -> Vec<String> {
+    let mut profiles = Vec::new();
+    if let Some(dir) = get_switches_dir()
+        && let Ok(entries) = fs::read_dir(dir)
+    {
+        for entry in entries.flatten() {
+            if let Ok(ft) = entry.file_type()
+                && ft.is_dir()
+                && let Some(name) = entry.file_name().to_str()
+            {
+                profiles.push(name.to_string());
+            }
+        }
+    }
+    profiles.sort();
+    profiles
+}
+
+/// Returns whether the mechanical keyboard sound feature is available
+pub fn is_sound_available() -> bool {
+    !list_switch_profiles().is_empty()
+}
+
 /// Loads both EngineConfig and MacroTable from config.ini.
 /// If file doesn't exist, initializes default config and saves it to disk.
 /// Autostart state is read directly from Windows Registry as the source of truth.
@@ -76,34 +116,43 @@ pub fn parse_config_and_macros(content: &str) -> (EngineConfig, MacroTable) {
             let val_l = val.to_lowercase();
             let val_bool = val_l == "true" || val_l == "1" || val_l == "yes";
 
-            match key_l.as_str() {
-                "method" => {
+            match (current_section.as_str(), key_l.as_str()) {
+                ("sound", "enabled") | (_, "sound_enabled") | (_, "sound") => {
+                    config.sound_enabled = val_bool;
+                }
+                (_, "method") => {
                     config.method = val_l.parse().unwrap_or_default();
                 }
-                "enabled" => config.enabled = val_bool,
-                "switch_key" | "switch_with_ctrl_shift" => {
+                (_, "enabled") => config.enabled = val_bool,
+                (_, "switch_key") | (_, "switch_with_ctrl_shift") => {
                     config.switch_with_ctrl_shift = val_l.contains("ctrl") || val_bool;
                 }
-                "restore_on_wrong" | "restore_on_wrong_spelling" => {
-                    config.restore_on_wrong_spelling = val_bool
+                (_, "restore_on_wrong") | (_, "restore_on_wrong_spelling") => {
+                    config.restore_on_wrong_spelling = val_bool;
                 }
-                "auto_uppercase_first" | "auto_uppercase_first_char" => {
-                    config.auto_uppercase_first_char = val_bool
+                (_, "auto_uppercase_first") | (_, "auto_uppercase_first_char") => {
+                    config.auto_uppercase_first_char = val_bool;
                 }
-                "use_macro" => config.use_macro = val_bool,
-                "bracket_w" => config.bracket_w = val_bool,
-                "remember_history" | "remember_history_across_space" => {
-                    config.remember_history_across_space = val_bool
+                (_, "use_macro") => config.use_macro = val_bool,
+                (_, "bracket_w") => config.bracket_w = val_bool,
+                (_, "remember_history") | (_, "remember_history_across_space") => {
+                    config.remember_history_across_space = val_bool;
                 }
-                "show_dialog_on_startup" | "show_dialog" => {
+                (_, "show_dialog_on_startup") | (_, "show_dialog") => {
                     config.show_dialog_on_startup = val_bool;
                 }
-                "debug" => config.debug = val_bool,
-                "theme" => {
+                (_, "debug") => config.debug = val_bool,
+                (_, "theme") => {
                     config.theme = val_l.parse().unwrap_or_default();
                 }
-                "language" | "lang" => {
+                (_, "language") | (_, "lang") => {
                     config.language = val_l.parse().unwrap_or_default();
+                }
+                (_, "sound_profile") | (_, "switch") | (_, "switch_type") => {
+                    config.sound_profile = val.trim().to_string();
+                }
+                (_, "sound_volume") | (_, "volume") => {
+                    config.sound_volume = val_l.parse().unwrap_or(50).clamp(0, 100);
                 }
                 _ => {}
             }
@@ -148,6 +197,11 @@ pub fn serialize_config_and_macros(config: &EngineConfig, macros: &MacroTable) -
         "remember_history = {}\n\n",
         config.remember_history_across_space
     ));
+
+    out.push_str("[sound]\n");
+    out.push_str(&format!("enabled = {}\n", config.sound_enabled));
+    out.push_str(&format!("switch = {}\n", config.sound_profile));
+    out.push_str(&format!("volume = {}\n\n", config.sound_volume));
 
     out.push_str("[system]\n");
     out.push_str(&format!("language = {}\n", config.language));

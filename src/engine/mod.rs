@@ -109,8 +109,9 @@ impl VietnameseEngine {
         self.config.enabled
     }
 
-    fn log_debug(&mut self, msg: String) {
+    pub fn log_debug(&mut self, msg: impl Into<String>) {
         if self.config.debug {
+            let msg = msg.into();
             if !self.log_writer.is_active() && self.config.debug_file_path.is_some() {
                 self.log_writer = AsyncLogWriter::new(self.config.debug_file_path.clone());
             }

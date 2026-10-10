@@ -208,3 +208,40 @@ fn test_exact_match_file_tag() {
     assert_eq!(match_file_tag("1"), None);
     assert_eq!(match_file_tag("click"), None);
 }
+
+#[test]
+fn test_debounced_config_save() {
+    let mut config = EngineConfig::default();
+    config.sound_volume = 42;
+    let macros = MacroTable::new();
+
+    mkey::save_config_and_macros_debounced(&config, &macros);
+    mkey::flush_config_debounced();
+
+    let path = mkey::get_config_path();
+    assert!(path.exists());
+    let content = std::fs::read_to_string(&path).unwrap();
+    assert!(content.contains("volume = 42"));
+}
+
+#[test]
+fn test_benchmark_debounced_save() {
+    let mut config = EngineConfig::default();
+    let macros = MacroTable::new();
+    let count = 10_000;
+
+    let start = std::time::Instant::now();
+    for i in 0..count {
+        config.sound_volume = (i % 100) as u8;
+        mkey::save_config_and_macros_debounced(&config, &macros);
+    }
+    let elapsed = start.elapsed();
+    mkey::flush_config_debounced();
+
+    println!(
+        "\n===> BENCHMARK DEBOUNCED SAVE: {} rapid requests in {:?}. Average latency: {:.3} microseconds/call",
+        count,
+        elapsed,
+        (elapsed.as_micros() as f64) / (count as f64)
+    );
+}

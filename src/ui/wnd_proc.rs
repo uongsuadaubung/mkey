@@ -103,7 +103,7 @@ pub fn handle_menu_command(cmd: u32) {
                 && let Some(ref mut engine) = *guard
             {
                 engine.config_mut().method = InputMethod::Telex;
-                let _ = config_store::save_config_and_macros(engine.config(), &engine.macro_table);
+                config_store::save_config_and_macros_debounced(engine.config(), &engine.macro_table);
             }
         }
         IDM_VNI => {
@@ -111,7 +111,7 @@ pub fn handle_menu_command(cmd: u32) {
                 && let Some(ref mut engine) = *guard
             {
                 engine.config_mut().method = InputMethod::Vni;
-                let _ = config_store::save_config_and_macros(engine.config(), &engine.macro_table);
+                config_store::save_config_and_macros_debounced(engine.config(), &engine.macro_table);
             }
         }
         IDM_SIMPLE_TELEX => {
@@ -119,13 +119,14 @@ pub fn handle_menu_command(cmd: u32) {
                 && let Some(ref mut engine) = *guard
             {
                 engine.config_mut().method = InputMethod::SimpleTelex1;
-                let _ = config_store::save_config_and_macros(engine.config(), &engine.macro_table);
+                config_store::save_config_and_macros_debounced(engine.config(), &engine.macro_table);
             }
         }
         IDM_CONTROL_PANEL => {
             show_control_panel();
         }
         IDM_EXIT => unsafe {
+            config_store::flush_config_debounced();
             PostQuitMessage(0);
         },
         _ => {}
@@ -149,7 +150,7 @@ pub unsafe extern "system" fn tray_helper_wnd_proc(
                     let mut guard = ENGINE_INSTANCE.lock().unwrap();
                     if let Some(ref mut engine) = *guard {
                         let res = engine.toggle_enabled();
-                        let _ = config_store::save_config_and_macros(
+                        config_store::save_config_and_macros_debounced(
                             engine.config(),
                             &engine.macro_table,
                         );
@@ -202,6 +203,7 @@ pub unsafe extern "system" fn tray_helper_wnd_proc(
             0
         }
         WM_DESTROY => {
+            config_store::flush_config_debounced();
             unsafe {
                 PostQuitMessage(0);
             }
@@ -280,8 +282,10 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                     && let Some(ref mut engine) = *guard
                 {
                     engine.config_mut().sound_volume = pos as u8;
-                    let _ =
-                        config_store::save_config_and_macros(engine.config(), &engine.macro_table);
+                    config_store::save_config_and_macros_debounced(
+                        engine.config(),
+                        &engine.macro_table,
+                    );
                     crate::platform::win32::sound::reconfigure_sound(
                         engine.config().sound_enabled,
                         &engine.config().sound_profile,
@@ -305,6 +309,7 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                 IDC_BTN_EXIT => {
                     // Exit MKey completely
                     println!("[UI] Người dùng nhấn Kết thúc -> Thoát MKey");
+                    config_store::flush_config_debounced();
                     unsafe {
                         PostQuitMessage(0);
                     }
@@ -595,7 +600,7 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                             ui.controls.update_sound_controls_state();
                         }
                         ui.controls.read_config(engine.config_mut());
-                        let _ = config_store::save_config_and_macros(
+                        config_store::save_config_and_macros_debounced(
                             engine.config(),
                             &engine.macro_table,
                         );

@@ -19,6 +19,24 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 static CTRL_SHIFT_ARMED: AtomicBool = AtomicBool::new(false);
 
+pub type ModeChangeCallback = fn(bool);
+static MODE_CHANGE_CALLBACK: Mutex<Option<ModeChangeCallback>> = Mutex::new(None);
+
+/// Registers a callback to be invoked whenever the typing mode toggles (Vietnamese <-> English).
+pub fn set_mode_change_callback(cb: ModeChangeCallback) {
+    if let Ok(mut guard) = MODE_CHANGE_CALLBACK.lock() {
+        *guard = Some(cb);
+    }
+}
+
+pub fn notify_mode_change(is_vietnamese: bool) {
+    if let Ok(guard) = MODE_CHANGE_CALLBACK.lock()
+        && let Some(cb) = *guard
+    {
+        cb(is_vietnamese);
+    }
+}
+
 fn is_ctrl_vk(vk: u32) -> bool {
     matches!(vk, 0x11 | 0xA2 | 0xA3) // VK_CONTROL, VK_LCONTROL, VK_RCONTROL
 }
@@ -46,10 +64,10 @@ pub unsafe extern "system" fn low_level_mouse_proc(
             && let Some(ref mut engine) = *guard
         {
             if engine.config().debug && !engine.buffer.is_empty() {
-                eprintln!(
+                engine.log_debug(format!(
                     "[DBG][WIN32_MOUSE] Mouse button {:#X} clicked -> Reset engine buffer",
                     w_param
-                );
+                ));
             }
             engine.reset();
         }
@@ -84,21 +102,16 @@ pub unsafe extern "system" fn low_level_keyboard_proc(
                     && let Some(ref mut engine) = *guard
                 {
                     let new_state = engine.toggle_enabled();
-                    let cfg = engine.config().clone();
-                    let macros = engine.macro_table.clone();
-                    std::thread::spawn(move || {
-                        if let Err(e) =
-                            crate::engine::config_store::save_config_and_macros(&cfg, &macros)
-                        {
-                            eprintln!("[MKey] Lỗi lưu cấu hình: {e}");
-                        }
-                    });
+                    crate::engine::config_store::save_config_and_macros_debounced(
+                        engine.config(),
+                        &engine.macro_table,
+                    );
                     if new_state {
-                        println!("\n[MKey] >> Chế độ gõ: [V] TIẾNG VIỆT");
+                        engine.log_debug("[MKey] >> Chế độ gõ: [V] TIẾNG VIỆT");
                     } else {
-                        println!("\n[MKey] >> Chế độ gõ: [E] TIẾNG ANH");
+                        engine.log_debug("[MKey] >> Chế độ gõ: [E] TIẾNG ANH");
                     }
-                    crate::ui::update_tray_icon(new_state);
+                    notify_mode_change(new_state);
                 }
                 return CallNextHookEx(0, n_code, w_param, l_param);
             }
@@ -134,21 +147,16 @@ pub unsafe extern "system" fn low_level_keyboard_proc(
                         && !engine.config().switch_with_ctrl_shift
                     {
                         let new_state = engine.toggle_enabled();
-                        let cfg = engine.config().clone();
-                        let macros = engine.macro_table.clone();
-                        std::thread::spawn(move || {
-                            if let Err(e) =
-                                crate::engine::config_store::save_config_and_macros(&cfg, &macros)
-                            {
-                                eprintln!("[MKey] Lỗi lưu cấu hình: {e}");
-                            }
-                        });
+                        crate::engine::config_store::save_config_and_macros_debounced(
+                            engine.config(),
+                            &engine.macro_table,
+                        );
                         if new_state {
-                            println!("\n[MKey] >> Chế độ gõ: [V] TIẾNG VIỆT");
+                            engine.log_debug("[MKey] >> Chế độ gõ: [V] TIẾNG VIỆT");
                         } else {
-                            println!("\n[MKey] >> Chế độ gõ: [E] TIẾNG ANH");
+                            engine.log_debug("[MKey] >> Chế độ gõ: [E] TIẾNG ANH");
                         }
-                        crate::ui::update_tray_icon(new_state);
+                        notify_mode_change(new_state);
                         return 1;
                     }
                     return CallNextHookEx(0, n_code, w_param, l_param);
@@ -160,9 +168,9 @@ pub unsafe extern "system" fn low_level_keyboard_proc(
                         && let Some(ref mut engine) = *guard
                     {
                         if engine.config().debug && !engine.buffer.is_empty() {
-                            eprintln!(
+                            engine.log_debug(format!(
                                 "[DBG][WIN32_MOD] Modifier active (Ctrl: {is_ctrl}, Alt: {is_alt}, Win: {is_win}) -> Reset engine buffer"
-                            );
+                            ));
                         }
                         engine.reset();
                     }
@@ -191,10 +199,10 @@ pub unsafe extern "system" fn low_level_keyboard_proc(
                         && let Some(ref mut engine) = *guard
                     {
                         if engine.config().debug && !engine.buffer.is_empty() {
-                            eprintln!(
+                            engine.log_debug(format!(
                                 "[DBG][WIN32_NAV] VK 0x{:02X} pressed -> Reset engine buffer",
                                 vk
-                            );
+                            ));
                         }
                         engine.reset();
                     }
@@ -268,8 +276,7 @@ pub unsafe extern "system" fn low_level_keyboard_proc(
 }
 
 /// Installs the Windows keyboard & mouse hooks and starts the Win32 message pump
-pub fn run_hook_loop(engine: VietnameseEngine, _is_autostart: bool) {
-    let show_dialog_on_startup = engine.config().show_dialog_on_startup;
+pub fn run_hook_loop(engine: VietnameseEngine, on_ready: impl FnOnce()) {
     let sound_enabled = engine.config().sound_enabled;
     let sound_profile = engine.config().sound_profile.clone();
     let sound_volume = engine.config().sound_volume;
@@ -313,19 +320,17 @@ pub fn run_hook_loop(engine: VietnameseEngine, _is_autostart: bool) {
         println!(">> Windows Hook đã kích hoạt! Hãy mở Notepad/Browser và gõ tiếng Việt để test.");
         println!(">> Nhấn Ctrl + C trong cửa sổ này để tắt.");
 
-        // Initialize Native Win32 UI (System Tray & Control Panel)
-        crate::ui::init_ui();
-        if show_dialog_on_startup {
-            crate::ui::show_control_panel();
-        } else {
-            trim_working_set();
-        }
+        // Invoke caller's initialization callback (e.g. initialize UI)
+        on_ready();
 
         let mut msg: MSG = std::mem::zeroed();
         while GetMessageW(&mut msg, 0, 0, 0) > 0 {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
         }
+
+        // Flush any pending debounced config saves before exiting
+        crate::engine::config_store::flush_config_debounced();
 
         // Cleanup
         let h = *HOOK_HANDLE.lock().unwrap();

@@ -120,7 +120,16 @@ fn main() {
                 }
             }
 
-            mkey::platform::win32::run_hook_loop(engine, is_autostart);
+            let show_dialog_on_startup = !is_autostart && engine.config().show_dialog_on_startup;
+            mkey::platform::win32::set_mode_change_callback(mkey::ui::update_tray_icon);
+            mkey::platform::win32::run_hook_loop(engine, move || {
+                mkey::ui::init_ui();
+                if show_dialog_on_startup {
+                    mkey::ui::show_control_panel();
+                } else {
+                    mkey::platform::win32::trim_working_set();
+                }
+            });
         }
 
         #[cfg(not(target_os = "windows"))]

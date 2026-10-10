@@ -210,7 +210,7 @@ fn test_exact_match_file_tag() {
 }
 
 #[test]
-fn test_debounced_config_save() {
+fn test_debounced_config_save_and_benchmark() {
     let mut config = EngineConfig::default();
     config.sound_volume = 42;
     let macros = MacroTable::new();
@@ -222,14 +222,9 @@ fn test_debounced_config_save() {
     assert!(path.exists());
     let content = std::fs::read_to_string(&path).unwrap();
     assert!(content.contains("volume = 42"));
-}
 
-#[test]
-fn test_benchmark_debounced_save() {
-    let mut config = EngineConfig::default();
-    let macros = MacroTable::new();
+    // Benchmark rapid debounced calls
     let count = 10_000;
-
     let start = std::time::Instant::now();
     for i in 0..count {
         config.sound_volume = (i % 100) as u8;

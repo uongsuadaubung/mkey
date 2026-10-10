@@ -56,6 +56,8 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
     check_show_dialog: "Bật hội thoại này khi khởi động",
     check_debug_log: "Bật ghi nhật ký chẩn đoán (Debug Log)",
     btn_open_log: "Xem log...",
+    btn_check_update: "Kiểm tra bản mới...",
+    btn_checking_update: "Đang kiểm tra...",
     label_theme_title: "Giao diện & Ngôn ngữ",
     label_theme: "Giao diện:",
     theme_auto: "Theo hệ thống (Auto)",

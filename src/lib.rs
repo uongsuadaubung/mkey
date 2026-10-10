@@ -9,6 +9,7 @@ pub mod language;
 pub mod platform;
 #[cfg(windows)]
 pub mod ui;
+pub mod updater;
 pub mod vietnamese;
 
 pub use engine::{

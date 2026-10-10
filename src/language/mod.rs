@@ -128,6 +128,8 @@ pub struct LanguageStrings {
     pub check_show_dialog: &'static str,
     pub check_debug_log: &'static str,
     pub btn_open_log: &'static str,
+    pub btn_check_update: &'static str,
+    pub btn_checking_update: &'static str,
     pub label_theme_title: &'static str,
     pub label_theme: &'static str,
     pub theme_auto: &'static str,

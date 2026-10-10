@@ -38,6 +38,7 @@ pub const IDC_CHECK_DEBUG_LOG: u32 = 421;
 pub const IDC_BTN_OPEN_LOG: u32 = 422;
 pub const IDC_COMBO_THEME: u32 = 423;
 pub const IDC_COMBO_LANG: u32 = 425;
+pub const IDC_BTN_CHECK_UPDATE: u32 = 426;
 
 // Tab 3: Thông tin
 pub const IDC_LABEL_EMAIL: u32 = 430;
@@ -97,6 +98,7 @@ pub struct ControlPanelControls {
     pub combo_theme: ComboBox,
     pub label_lang: Label,
     pub combo_lang: ComboBox,
+    pub btn_check_update: PushButton,
 
     // Tab 3 Controls
     pub label_about_title: Label,
@@ -434,6 +436,17 @@ impl ControlPanelControls {
         combo_lang.add_item("English");
         combo_lang.set_selected(0);
 
+        let btn_check_update = PushButton::create(
+            parent,
+            IDC_BTN_CHECK_UPDATE,
+            strings.btn_check_update,
+            40,
+            380,
+            180,
+            28,
+            hfont_normal,
+        )?;
+
         // 6. Tab 3: Thông tin Controls
         let label_about_title =
             Label::create(parent, strings.about_title, 40, 150, 360, 24, hfont_bold)?;
@@ -534,6 +547,7 @@ impl ControlPanelControls {
             combo_theme,
             label_lang,
             combo_lang,
+            btn_check_update,
             label_about_title,
             label_about_ver,
             label_about_author,
@@ -745,6 +759,7 @@ impl ControlPanelControls {
             ShowWindow(self.combo_theme.hwnd(), show_t2);
             ShowWindow(self.label_lang.hwnd(), show_t2);
             ShowWindow(self.combo_lang.hwnd(), show_t2);
+            ShowWindow(self.btn_check_update.hwnd(), show_t2);
 
             // Tab 3 controls
             let show_t3 = if tab_idx == 3 { SW_SHOW } else { SW_HIDE };
@@ -963,6 +978,7 @@ impl ControlPanelControls {
 
         self.label_lang.set_text(strings.label_language);
         self.combo_lang.set_selected(lang.into());
+        self.btn_check_update.set_text(strings.btn_check_update);
 
         self.label_about_title.set_text(strings.about_title);
         self.label_about_ver.set_text(strings.about_ver);

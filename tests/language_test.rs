@@ -80,6 +80,8 @@ fn test_language_string_dictionaries_completeness() {
         assert!(!s.check_show_dialog.is_empty());
         assert!(!s.check_debug_log.is_empty());
         assert!(!s.btn_open_log.is_empty());
+        assert!(!s.btn_check_update.is_empty());
+        assert!(!s.btn_checking_update.is_empty());
         assert!(!s.label_theme_title.is_empty());
         assert!(!s.label_theme.is_empty());
         assert!(!s.theme_auto.is_empty());

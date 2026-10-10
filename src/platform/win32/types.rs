@@ -41,6 +41,15 @@ pub const WM_LBUTTONDOWN: usize = 0x0201;
 pub const WM_RBUTTONDOWN: usize = 0x0204;
 pub const WM_MBUTTONDOWN: usize = 0x0207;
 
+pub const MB_OK: u32 = 0x00000000;
+pub const MB_YESNO: u32 = 0x00000004;
+pub const MB_ICONINFORMATION: u32 = 0x00000040;
+pub const MB_ICONWARNING: u32 = 0x00000030;
+pub const MB_ICONERROR: u32 = 0x00000010;
+pub const IDYES: i32 = 6;
+pub const IDNO: i32 = 7;
+pub const IDOK: i32 = 1;
+
 /// Magic identifier to tag our own synthetic input events and prevent infinite hook loops
 pub const MAGIC_EXTRA_INFO: usize = 0x4D4B4559; // "MKEY" in ASCII
 
@@ -184,6 +193,7 @@ unsafe extern "system" {
     pub fn GetWindowThreadProcessId(hWnd: isize, lpdwProcessId: *mut u32) -> u32;
     pub fn GetGUIThreadInfo(idThread: u32, pgui: *mut GUITHREADINFO) -> i32;
     pub fn GetClassNameW(hWnd: isize, lpClassName: *mut u16, nMaxCount: i32) -> i32;
+    pub fn MessageBoxW(hWnd: isize, lpText: *const u16, lpCaption: *const u16, uType: u32) -> i32;
 }
 
 #[link(name = "kernel32")]

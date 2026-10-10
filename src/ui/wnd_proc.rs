@@ -11,13 +11,14 @@ use crate::ui::theme::{
     apply_ui_theme, get_input_bg_brush, get_tab_card_brush, is_current_dark, resolve_is_dark,
 };
 use crate::ui::views::{
-    IDC_BTN_ADD_MACRO, IDC_BTN_CANCEL_MACRO, IDC_BTN_CLOSE, IDC_BTN_DEFAULTS, IDC_BTN_DEL_MACRO,
-    IDC_BTN_EDIT_MACRO, IDC_BTN_EXIT, IDC_BTN_OPEN_LOG, IDC_BTN_TEST_SOUND, IDC_CHECK_AUTO_UPPER,
-    IDC_CHECK_AUTOSTART, IDC_CHECK_CTRL_SHIFT, IDC_CHECK_DEBUG_LOG, IDC_CHECK_MACRO_EN,
-    IDC_CHECK_RESTORE_WRONG, IDC_CHECK_SHOW_DIALOG, IDC_CHECK_SOUND_ENABLED, IDC_CHECK_USE_MACRO,
-    IDC_COMBO_LANG, IDC_COMBO_METHOD, IDC_COMBO_MODE, IDC_COMBO_SWITCH_TYPE, IDC_COMBO_THEME,
-    IDC_LABEL_EMAIL, IDC_LABEL_GITHUB, IDC_LIST_MACRO, IDC_TAB_MAIN, IDM_CONTROL_PANEL, IDM_EXIT,
-    IDM_SIMPLE_TELEX, IDM_TELEX, IDM_TOGGLE_VIET, IDM_VNI, WM_TRAY_MESSAGE,
+    IDC_BTN_ADD_MACRO, IDC_BTN_CANCEL_MACRO, IDC_BTN_CHECK_UPDATE, IDC_BTN_CLOSE,
+    IDC_BTN_DEFAULTS, IDC_BTN_DEL_MACRO, IDC_BTN_EDIT_MACRO, IDC_BTN_EXIT, IDC_BTN_OPEN_LOG,
+    IDC_BTN_TEST_SOUND, IDC_CHECK_AUTO_UPPER, IDC_CHECK_AUTOSTART, IDC_CHECK_CTRL_SHIFT,
+    IDC_CHECK_DEBUG_LOG, IDC_CHECK_MACRO_EN, IDC_CHECK_RESTORE_WRONG, IDC_CHECK_SHOW_DIALOG,
+    IDC_CHECK_SOUND_ENABLED, IDC_CHECK_USE_MACRO, IDC_COMBO_LANG, IDC_COMBO_METHOD, IDC_COMBO_MODE,
+    IDC_COMBO_SWITCH_TYPE, IDC_COMBO_THEME, IDC_LABEL_EMAIL, IDC_LABEL_GITHUB, IDC_LIST_MACRO,
+    IDC_TAB_MAIN, IDM_CONTROL_PANEL, IDM_EXIT, IDM_SIMPLE_TELEX, IDM_TELEX, IDM_TOGGLE_VIET,
+    IDM_VNI, WM_TRAY_MESSAGE,
 };
 use crate::ui::{UI_MANAGER, show_control_panel, update_tray_icon};
 
@@ -541,6 +542,32 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
                     let _ = std::process::Command::new("notepad.exe")
                         .arg(&log_file)
                         .spawn();
+                }
+                IDC_BTN_CHECK_UPDATE => {
+                    if let Ok(ui_guard) = UI_MANAGER.try_lock()
+                        && let Some(ref ui) = *ui_guard
+                    {
+                        let hwnd_panel = ui.h_panel;
+                        let strings = crate::language::current();
+                        ui.controls
+                            .btn_check_update
+                            .set_text(strings.btn_checking_update);
+                        ui.controls.btn_check_update.set_enabled(false);
+
+                        std::thread::spawn(move || {
+                            let status = crate::updater::check_for_updates();
+
+                            if let Ok(ui_guard) = UI_MANAGER.try_lock()
+                                && let Some(ref ui) = *ui_guard
+                            {
+                                let s = crate::language::current();
+                                ui.controls.btn_check_update.set_text(s.btn_check_update);
+                                ui.controls.btn_check_update.set_enabled(true);
+                            }
+
+                            crate::updater::show_update_result_dialog(hwnd_panel, &status);
+                        });
+                    }
                 }
                 IDC_LABEL_EMAIL => {
                     open_url("mailto:manhkien13041997@gmail.com");

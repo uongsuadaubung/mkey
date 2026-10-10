@@ -56,6 +56,8 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
     check_show_dialog: "Show this dialog on startup",
     check_debug_log: "Enable diagnostic logging (Debug Log)",
     btn_open_log: "View log...",
+    btn_check_update: "Check for Updates...",
+    btn_checking_update: "Checking...",
     label_theme_title: "Appearance & Language",
     label_theme: "Theme:",
     theme_auto: "System (Auto)",

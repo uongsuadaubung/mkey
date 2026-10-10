@@ -8,11 +8,11 @@ pub mod tray;
 pub use tray::{handle_menu_command, tray_helper_wnd_proc};
 
 use crate::platform::win32::ENGINE_INSTANCE;
+use crate::ui::UI_MANAGER;
 use crate::ui::components::window::*;
 use crate::ui::paint::paint_control_panel;
 use crate::ui::theme::{apply_ui_theme, is_current_dark, resolve_is_dark};
 use crate::ui::views::IDC_LIST_MACRO;
-use crate::ui::UI_MANAGER;
 
 const WM_PAINT: u32 = 0x000F;
 const WM_CLOSE: u32 = 0x0010;
@@ -100,12 +100,10 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
             let nmhdr = unsafe { &*(lparam as *const NMHDR) };
             if nmhdr.id_from == IDC_LIST_MACRO as usize
                 && (nmhdr.code == 0xFFFFFFFE || nmhdr.code == 0xFFFFFFFD)
+                && let Ok(ui_guard) = UI_MANAGER.try_lock()
+                && let Some(ref ui) = *ui_guard
             {
-                if let Ok(ui_guard) = UI_MANAGER.try_lock()
-                    && let Some(ref ui) = *ui_guard
-                {
-                    macro_events::handle_macro_list_notify(ui);
-                }
+                macro_events::handle_macro_list_notify(ui);
             }
             0
         }
@@ -124,4 +122,3 @@ pub unsafe extern "system" fn control_panel_wnd_proc(
         _ => unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) },
     }
 }
-

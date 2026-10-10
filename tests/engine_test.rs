@@ -470,17 +470,17 @@ fn test_backspace_on_error_does_not_produce_eer() {
     let mut engine = VietnameseEngine::new(EngineConfig::default());
     let mut screen = String::new();
 
-    let type_key = |eng: &mut VietnameseEngine, ch: char, scr: &mut String| {
-        match eng.on_key(ch, false, false) {
-            EngineAction::Passthrough => scr.push(ch),
-            EngineAction::Replace { backspaces, output } => {
-                for _ in 0..backspaces {
-                    scr.pop();
-                }
-                scr.push_str(&output);
+    let type_key = |eng: &mut VietnameseEngine, ch: char, scr: &mut String| match eng
+        .on_key(ch, false, false)
+    {
+        EngineAction::Passthrough => scr.push(ch),
+        EngineAction::Replace { backspaces, output } => {
+            for _ in 0..backspaces {
+                scr.pop();
             }
-            EngineAction::Consume => {}
+            scr.push_str(&output);
         }
+        EngineAction::Consume => {}
     };
 
     let backspace = |eng: &mut VietnameseEngine, scr: &mut String| {
@@ -1485,7 +1485,10 @@ fn test_smart_english_bypass_on_the_fly() {
 
     // 4. Combined sentence with both English words and Vietnamese words
     assert_eq!(
-        simulate_typing(&mut engine, "chungs tooi ddang fix bug trong file project mowsi "),
+        simulate_typing(
+            &mut engine,
+            "chungs tooi ddang fix bug trong file project mowsi "
+        ),
         "chúng tôi đang fix bug trong file project mới "
     );
     engine.reset();
@@ -1532,4 +1535,3 @@ fn test_hieuer_to_hieu() {
     engine.reset();
     assert_eq!(simulate_typing(&mut engine, "coffee "), "coffee ");
 }
-

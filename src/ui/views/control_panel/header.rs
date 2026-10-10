@@ -6,15 +6,17 @@ use crate::ui::components::*;
 
 pub const IDC_COMBO_METHOD: u32 = 301;
 pub const IDC_COMBO_MODE: u32 = 302;
-pub const IDC_CHECK_CTRL_SHIFT: u32 = 303;
+pub const IDC_BTN_SWITCH_KEY: u32 = 303;
+pub const IDC_CHECK_SWITCH_KEY: u32 = 304;
+pub const IDC_CHECK_CTRL_SHIFT: u32 = IDC_CHECK_SWITCH_KEY; // Backward compatibility
 
 pub struct HeaderCard {
     pub label_method: Label,
     pub label_mode: Label,
-    pub label_switch: Label,
     pub combo_method: ComboBox,
     pub combo_mode: ComboBox,
-    pub check_ctrl_shift: CheckBox,
+    pub check_switch_key: CheckBox,
+    pub btn_switch_key: PushButton,
 }
 
 impl HeaderCard {
@@ -35,27 +37,36 @@ impl HeaderCard {
         combo_mode.add_item(strings.mode_english);
         combo_mode.set_selected(0);
 
-        let label_switch =
-            Label::create(parent, strings.label_switch, 280, 26, 95, 20, hfont_bold)?;
-        let check_ctrl_shift = CheckBox::create(
+        let check_switch_key = CheckBox::create(
             parent,
-            IDC_CHECK_CTRL_SHIFT,
-            strings.check_ctrl_shift,
+            IDC_CHECK_SWITCH_KEY,
+            strings.check_switch_key,
             280,
-            48,
-            120,
             22,
+            135,
+            22,
+            hfont_bold,
+        )?;
+        check_switch_key.set_checked(true);
+
+        let btn_switch_key = PushButton::create(
+            parent,
+            IDC_BTN_SWITCH_KEY,
+            "Ctrl + Shift",
+            280,
+            46,
+            130,
+            28,
             hfont_normal,
         )?;
-        check_ctrl_shift.set_checked(true);
 
         Some(Self {
             label_method,
             label_mode,
-            label_switch,
             combo_method,
             combo_mode,
-            check_ctrl_shift,
+            check_switch_key,
+            btn_switch_key,
         })
     }
 
@@ -63,8 +74,10 @@ impl HeaderCard {
         self.combo_method.set_selected(config.method.into());
         self.combo_mode
             .set_selected(if config.enabled { 0 } else { 1 });
-        self.check_ctrl_shift
-            .set_checked(config.switch_with_ctrl_shift);
+        self.check_switch_key.set_checked(config.switch_key_enabled);
+        self.btn_switch_key.set_enabled(config.switch_key_enabled);
+        self.btn_switch_key
+            .set_text(&config.switch_key.display_text());
     }
 
     pub fn read_config(&self, config: &mut crate::engine::EngineConfig) {
@@ -91,14 +104,14 @@ impl HeaderCard {
             }
         }
 
-        config.switch_with_ctrl_shift = self.check_ctrl_shift.is_checked();
+        config.switch_key_enabled = self.check_switch_key.is_checked();
+        self.btn_switch_key.set_enabled(config.switch_key_enabled);
     }
 
     pub fn update_language(&self, strings: &LanguageStrings) {
         self.label_method.set_text(strings.label_method);
         self.label_mode.set_text(strings.label_mode);
-        self.label_switch.set_text(strings.label_switch);
-        self.check_ctrl_shift.set_text(strings.check_ctrl_shift);
+        self.check_switch_key.set_text(strings.check_switch_key);
 
         let cur_mode = self.combo_mode.get_selected().unwrap_or(0);
         self.combo_mode.reset_items(
@@ -107,4 +120,3 @@ impl HeaderCard {
         );
     }
 }
-

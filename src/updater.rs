@@ -27,8 +27,8 @@ pub fn check_for_updates() -> UpdateStatus {
     match run_curl_api() {
         Ok(json) => {
             if let Some(tag_name) = parse_tag_name(&json) {
-                let release_url = parse_html_url(&json)
-                    .unwrap_or_else(|| GITHUB_RELEASES_URL.to_string());
+                let release_url =
+                    parse_html_url(&json).unwrap_or_else(|| GITHUB_RELEASES_URL.to_string());
                 return evaluate_version(current_version, &tag_name, release_url);
             }
         }
@@ -42,7 +42,11 @@ pub fn check_for_updates() -> UpdateStatus {
     match run_curl_redirect() {
         Ok(headers) => {
             if let Some(tag_name) = parse_tag_from_location(&headers) {
-                return evaluate_version(current_version, &tag_name, GITHUB_RELEASES_URL.to_string());
+                return evaluate_version(
+                    current_version,
+                    &tag_name,
+                    GITHUB_RELEASES_URL.to_string(),
+                );
             }
         }
         Err(e) => {
@@ -86,10 +90,10 @@ fn run_curl_api() -> std::io::Result<String> {
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     } else {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("curl exited with code {:?}", output.status.code()),
-        ))
+        Err(std::io::Error::other(format!(
+            "curl exited with code {:?}",
+            output.status.code()
+        )))
     }
 }
 
@@ -114,10 +118,10 @@ fn run_curl_redirect() -> std::io::Result<String> {
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     } else {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("curl exited with code {:?}", output.status.code()),
-        ))
+        Err(std::io::Error::other(format!(
+            "curl exited with code {:?}",
+            output.status.code()
+        )))
     }
 }
 
@@ -148,17 +152,17 @@ pub fn parse_html_url(json: &str) -> Option<String> {
 pub fn parse_tag_from_location(headers: &str) -> Option<String> {
     for line in headers.lines() {
         let line = line.trim();
-        if line.to_ascii_lowercase().starts_with("location:") {
-            if let Some(pos) = line.rfind("/tag/") {
-                return Some(line[pos + 5..].trim().to_string());
-            }
+        if line.to_ascii_lowercase().starts_with("location:")
+            && let Some(pos) = line.rfind("/tag/")
+        {
+            return Some(line[pos + 5..].trim().to_string());
         }
     }
     None
 }
 
 pub fn parse_version(s: &str) -> Option<(u32, u32, u32)> {
-    let s = s.trim().trim_start_matches(|c| c == 'v' || c == 'V');
+    let s = s.trim().trim_start_matches(['v', 'V']);
     let mut parts = s.split('.');
     let major = parts.next()?.parse::<u32>().ok()?;
     let minor = parts.next()?.parse::<u32>().ok()?;
@@ -179,7 +183,7 @@ pub fn is_newer_version(current: &str, latest: &str) -> bool {
 #[cfg(windows)]
 pub fn show_update_result_dialog(hwnd: isize, status: &UpdateStatus) {
     use crate::platform::win32::types::{
-        MessageBoxW, IDYES, MB_ICONINFORMATION, MB_ICONWARNING, MB_OK, MB_YESNO,
+        IDYES, MB_ICONINFORMATION, MB_ICONWARNING, MB_OK, MB_YESNO, MessageBoxW,
     };
     use crate::ui::components::to_wide;
 
@@ -202,7 +206,11 @@ pub fn show_update_result_dialog(hwnd: isize, status: &UpdateStatus) {
                     latest_version, current_version
                 )
             };
-            let title = if is_vi { "Cập nhật MKey" } else { "MKey Update" };
+            let title = if is_vi {
+                "Cập nhật MKey"
+            } else {
+                "MKey Update"
+            };
 
             let ret = unsafe {
                 MessageBoxW(
@@ -221,11 +229,18 @@ pub fn show_update_result_dialog(hwnd: isize, status: &UpdateStatus) {
         }
         UpdateStatus::UpToDate(current_version) => {
             let msg = if is_vi {
-                format!("Bạn đang sử dụng phiên bản mới nhất (v{}).", current_version)
+                format!(
+                    "Bạn đang sử dụng phiên bản mới nhất (v{}).",
+                    current_version
+                )
             } else {
                 format!("You are using the latest version (v{}).", current_version)
             };
-            let title = if is_vi { "Cập nhật MKey" } else { "MKey Update" };
+            let title = if is_vi {
+                "Cập nhật MKey"
+            } else {
+                "MKey Update"
+            };
 
             unsafe {
                 MessageBoxW(
@@ -242,7 +257,11 @@ pub fn show_update_result_dialog(hwnd: isize, status: &UpdateStatus) {
             } else {
                 format!("Failed to check for updates:\n{}", err)
             };
-            let title = if is_vi { "Lỗi cập nhật MKey" } else { "MKey Update Error" };
+            let title = if is_vi {
+                "Lỗi cập nhật MKey"
+            } else {
+                "MKey Update Error"
+            };
 
             unsafe {
                 MessageBoxW(

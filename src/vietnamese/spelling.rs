@@ -98,12 +98,25 @@ pub fn is_valid_intermediate_vowel_combination(vowels: &[VowelLetter]) -> bool {
             matches!(
                 (v0, v1),
                 // Intermediate typing bases for iê, yê, uô, ươ, uê, ê, êu
-                ((BaseVowel::I, Diacritic::None), (BaseVowel::E, Diacritic::None))
-                    | ((BaseVowel::Y, Diacritic::None), (BaseVowel::E, Diacritic::None))
-                    | ((BaseVowel::U, Diacritic::None), (BaseVowel::O, Diacritic::None))
-                    | ((BaseVowel::U, Diacritic::None), (BaseVowel::E, Diacritic::None))
-                    | ((BaseVowel::E, Diacritic::None), (BaseVowel::E, Diacritic::None))
-                    | ((BaseVowel::E, Diacritic::None), (BaseVowel::U, Diacritic::None))
+                (
+                    (BaseVowel::I, Diacritic::None),
+                    (BaseVowel::E, Diacritic::None)
+                ) | (
+                    (BaseVowel::Y, Diacritic::None),
+                    (BaseVowel::E, Diacritic::None)
+                ) | (
+                    (BaseVowel::U, Diacritic::None),
+                    (BaseVowel::O, Diacritic::None)
+                ) | (
+                    (BaseVowel::U, Diacritic::None),
+                    (BaseVowel::E, Diacritic::None)
+                ) | (
+                    (BaseVowel::E, Diacritic::None),
+                    (BaseVowel::E, Diacritic::None)
+                ) | (
+                    (BaseVowel::E, Diacritic::None),
+                    (BaseVowel::U, Diacritic::None)
+                )
             )
         }
         3 => {

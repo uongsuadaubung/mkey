@@ -88,7 +88,8 @@ impl TypingBuffer {
 
         for (idx, &key) in keys.iter().enumerate() {
             effective.push(key);
-            let was_nucleus_or_coda = matches!(state, SyllableState::Nucleus(_) | SyllableState::Coda(_));
+            let was_nucleus_or_coda =
+                matches!(state, SyllableState::Nucleus(_) | SyllableState::Coda(_));
             let prev_rendered = last_rendered.clone();
             let prev_rendered_len = last_rendered.chars().count();
 
@@ -134,11 +135,12 @@ impl TypingBuffer {
             last_action = action;
         }
 
-        let rendered = if matches!(state, SyllableState::Passthrough(_)) && !last_rendered.is_empty() {
-            last_rendered
-        } else {
-            state.render()
-        };
+        let rendered =
+            if matches!(state, SyllableState::Passthrough(_)) && !last_rendered.is_empty() {
+                last_rendered
+            } else {
+                state.render()
+            };
 
         EvaluationResult {
             state,
@@ -182,7 +184,10 @@ impl TypingBuffer {
 
         self.raw_keys.push(key);
 
-        let was_nucleus_or_coda = matches!(self.state, SyllableState::Nucleus(_) | SyllableState::Coda(_));
+        let was_nucleus_or_coda = matches!(
+            self.state,
+            SyllableState::Nucleus(_) | SyllableState::Coda(_)
+        );
         let prev_rendered = self.last_rendered.clone();
         let prev_rendered_len = self.last_rendered.chars().count();
 

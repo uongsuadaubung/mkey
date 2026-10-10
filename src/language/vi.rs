@@ -17,6 +17,7 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
     mode_english: "Tiếng Anh",
     label_switch: "Phím chuyển:",
     check_ctrl_shift: "Ctrl + Shift",
+    check_switch_key: "Phím chuyển:",
 
     // Navigation TabBar
     tab_typing: "Bộ gõ",
@@ -76,6 +77,14 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
     btn_exit: "Kết thúc",
     btn_defaults: "Mặc định",
     btn_close: "Đóng",
+
+    // Hotkey Capture Dialog
+    hotkey_dialog_title: "Đổi phím tắt chuyển chế độ",
+    hotkey_dialog_prompt: "Nhấn tổ hợp phím muốn đặt làm phím chuyển:",
+    hotkey_press_prompt: "Nhấn tổ hợp phím bất kỳ...",
+    btn_save: "Lưu",
+    btn_clear: "Xóa",
+    btn_cancel: "Hủy",
 
     // System Tray Menu & Tooltips
     tray_tooltip_vi: "MKey - Bộ gõ tiếng Việt (Tiếng Việt)",

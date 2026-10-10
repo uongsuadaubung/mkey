@@ -117,4 +117,3 @@ impl ControlPanelControls {
         self.footer.update_language(strings);
     }
 }
-

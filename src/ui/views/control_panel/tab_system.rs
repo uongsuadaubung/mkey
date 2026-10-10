@@ -218,4 +218,3 @@ impl TabSystem {
         self.btn_check_update.set_text(strings.btn_check_update);
     }
 }
-

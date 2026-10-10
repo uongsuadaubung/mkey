@@ -327,4 +327,3 @@ impl TabMacro {
         self.list_macro.refresh_header();
     }
 }
-

@@ -61,4 +61,3 @@ impl FooterControls {
         self.btn_close.set_text(strings.btn_close);
     }
 }
-

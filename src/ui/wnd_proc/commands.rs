@@ -21,16 +21,16 @@ pub fn handle_hscroll(lparam: isize) {
         && slider_hwnd == ui.controls.tab_typing.slider_volume.hwnd()
     {
         let pos = ui.controls.tab_typing.slider_volume.get_pos();
-        ui.controls.tab_typing.label_volume_val.set_text(&format!("{pos}%"));
+        ui.controls
+            .tab_typing
+            .label_volume_val
+            .set_text(&format!("{pos}%"));
 
         if let Ok(mut guard) = ENGINE_INSTANCE.lock()
             && let Some(ref mut engine) = *guard
         {
             engine.config_mut().sound_volume = pos as u8;
-            config_store::save_config_and_macros_debounced(
-                engine.config(),
-                &engine.macro_table,
-            );
+            config_store::save_config_and_macros_debounced(engine.config(), &engine.macro_table);
             crate::platform::win32::sound::reconfigure_sound(
                 engine.config().sound_enabled,
                 &engine.config().sound_profile,
@@ -66,6 +66,9 @@ pub fn handle_command(hwnd: isize, wparam: usize) -> isize {
         }
         IDC_BTN_DEFAULTS => {
             handle_defaults_button();
+        }
+        IDC_BTN_SWITCH_KEY => {
+            crate::ui::views::show_hotkey_dialog(hwnd);
         }
         IDC_BTN_ADD_MACRO => {
             if let Ok(ui_guard) = UI_MANAGER.try_lock()
@@ -135,10 +138,7 @@ fn handle_defaults_button() {
         && let Some(ref mut engine) = *guard
     {
         *engine.config_mut() = def_config.clone();
-        let _ = config_store::save_config_and_macros(
-            engine.config(),
-            &engine.macro_table,
-        );
+        let _ = config_store::save_config_and_macros(engine.config(), &engine.macro_table);
     }
     crate::platform::win32::sound::reconfigure_sound(
         def_config.sound_enabled,
@@ -183,7 +183,10 @@ fn handle_check_update_button() {
                 && let Some(ref ui) = *ui_guard
             {
                 let s = crate::language::current();
-                ui.controls.tab_system.btn_check_update.set_text(s.btn_check_update);
+                ui.controls
+                    .tab_system
+                    .btn_check_update
+                    .set_text(s.btn_check_update);
                 ui.controls.tab_system.btn_check_update.set_enabled(true);
             }
 
@@ -202,7 +205,7 @@ fn handle_toggle_or_selection(wparam: usize, control_id: u32) {
         || control_id == IDC_COMBO_THEME
         || control_id == IDC_COMBO_LANG
         || control_id == IDC_COMBO_SWITCH_TYPE;
-    let is_check = control_id == IDC_CHECK_CTRL_SHIFT
+    let is_check = control_id == IDC_CHECK_SWITCH_KEY
         || control_id == IDC_CHECK_RESTORE_WRONG
         || control_id == IDC_CHECK_AUTO_UPPER
         || control_id == IDC_CHECK_SOUND_ENABLED
@@ -241,13 +244,8 @@ fn handle_toggle_or_selection(wparam: usize, control_id: u32) {
             ui.controls.update_sound_controls_state();
         }
         ui.controls.read_config(engine.config_mut());
-        config_store::save_config_and_macros_debounced(
-            engine.config(),
-            &engine.macro_table,
-        );
-        if control_id == IDC_CHECK_SOUND_ENABLED
-            || control_id == IDC_COMBO_SWITCH_TYPE
-        {
+        config_store::save_config_and_macros_debounced(engine.config(), &engine.macro_table);
+        if control_id == IDC_CHECK_SOUND_ENABLED || control_id == IDC_COMBO_SWITCH_TYPE {
             crate::platform::win32::sound::reconfigure_sound(
                 engine.config().sound_enabled,
                 &engine.config().sound_profile,
@@ -284,9 +282,8 @@ fn handle_toggle_or_selection(wparam: usize, control_id: u32) {
                     InvalidateRect(ui.controls.tab_bar.hwnd(), std::ptr::null(), 1);
                     UpdateWindow(ui.controls.tab_bar.hwnd());
                 }
-                let is_dark = resolve_is_dark(
-                    theme_opt.unwrap_or(crate::engine::config::UiTheme::Auto),
-                );
+                let is_dark =
+                    resolve_is_dark(theme_opt.unwrap_or(crate::engine::config::UiTheme::Auto));
                 apply_ui_theme(ui.h_panel, &ui.controls, is_dark);
                 ui.tray.refresh_icon();
             }
@@ -295,4 +292,3 @@ fn handle_toggle_or_selection(wparam: usize, control_id: u32) {
         update_tray_icon(is_viet);
     }
 }
-

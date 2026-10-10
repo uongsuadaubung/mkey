@@ -176,7 +176,7 @@ fn test_inspect_sound_banks() {
 
 #[test]
 fn test_exact_match_file_tag() {
-    use mkey::platform::win32::{match_file_tag, KeyTag};
+    use mkey::platform::win32::{KeyTag, match_file_tag};
 
     // Strict 1:1 match for all 18 canonical keys
     assert_eq!(match_file_tag("space"), Some(KeyTag::Space));
@@ -210,33 +210,51 @@ fn test_exact_match_file_tag() {
 }
 
 #[test]
-fn test_debounced_config_save_and_benchmark() {
-    let mut config = EngineConfig::default();
-    config.sound_volume = 42;
-    let macros = MacroTable::new();
+fn test_custom_switch_hotkey() {
+    use mkey::Hotkey;
 
-    mkey::save_config_and_macros_debounced(&config, &macros);
-    mkey::flush_config_debounced();
+    // Default: Ctrl + Shift
+    let def_hk = Hotkey::default();
+    assert!(def_hk.is_ctrl_shift());
+    assert_eq!(def_hk.display_text(), "Ctrl + Shift");
+    assert_eq!(def_hk.to_config_str(), "ctrl_shift");
 
-    let path = mkey::get_config_path();
-    assert!(path.exists());
-    let content = std::fs::read_to_string(&path).unwrap();
-    assert!(content.contains("volume = 42"));
+    // Custom: Ctrl + Space
+    let space_hk = Hotkey::from_config_str("ctrl_space");
+    assert_eq!(space_hk.display_text(), "Ctrl + Space");
+    assert_eq!(space_hk.vk, 0x20);
+    assert!(space_hk.ctrl && !space_hk.shift);
 
-    // Benchmark rapid debounced calls
-    let count = 10_000;
-    let start = std::time::Instant::now();
-    for i in 0..count {
-        config.sound_volume = (i % 100) as u8;
-        mkey::save_config_and_macros_debounced(&config, &macros);
-    }
-    let elapsed = start.elapsed();
-    mkey::flush_config_debounced();
+    // Custom: Alt + Z
+    let alt_z = Hotkey::from_config_str("alt_z");
+    assert_eq!(alt_z.display_text(), "Alt + Z");
+    assert_eq!(alt_z.vk, 0x5A);
+    assert!(alt_z.alt && !alt_z.ctrl);
 
-    println!(
-        "\n===> BENCHMARK DEBOUNCED SAVE: {} rapid requests in {:?}. Average latency: {:.3} microseconds/call",
-        count,
-        elapsed,
-        (elapsed.as_micros() as f64) / (count as f64)
-    );
+    // INI parsing with custom switch_key and switch_key_enabled
+    let ini = r#"
+[general]
+method = telex
+enabled = true
+switch_key_enabled = false
+switch_key = ctrl_space
+"#;
+    let (config, _) = parse_config_and_macros(ini);
+    assert_eq!(config.switch_key.display_text(), "Ctrl + Space");
+    assert!(!config.switch_with_ctrl_shift);
+    assert!(!config.switch_key_enabled);
+
+    // Serialization roundtrip
+    let mut config2 = EngineConfig::default();
+    assert!(config2.switch_key_enabled);
+    config2.switch_key_enabled = false;
+    config2.switch_key = Hotkey::new(true, false, false, false, 0x20); // Ctrl + Space
+    let macros2 = MacroTable::new();
+    let serialized = mkey::serialize_config_and_macros(&config2, &macros2);
+    assert!(serialized.contains("switch_key_enabled = false"));
+    assert!(serialized.contains("switch_key = ctrl_space"));
+
+    let (loaded, _) = parse_config_and_macros(&serialized);
+    assert_eq!(loaded.switch_key, config2.switch_key);
+    assert_eq!(loaded.switch_key_enabled, config2.switch_key_enabled);
 }

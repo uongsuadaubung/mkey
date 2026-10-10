@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="images/icon.png">
+  <link rel="shortcut icon" href="favicon.ico">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,7 +17,7 @@
   <header class="navbar">
     <div class="container nav-container">
       <a href="#" class="nav-brand">
-        <div class="brand-badge">M</div>
+        <img src="images/icon.png" alt="MKey" class="brand-logo-img">
         <span class="brand-text">MKey</span>
       </a>
       <nav class="nav-links">
@@ -411,12 +413,12 @@
             <img src="images/ui-tab-bogo.png" alt="Giao diện MKey - Tab Bộ gõ" loading="lazy">
           </div>
           <div class="ui-card-body">
-            <span class="ui-tab-tag">TAB 1 • BỘ GÕ</span>
-            <h3 class="ui-card-title">Cấu hình kiểu gõ &amp; chính tả</h3>
+            <span class="ui-tab-tag">TAB 1 • BỘ GÕ &amp; ÂM THANH</span>
+            <h3 class="ui-card-title">Cấu hình kiểu gõ, phím chuyển &amp; âm thanh</h3>
             <ul class="ui-card-list">
               <li><strong>Kiểu gõ linh hoạt:</strong> Hỗ trợ Simple Telex, Telex chuẩn, VNI.</li>
-              <li><strong>Phím chuyển nhanh:</strong> Tổ hợp <code>Ctrl + Shift</code> an toàn, không cướp phím game hay Photoshop.</li>
-              <li><strong>Kiểm tra chính tả:</strong> Tự động khôi phục phím khi gõ sai từ.</li>
+              <li><strong>Tùy biến phím chuyển chế độ:</strong> Mặc định <code>Ctrl + Shift</code> hoặc tự do đổi sang bất kỳ phím nào (<code>Ctrl + Space</code>, <code>Alt + Z</code>...), có nút bật/tắt riêng.</li>
+              <li><strong>Mở khóa âm thanh phím cơ:</strong> Khi thư mục config có chứa gói <code>switches\</code>, MKey tự động mở khóa cụm điều khiển switch ngay trong Tab Bộ gõ (chọn switch, nghe thử và thanh trượt âm lượng).</li>
             </ul>
           </div>
         </div>
@@ -582,25 +584,25 @@
         </div>
 
         <div class="spec-card">
-          <span class="spec-tag">PHÍM TẮT</span>
-          <div class="spec-title">Chuyển Anh / Việt an toàn</div>
-          <div class="spec-desc">Chuyển đổi nhanh chế độ gõ bằng <code>Ctrl + Shift</code>. Cơ chế cô lập thông minh giúp bạn thoải mái thao tác mà không lo cướp phím tắt của game, Photoshop hay phần mềm làm việc.</div>
+          <span class="spec-tag">PHÍM TẮT TỰ DO</span>
+          <div class="spec-title">Tùy biến phím chuyển Anh / Việt theo ý thích</div>
+          <div class="spec-desc">Mặc định dùng <code>Ctrl + Shift</code> hoặc tự do đổi sang bất kỳ phím nào (như <code>Ctrl + Space</code>, <code>Alt + Z</code>...). Có cửa sổ nhận diện phím bấm trực quan, nút đặt lại và công tắc bật/tắt chống bấm nhầm khi chơi game.</div>
           <div class="feature-demo-screen" data-feature="toggle">
             <div class="feature-screen-top">
               <span class="screen-dot"></span>
-              <span class="screen-title">Phím tắt Ctrl + Shift</span>
+              <span class="screen-title">Tùy biến phím chuyển chế độ</span>
             </div>
             <div class="feature-screen-content">
               <span class="typing-text"></span><span class="typing-cursor"></span>
             </div>
-            <div class="feature-screen-status">Chuyển đổi tức thì, không giật phím phần mềm</div>
+            <div class="feature-screen-status">Tự do gán mọi tổ hợp phím, chuyển đổi êm mượt</div>
           </div>
         </div>
 
         <div class="spec-card">
           <span class="spec-tag">ÂM THANH PHÍM</span>
           <div class="spec-title">Giả lập âm thanh phím cơ sống động</div>
-          <div class="spec-desc">Trải nghiệm tiếng gõ phím cơ chân thực với 13 bộ switch tuyển chọn (Holy Panda, Cherry MX, Topre...). Âm thanh vang lên êm ái, phản hồi tức thì qua WASAPI mà không làm nặng máy.</div>
+          <div class="spec-desc">Trải nghiệm tiếng gõ phím cơ chân thực với 13 bộ switch tuyển chọn (Alps SKCM Blue, Holy Panda, Cherry MX...). Tự động mở khóa cụm điều khiển âm thanh ngay trong Tab Bộ gõ khi phát hiện thư mục <code>switches\</code>.</div>
           <div class="feature-demo-screen" data-feature="sound">
             <div class="feature-screen-top">
               <span class="screen-dot"></span>
@@ -616,7 +618,7 @@
           </div>
           <div class="sound-quick-tip">
             <span class="tip-icon">📦</span>
-            <span>Cần tải gói âm thanh riêng. <a href="#sound-guide">Xem hướng dẫn cài đặt &darr;</a></span>
+            <span>Tự động mở khóa khi có gói <code>switches\</code> trong config. <a href="#sound-guide">Xem hướng dẫn cài đặt &darr;</a></span>
           </div>
         </div>
       </div>
@@ -668,11 +670,11 @@
           <div class="guide-step-item">
             <div class="step-num">3</div>
             <div class="step-content">
-              <strong>Bật và trải nghiệm</strong>
-              <p>Mở Bảng điều khiển của MKey, tích chọn <strong>"Bật âm thanh gõ phím cơ"</strong>, chọn bộ switch yêu thích và bấm <strong>"Nghe thử"</strong>.</p>
+              <strong>Tự động mở khóa &amp; Trải nghiệm</strong>
+              <p>Ngay khi thư mục <code>switches\</code> xuất hiện trong config, MKey sẽ <strong>tự động mở khóa cụm Giả lập âm thanh phím cơ</strong> ngay trong Tab Bộ gõ: cho phép tích chọn bật âm thanh, chọn switch yêu thích (Alps SKCM Blue, Holy Panda...), bấm "Nghe thử" và kéo thanh chỉnh âm lượng trực quan.</p>
               <div class="guide-status-note">
                 <span class="note-dot"></span>
-                <span>Tự động nhận diện 13 bộ switch sau khi hoàn tất.</span>
+                <span>Tự động quét &amp; mở khóa 13 bộ switch có sẵn ngay trong Tab Bộ gõ.</span>
               </div>
             </div>
           </div>
@@ -1009,6 +1011,21 @@
 
             <tr>
               <td class="feature-name">
+                <strong>Phím chuyển chế độ gõ</strong>
+                <span>Chuyển đổi Anh / Việt (E / V)</span>
+              </td>
+              <td class="legacy-td">
+                <span class="badge-neutral">Bị bó buộc</span>
+                <p>Chỉ cho chọn cố định giữa <code>Ctrl + Shift</code> hoặc <code>Alt + Z</code>, không thể tùy biến theo ý thích.</p>
+              </td>
+              <td class="mkey-td">
+                <span class="badge-win">Tự do đổi phím 100%</span>
+                <p>Gán bất kỳ phím nào (như <code>Ctrl + Space</code>, <code>Alt + Z</code>...) qua giao diện nhận diện thông minh, có nút bật/tắt riêng.</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="feature-name">
                 <strong>Âm thanh gõ phím cơ</strong>
                 <span>Cảm giác âm thanh khi nhấn phím</span>
               </td>
@@ -1118,7 +1135,7 @@
             <h3>Làm sao để chuyển đổi nhanh giữa tiếng Việt và tiếng Anh?</h3>
           </div>
           <p class="faq-a">
-            Bạn có thể dùng tổ hợp phím tắt <code>Ctrl + Shift</code> hoặc click chuột trái trực tiếp vào biểu tượng icon chữ <strong>V</strong> / <strong>E</strong> ở khay hệ thống (góc dưới bên phải màn hình). Click chuột phải vào icon để mở Bảng điều khiển hoặc Thoát ứng dụng.
+            Mặc định bạn có thể dùng tổ hợp phím <code>Ctrl + Shift</code> hoặc click chuột trái trực tiếp vào biểu tượng icon <strong>V</strong> / <strong>E</strong> ở khay hệ thống. Ngoài ra, trong Bảng điều khiển bạn hoàn toàn có thể <strong>tự do đổi sang bất kỳ phím tắt nào</strong> (như <code>Ctrl + Space</code>, <code>Alt + Z</code>...) bằng cửa sổ nhận diện phím bấm trực quan, hoặc tắt hẳn phím chuyển nếu không muốn bị bấm nhầm.
           </p>
         </div>
       </div>
@@ -1164,7 +1181,10 @@
   <footer class="footer">
     <div class="container footer-container">
       <div class="footer-left">
-        <div class="footer-brand">MKey</div>
+        <div class="footer-brand">
+          <img src="images/icon.png" alt="MKey" class="footer-logo-img">
+          <span>MKey</span>
+        </div>
         <p class="footer-tagline">Bộ gõ tiếng Việt hiện đại cho Windows.</p>
         <p class="footer-copy">Mã nguồn mở trên GitHub.</p>
       </div>

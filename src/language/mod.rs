@@ -89,6 +89,7 @@ pub struct LanguageStrings {
     pub mode_english: &'static str,
     pub label_switch: &'static str,
     pub check_ctrl_shift: &'static str,
+    pub check_switch_key: &'static str,
 
     // Navigation TabBar
     pub tab_typing: &'static str,
@@ -148,6 +149,14 @@ pub struct LanguageStrings {
     pub btn_exit: &'static str,
     pub btn_defaults: &'static str,
     pub btn_close: &'static str,
+
+    // Hotkey Capture Dialog
+    pub hotkey_dialog_title: &'static str,
+    pub hotkey_dialog_prompt: &'static str,
+    pub hotkey_press_prompt: &'static str,
+    pub btn_save: &'static str,
+    pub btn_clear: &'static str,
+    pub btn_cancel: &'static str,
 
     // System Tray Menu & Tooltips
     pub tray_tooltip_vi: &'static str,

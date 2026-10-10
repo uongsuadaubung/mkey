@@ -1,6 +1,6 @@
 [package]
 name = "mkey"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 authors = ["Mạnh Kiên <manhkien13041997@gmail.com>"]
 description = "MKey - Bộ gõ tiếng Việt siêu nhẹ, hiệu năng cao viết bằng Rust"

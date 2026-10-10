@@ -17,6 +17,7 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
     mode_english: "English",
     label_switch: "Switch Key:",
     check_ctrl_shift: "Ctrl + Shift",
+    check_switch_key: "Switch key:",
 
     // Navigation TabBar
     tab_typing: "Typing",
@@ -76,6 +77,14 @@ pub static STRINGS: LanguageStrings = LanguageStrings {
     btn_exit: "Exit",
     btn_defaults: "Defaults",
     btn_close: "Close",
+
+    // Hotkey Capture Dialog
+    hotkey_dialog_title: "Change Switch Mode Shortcut",
+    hotkey_dialog_prompt: "Press key combination to switch typing mode:",
+    hotkey_press_prompt: "Press any key combination...",
+    btn_save: "Save",
+    btn_clear: "Clear",
+    btn_cancel: "Cancel",
 
     // System Tray Menu & Tooltips
     tray_tooltip_vi: "MKey - Vietnamese IME (Vietnamese)",

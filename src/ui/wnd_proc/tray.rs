@@ -66,7 +66,10 @@ pub fn handle_menu_command(cmd: u32) {
                 && let Some(ref mut engine) = *guard
             {
                 engine.config_mut().method = InputMethod::Telex;
-                config_store::save_config_and_macros_debounced(engine.config(), &engine.macro_table);
+                config_store::save_config_and_macros_debounced(
+                    engine.config(),
+                    &engine.macro_table,
+                );
             }
         }
         IDM_VNI => {
@@ -74,7 +77,10 @@ pub fn handle_menu_command(cmd: u32) {
                 && let Some(ref mut engine) = *guard
             {
                 engine.config_mut().method = InputMethod::Vni;
-                config_store::save_config_and_macros_debounced(engine.config(), &engine.macro_table);
+                config_store::save_config_and_macros_debounced(
+                    engine.config(),
+                    &engine.macro_table,
+                );
             }
         }
         IDM_SIMPLE_TELEX => {
@@ -82,7 +88,10 @@ pub fn handle_menu_command(cmd: u32) {
                 && let Some(ref mut engine) = *guard
             {
                 engine.config_mut().method = InputMethod::SimpleTelex1;
-                config_store::save_config_and_macros_debounced(engine.config(), &engine.macro_table);
+                config_store::save_config_and_macros_debounced(
+                    engine.config(),
+                    &engine.macro_table,
+                );
             }
         }
         IDM_CONTROL_PANEL => {
@@ -175,4 +184,3 @@ pub unsafe extern "system" fn tray_helper_wnd_proc(
         _ => unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) },
     }
 }
-

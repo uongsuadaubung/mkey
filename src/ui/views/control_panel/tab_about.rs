@@ -74,4 +74,3 @@ impl TabAbout {
         self.label_about_github.set_text(strings.about_github);
     }
 }
-

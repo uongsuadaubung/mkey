@@ -654,13 +654,13 @@ document.addEventListener('DOMContentLoaded', () => {
       { text: '[VIE] xin chao' },
       { text: '[VIE] xin chào ', status: 'Đang gõ ở chế độ tiếng Việt' },
       { pause: 800 },
-      { text: '[Ctrl+Shift ➔ ENG] xin chào ', status: 'Nhấn Ctrl + Shift chuyển sang tiếng Anh' },
+      { text: '[Ctrl+Space ➔ ENG] xin chào ', status: 'Nhấn phím tắt tùy chọn (Ctrl+Shift, Ctrl+Space, Alt+Z...) sang tiếng Anh' },
       { pause: 600 },
       { text: '[ENG] xin chào h' },
       { text: '[ENG] xin chào he' },
       { text: '[ENG] xin chào hel' },
       { text: '[ENG] xin chào hell' },
-      { text: '[ENG] xin chào hello', status: 'Chuyển đổi êm, không kẹt phím game/app' },
+      { text: '[ENG] xin chào hello', status: 'Tự do gán mọi tổ hợp phím, chuyển đổi êm mượt' },
       { pause: 2000 }
     ],
     sound: [

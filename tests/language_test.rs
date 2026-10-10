@@ -177,93 +177,93 @@ fn test_control_panel_language_switch() {
 
     // Default: Vietnamese
     let mut buf = vec![0u16; 64];
-    let len = unsafe { GetWindowTextW(controls.btn_exit.hwnd(), buf.as_mut_ptr(), 64) };
+    let len = unsafe { GetWindowTextW(controls.footer.btn_exit.hwnd(), buf.as_mut_ptr(), 64) };
     assert_eq!(String::from_utf16_lossy(&buf[..len as usize]), "Kết thúc");
 
     // Switch to English
     controls.update_language(Language::English);
-    let len = unsafe { GetWindowTextW(controls.btn_exit.hwnd(), buf.as_mut_ptr(), 64) };
+    let len = unsafe { GetWindowTextW(controls.footer.btn_exit.hwnd(), buf.as_mut_ptr(), 64) };
     assert_eq!(String::from_utf16_lossy(&buf[..len as usize]), "Exit");
 
-    let len = unsafe { GetWindowTextW(controls.btn_close.hwnd(), buf.as_mut_ptr(), 64) };
+    let len = unsafe { GetWindowTextW(controls.footer.btn_close.hwnd(), buf.as_mut_ptr(), 64) };
     assert_eq!(String::from_utf16_lossy(&buf[..len as usize]), "Close");
 
     let len =
-        unsafe { GetWindowTextW(controls.check_macro_in_english.hwnd(), buf.as_mut_ptr(), 64) };
+        unsafe { GetWindowTextW(controls.tab_macro.check_macro_in_english.hwnd(), buf.as_mut_ptr(), 64) };
     assert_eq!(
         String::from_utf16_lossy(&buf[..len as usize]),
         "Allow shorthand in English mode"
     );
 
-    assert_eq!(controls.combo_macro_type.get_item_text(0), "Whole word");
+    assert_eq!(controls.tab_macro.combo_macro_type.get_item_text(0), "Whole word");
     assert_eq!(
-        controls.combo_macro_type.get_item_text(1),
+        controls.tab_macro.combo_macro_type.get_item_text(1),
         "Start consonant"
     );
-    assert_eq!(controls.combo_macro_type.get_item_text(2), "End consonant");
+    assert_eq!(controls.tab_macro.combo_macro_type.get_item_text(2), "End consonant");
 
-    assert_eq!(controls.combo_mode.get_item_text(0), "Vietnamese");
-    assert_eq!(controls.combo_mode.get_item_text(1), "English");
-    assert_eq!(controls.combo_theme.get_item_text(0), "System (Auto)");
-    assert_eq!(controls.combo_theme.get_item_text(1), "Light");
-    assert_eq!(controls.combo_theme.get_item_text(2), "Dark");
-    assert_eq!(controls.combo_lang.get_selected(), Some(1));
+    assert_eq!(controls.header.combo_mode.get_item_text(0), "Vietnamese");
+    assert_eq!(controls.header.combo_mode.get_item_text(1), "English");
+    assert_eq!(controls.tab_system.combo_theme.get_item_text(0), "System (Auto)");
+    assert_eq!(controls.tab_system.combo_theme.get_item_text(1), "Light");
+    assert_eq!(controls.tab_system.combo_theme.get_item_text(2), "Dark");
+    assert_eq!(controls.tab_system.combo_lang.get_selected(), Some(1));
 
     // Switch back to Vietnamese
     controls.update_language(Language::Vietnamese);
-    let len = unsafe { GetWindowTextW(controls.btn_exit.hwnd(), buf.as_mut_ptr(), 64) };
+    let len = unsafe { GetWindowTextW(controls.footer.btn_exit.hwnd(), buf.as_mut_ptr(), 64) };
     assert_eq!(String::from_utf16_lossy(&buf[..len as usize]), "Kết thúc");
 
-    let len = unsafe { GetWindowTextW(controls.btn_close.hwnd(), buf.as_mut_ptr(), 64) };
+    let len = unsafe { GetWindowTextW(controls.footer.btn_close.hwnd(), buf.as_mut_ptr(), 64) };
     assert_eq!(String::from_utf16_lossy(&buf[..len as usize]), "Đóng");
 
     let len =
-        unsafe { GetWindowTextW(controls.check_macro_in_english.hwnd(), buf.as_mut_ptr(), 64) };
+        unsafe { GetWindowTextW(controls.tab_macro.check_macro_in_english.hwnd(), buf.as_mut_ptr(), 64) };
     assert_eq!(
         String::from_utf16_lossy(&buf[..len as usize]),
         "Cho phép gõ tắt cả khi ở chế độ tiếng Anh"
     );
 
-    assert_eq!(controls.combo_macro_type.get_item_text(0), "Toàn từ");
-    assert_eq!(controls.combo_macro_type.get_item_text(1), "Phụ âm đầu");
-    assert_eq!(controls.combo_macro_type.get_item_text(2), "Phụ âm cuối");
+    assert_eq!(controls.tab_macro.combo_macro_type.get_item_text(0), "Toàn từ");
+    assert_eq!(controls.tab_macro.combo_macro_type.get_item_text(1), "Phụ âm đầu");
+    assert_eq!(controls.tab_macro.combo_macro_type.get_item_text(2), "Phụ âm cuối");
 
-    assert_eq!(controls.combo_mode.get_item_text(0), "Tiếng Việt");
-    assert_eq!(controls.combo_mode.get_item_text(1), "Tiếng Anh");
+    assert_eq!(controls.header.combo_mode.get_item_text(0), "Tiếng Việt");
+    assert_eq!(controls.header.combo_mode.get_item_text(1), "Tiếng Anh");
     assert_eq!(
-        controls.combo_theme.get_item_text(0),
+        controls.tab_system.combo_theme.get_item_text(0),
         "Theo hệ thống (Auto)"
     );
-    assert_eq!(controls.combo_theme.get_item_text(1), "Sáng (Light)");
-    assert_eq!(controls.combo_theme.get_item_text(2), "Tối (Dark)");
-    assert_eq!(controls.combo_lang.get_selected(), Some(0));
+    assert_eq!(controls.tab_system.combo_theme.get_item_text(1), "Sáng (Light)");
+    assert_eq!(controls.tab_system.combo_theme.get_item_text(2), "Tối (Dark)");
+    assert_eq!(controls.tab_system.combo_lang.get_selected(), Some(0));
 
     // Dynamic enable/disable of child macro controls based on check_use_macro
-    controls.check_use_macro.set_checked(false);
+    controls.tab_macro.check_use_macro.set_checked(false);
     controls.update_macro_checkboxes_state();
-    assert!(!controls.check_macro_in_english.is_enabled());
+    assert!(!controls.tab_macro.check_macro_in_english.is_enabled());
 
-    controls.check_use_macro.set_checked(true);
+    controls.tab_macro.check_use_macro.set_checked(true);
     controls.update_macro_checkboxes_state();
-    assert!(controls.check_macro_in_english.is_enabled());
+    assert!(controls.tab_macro.check_macro_in_english.is_enabled());
 
     // Dynamic enable/disable of sound controls based on check_sound_enabled
-    controls.check_sound_enabled.set_checked(false);
+    controls.tab_typing.check_sound_enabled.set_checked(false);
     controls.update_sound_controls_state();
-    assert!(!controls.combo_switch_type.is_enabled());
-    assert!(!controls.slider_volume.is_enabled());
-    assert!(!controls.btn_test_sound.is_enabled());
+    assert!(!controls.tab_typing.combo_switch_type.is_enabled());
+    assert!(!controls.tab_typing.slider_volume.is_enabled());
+    assert!(!controls.tab_typing.btn_test_sound.is_enabled());
 
-    controls.check_sound_enabled.set_checked(true);
+    controls.tab_typing.check_sound_enabled.set_checked(true);
     controls.update_sound_controls_state();
-    if controls.sound_available {
-        assert!(controls.combo_switch_type.is_enabled());
-        assert!(controls.slider_volume.is_enabled());
-        assert!(controls.btn_test_sound.is_enabled());
+    if controls.tab_typing.sound_available {
+        assert!(controls.tab_typing.combo_switch_type.is_enabled());
+        assert!(controls.tab_typing.slider_volume.is_enabled());
+        assert!(controls.tab_typing.btn_test_sound.is_enabled());
     } else {
-        assert!(!controls.combo_switch_type.is_enabled());
-        assert!(!controls.slider_volume.is_enabled());
-        assert!(!controls.btn_test_sound.is_enabled());
+        assert!(!controls.tab_typing.combo_switch_type.is_enabled());
+        assert!(!controls.tab_typing.slider_volume.is_enabled());
+        assert!(!controls.tab_typing.btn_test_sound.is_enabled());
     }
 
     unsafe {

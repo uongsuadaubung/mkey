@@ -80,6 +80,7 @@ pub fn update_tray_icon(is_vietnamese: bool) {
     {
         ui.tray.set_vietnamese_mode(is_vietnamese);
         ui.controls
+            .header
             .combo_mode
             .set_selected(if is_vietnamese { 0 } else { 1 });
     }

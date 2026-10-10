@@ -151,7 +151,7 @@ pub fn apply_ui_theme(hwnd: isize, controls: &ControlPanelControls, is_dark: boo
         UpdateWindow(controls.tab_bar.hwnd());
 
         // Theme ListView
-        controls.list_macro.apply_theme(is_dark);
+        controls.tab_macro.list_macro.apply_theme(is_dark);
 
         // Recursively invalidate and redraw entire dialog and all child controls cleanly
         RedrawWindow(
